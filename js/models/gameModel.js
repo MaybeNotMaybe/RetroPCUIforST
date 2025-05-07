@@ -9,6 +9,7 @@ class GameModel {
             flags: {},
             npcRelations: {}
         };
+        this.terminalHistory = [];
         this.locations = {
             "开始": {
                 description: "请输入'help'查看可用命令。",
@@ -59,6 +60,25 @@ class GameModel {
             }
         ];
     }
+
+    // 添加输出到历史记录
+    addToHistory(content) {
+        if (typeof content === 'string') {
+            this.terminalHistory.push(content);
+        } else {
+            console.error("历史记录只能添加字符串", content);
+        }
+    }
+    
+    // 获取完整的历史记录
+    getHistory() {
+        return this.terminalHistory;
+    }
+    
+    // 清除历史记录
+    clearHistory() {
+        this.terminalHistory = [];
+    }
     
     powerOn() {
         this.isOn = true;
@@ -67,6 +87,7 @@ class GameModel {
     
     powerOff() {
         this.isOn = false;
+        this.clearHistory();
         return "系统关闭中...\n再见。";
     }
     

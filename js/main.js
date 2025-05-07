@@ -6,6 +6,8 @@ window.onload = function() {
         const model = new GameModel();
         const view = new GameView();
         const controller = new GameController(model, view);
+        
+        // 关键：确保不要在这里加入自动开机的代码
         console.log("游戏初始化完成");
     } catch (error) {
         console.error("游戏初始化失败:", error);
