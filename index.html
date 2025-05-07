@@ -6,52 +6,221 @@
     <title>复古 PC 终端冒险</title>
     <!-- 引入CSS -->
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/floppy-drive.css">
 </head>
 <body>
-    <div class="computer-case">
-        <div class="screen-container">
-            <!-- 主终端区域 -->
-            <div class="main-terminal-area">
-                <div class="screen">
-                    <div class="terminal" id="terminal">
-                        <div class="output" id="output"></div>
-                        <div class="prompt">
-                            <span class="prompt-symbol">></span>
-                            <input type="text" id="commandInput" spellcheck="false" autocomplete="off">
-                            <span class="cursor" id="cursor"></span>
+    <div class="computer-wrapper">
+        <div class="computer-case">
+            <div class="screen-container">
+                <!-- 主终端区域 -->
+                <div class="main-terminal-area">
+                    <div class="screen">
+                        <div class="terminal" id="terminal">
+                            <div class="output" id="output"></div>
+                            <div class="prompt">
+                                <span class="prompt-symbol">></span>
+                                <input type="text" id="commandInput" spellcheck="false" autocomplete="off">
+                                <span class="cursor" id="cursor"></span>
+                            </div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- 功能按钮区域 - 两列，每列4个 -->
+                <div class="buttons-panel">
+                    <div class="buttons-column">
+                        <div class="function-button"></div>
+                        <div class="function-button"></div>
+                        <div class="function-button"></div>
+                        <div class="function-button"></div>
+                    </div>
+                    <div class="buttons-column">
+                        <div class="function-button"></div>
+                        <div class="function-button"></div>
+                        <div class="function-button"></div>
+                        <div class="function-button"></div>
                     </div>
                 </div>
             </div>
             
-            <!-- 功能按钮区域 - 两列，每列4个 -->
-            <div class="buttons-panel">
-                <div class="buttons-column">
-                    <div class="function-button"></div>
-                    <div class="function-button"></div>
-                    <div class="function-button"></div>
-                    <div class="function-button"></div>
+            <div class="control-panel">
+                <div class="power-button" id="powerButton">POWER</div>
+                <div class="color-toggle-container">
+                    <div class="color-toggle" id="colorToggle">
+                        <div class="toggle-slider"></div>
+                    </div>
+                    <div class="color-toggle-label">COLOR</div>
                 </div>
-                <div class="buttons-column">
-                    <div class="function-button"></div>
-                    <div class="function-button"></div>
-                    <div class="function-button"></div>
-                    <div class="function-button"></div>
+                <div class="status-lights">
+                    <div class="status-light" id="diskLight"></div>
+                    <div class="status-light" id="networkLight"></div>
                 </div>
             </div>
         </div>
         
-        <div class="control-panel">
-            <div class="power-button" id="powerButton">POWER</div>
-            <div class="color-toggle-container">
-                <div class="color-toggle" id="colorToggle">
-                    <div class="toggle-slider"></div>
+        <!-- 软盘驱动器区域 -->
+        <div class="floppy-drives-container">
+            <!-- A: 驱动器 (永久插入) -->
+            <div class="drive-container">
+                <div class="floppy-drive drive-a">
+                    <!-- 软盘插入口 -->
+                    <div class="floppy-slot disk-inserted">
+                        <!-- 软盘边缘 -->
+                        <div class="floppy-disk">
+                            <svg viewBox="0 0 170 5" xmlns="http://www.w3.org/2000/svg">
+                                <!-- 软盘外壳主体 -->
+                                <rect x="0" y="0" width="170" height="5" fill="#222" stroke="#333" stroke-width="0.2"/>
+                                
+                                <!-- 中央读写窗口 -->
+                                <rect x="35" y="1" width="100" height="3" fill="#111" stroke="none"/>
+                                
+                                <!-- 左右导向边缘 -->
+                                <rect x="5" y="1" width="25" height="3" fill="#2a2a2a" stroke="none"/>
+                                <rect x="140" y="1" width="25" height="3" fill="#2a2a2a" stroke="none"/>
+                                
+                                <!-- 中央金属滑片 -->
+                                <rect x="70" y="1.5" width="30" height="2" fill="#444" stroke="none"/>
+                                
+                                <!-- 左侧标记 -->
+                                <circle cx="20" cy="2.5" r="1" fill="#333" stroke="none"/>
+                                
+                                <!-- 高光效果 -->
+                                <rect x="0" y="0" width="170" height="2.5" fill="url(#floppyGradientA)" opacity="0.15"/>
+                                
+                                <!-- 渐变定义 -->
+                                <defs>
+                                    <linearGradient id="floppyGradientA" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#fff" stop-opacity="0.3"/>
+                                        <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        
+                        <!-- 插入指示三角形 -->
+                        <div class="insert-indicator"></div>
+                        
+                        <!-- 插入口SVG细节 -->
+                        <svg class="slot-detail" viewBox="0 0 180 10" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="0" y="0" width="180" height="10" fill="none" stroke="#444" stroke-width="0.5" rx="1" />
+                            <line x1="0" y1="1" x2="180" y2="1" stroke="#111" stroke-width="0.5" />
+                            <line x1="0" y1="9" x2="180" y2="9" stroke="#333" stroke-width="0.5" />
+                        </svg>
+                    </div>
+                    
+                    <!-- 弹出按钮 -->
+                    <div class="eject-button disabled">
+                        <div class="eject-arrow"></div>
+                    </div>
+                    
+                    <!-- 驱动器指示灯 -->
+                    <div class="drive-light active"></div>
+                    
+                    <!-- 驱动器标签 -->
+                    <div class="drive-label">A:</div>
+                    
+                    <!-- 驱动器前面板纹理 -->
+                    <div class="drive-texture"></div>
                 </div>
-                <div class="color-toggle-label">COLOR</div>
             </div>
-            <div class="status-lights">
-                <div class="status-light" id="diskLight"></div>
-                <div class="status-light" id="networkLight"></div>
+            
+            <!-- B: 驱动器 (可交互) -->
+            <div class="drive-container">
+                <div class="floppy-drive drive-b">
+                    <!-- 软盘插入口 -->
+                    <div class="floppy-slot" id="floppySlotB">
+                        <!-- 软盘边缘 -->
+                        <div class="floppy-disk" id="floppyDiskB">
+                            <svg viewBox="0 0 170 5" xmlns="http://www.w3.org/2000/svg">
+                                <!-- 软盘外壳主体 -->
+                                <rect x="0" y="0" width="170" height="5" fill="#222" stroke="#333" stroke-width="0.2"/>
+                                
+                                <!-- 中央读写窗口 -->
+                                <rect x="35" y="1" width="100" height="3" fill="#111" stroke="none"/>
+                                
+                                <!-- 左右导向边缘 -->
+                                <rect x="5" y="1" width="25" height="3" fill="#2a2a2a" stroke="none"/>
+                                <rect x="140" y="1" width="25" height="3" fill="#2a2a2a" stroke="none"/>
+                                
+                                <!-- 中央金属滑片 -->
+                                <rect x="70" y="1.5" width="30" height="2" fill="#444" stroke="none"/>
+                                
+                                <!-- 左侧标记 -->
+                                <circle cx="20" cy="2.5" r="1" fill="#333" stroke="none"/>
+                                
+                                <!-- 高光效果 -->
+                                <rect x="0" y="0" width="170" height="2.5" fill="url(#floppyGradientB)" opacity="0.15"/>
+                                
+                                <!-- 渐变定义 -->
+                                <defs>
+                                    <linearGradient id="floppyGradientB" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#fff" stop-opacity="0.3"/>
+                                        <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        
+                        <!-- 插入指示三角形 -->
+                        <div class="insert-indicator"></div>
+                        
+                        <!-- 插入口SVG细节 -->
+                        <svg class="slot-detail" viewBox="0 0 180 10" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="0" y="0" width="180" height="10" fill="none" stroke="#444" stroke-width="0.5" rx="1" />
+                            <line x1="0" y1="1" x2="180" y2="1" stroke="#111" stroke-width="0.5" />
+                            <line x1="0" y1="9" x2="180" y2="9" stroke="#333" stroke-width="0.5" />
+                        </svg>
+                    </div>
+                    
+                    <!-- 弹出按钮 -->
+                    <div class="eject-button disabled" id="ejectButtonB">
+                        <div class="eject-arrow"></div>
+                    </div>
+                    
+                    <!-- 驱动器指示灯 -->
+                    <div class="drive-light" id="driveLightB"></div>
+                    
+                    <!-- 驱动器标签 -->
+                    <div class="drive-label">B:</div>
+                    
+                    <!-- 驱动器前面板纹理 -->
+                    <div class="drive-texture"></div>
+                </div>
+                
+                <!-- 完整的软盘 SVG - 只显示上半部分 -->
+                <div class="full-floppy" id="fullFloppyB">
+                    <svg viewBox="0 0 180 140" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 软盘主体 -->
+                        <rect x="10" y="10" width="160" height="120" rx="3" fill="#222" stroke="#444" stroke-width="1"/>
+                        
+                        <!-- 软盘标签区域 -->
+                        <rect x="20" y="15" width="140" height="30" fill="#1a1a1a" stroke="#333" stroke-width="0.5"/>
+                        
+                        <!-- 标签文字 -->
+                        <text x="90" y="35" font-family="monospace" font-size="14" font-weight="bold" fill="#0071c5" text-anchor="middle">新消息</text>
+                        
+                        <!-- 读写窗口 -->
+                        <rect x="20" y="55" width="140" height="15" fill="#111" stroke="#333" stroke-width="0.5"/>
+                        
+                        <!-- 中心金属部分 -->
+                        <circle cx="90" cy="95" r="10" fill="#333" stroke="#444" stroke-width="0.5"/>
+                        <circle cx="90" cy="95" r="3" fill="#222" stroke="#333" stroke-width="0.5"/>
+                        
+                        <!-- 防写保护缺口 -->
+                        <rect x="150" y="60" width="10" height="15" fill="#111" stroke="#333" stroke-width="0.5"/>
+                        
+                        <!-- 边缘高光 -->
+                        <rect x="10" y="10" width="160" height="60" fill="url(#fullDiskGradient)" opacity="0.1"/>
+                        
+                        <!-- 渐变定义 -->
+                        <defs>
+                            <linearGradient id="fullDiskGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#fff" stop-opacity="0.5"/>
+                                <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
             </div>
         </div>
     </div>
@@ -62,5 +231,131 @@
     <script src="js/views/gameView.js"></script>
     <script src="js/controllers/gameController.js"></script>
     <script src="js/main.js"></script>
+    
+    <!-- B驱动器的JavaScript -->
+    <script>
+        // 获取B驱动器的元素
+        const floppySlotB = document.getElementById('floppySlotB');
+        const floppyDiskB = document.getElementById('floppyDiskB');
+        const ejectButtonB = document.getElementById('ejectButtonB');
+        const driveLightB = document.getElementById('driveLightB');
+        const fullFloppyB = document.getElementById('fullFloppyB');
+        
+        // 当前状态标志
+        let diskInserted = false;
+        let isProcessing = false; // 防止动画过程中重复点击
+        
+        // 插入软盘函数
+        function insertDisk() {
+            if (diskInserted || isProcessing) {
+                return; // 如果已经插入或正在处理中，不执行操作
+            }
+            
+            isProcessing = true;
+            
+            // 首先执行完整软盘的插入动画
+            fullFloppyB.classList.add('inserting-full');
+            
+            // 指示灯闪烁动画
+            driveLightB.classList.add('blinking');
+            
+            // 在完整软盘即将完成动画时显示边缘软盘
+            setTimeout(() => {
+                floppyDiskB.style.display = 'block';
+                floppyDiskB.classList.add('inserting');
+                floppySlotB.classList.add('disk-inserted');
+            }, 1000);
+            
+            // 插入完成后
+            setTimeout(() => {
+                isProcessing = false;
+                diskInserted = true;
+                
+                // 移除闪烁，保持常亮
+                driveLightB.classList.remove('blinking');
+                driveLightB.classList.add('active');
+                
+                // 启用弹出按钮
+                ejectButtonB.classList.remove('disabled');
+                
+                // 隐藏完整软盘
+                fullFloppyB.classList.add('hide-full-floppy');
+                fullFloppyB.classList.remove('inserting-full');
+                
+                // 触发磁盘活动事件
+                if (typeof EventBus !== 'undefined') {
+                    EventBus.emit('diskActivity');
+                }
+            }, 1500);
+        }
+        
+        // 弹出软盘函数
+        function ejectDisk() {
+            if (!diskInserted || isProcessing) {
+                return; // 如果未插入或正在处理中，不执行操作
+            }
+            
+            isProcessing = true;
+            floppyDiskB.classList.remove('inserting');
+            floppyDiskB.classList.add('ejecting');
+            floppySlotB.classList.remove('disk-inserted');
+            
+            // 显示完整软盘并开始弹出动画
+            fullFloppyB.classList.remove('hide-full-floppy');
+            fullFloppyB.classList.add('ejecting-full');
+            
+            // 指示灯闪烁动画
+            driveLightB.classList.remove('active');
+            driveLightB.classList.add('blinking');
+            
+            setTimeout(() => {
+                // 弹出完成后
+                isProcessing = false;
+                diskInserted = false;
+                
+                // 关闭指示灯
+                driveLightB.classList.remove('blinking');
+                driveLightB.classList.remove('active');
+                
+                // 重置软盘边缘
+                floppyDiskB.style.display = 'none';
+                floppyDiskB.classList.remove('ejecting');
+                
+                // 禁用弹出按钮
+                ejectButtonB.classList.add('disabled');
+                
+                // 重置完整软盘状态
+                setTimeout(() => {
+                    fullFloppyB.classList.remove('ejecting-full');
+                }, 100);
+                
+                // 触发磁盘活动事件
+                if (typeof EventBus !== 'undefined') {
+                    EventBus.emit('diskActivity');
+                }
+            }, 1500);
+        }
+        
+        // 点击插入口插入软盘
+        floppySlotB.addEventListener('click', function() {
+            if (!diskInserted && !isProcessing) {
+                insertDisk();
+            }
+        });
+        
+        // 点击完整软盘插入
+        fullFloppyB.addEventListener('click', function() {
+            if (!diskInserted && !isProcessing) {
+                insertDisk();
+            }
+        });
+        
+        // 点击弹出按钮弹出
+        ejectButtonB.addEventListener('click', function() {
+            if (diskInserted && !isProcessing && !ejectButtonB.classList.contains('disabled')) {
+                ejectDisk();
+            }
+        });
+    </script>
 </body>
 </html>

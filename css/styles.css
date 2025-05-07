@@ -23,6 +23,21 @@ body {
     overflow: hidden;
 }
 
+/* 增加计算机界面包装器样式 */
+.computer-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 800px;
+}
+
+/* 确保计算机外壳适应包装器宽度 */
+.computer-wrapper .computer-case {
+    width: 100%;
+    margin-bottom: 0;
+}
+
 /* 计算机外壳 - 固定4:3比例 */
 .computer-case {
     width: 800px;
@@ -564,9 +579,17 @@ body {
 
 /* 媒体查询，确保在较小屏幕上能完整显示 */
 @media (max-height: 650px), (max-width: 850px) {
+    .computer-wrapper {
+        width: 700px;
+    }
+    
     .computer-case {
         width: 700px;
         height: 525px;
+    }
+    
+    .floppy-drive {
+        height: 50px; /* 较小屏幕上减小高度 */
     }
     
     .ibm-logo {
@@ -580,9 +603,17 @@ body {
 }
 
 @media (max-height: 550px), (max-width: 750px) {
+    .computer-wrapper {
+        width: 600px;
+    }
+    
     .computer-case {
         width: 600px;
         height: 450px;
+    }
+    
+    .floppy-drive {
+        height: 45px; /* 更小屏幕上进一步减小高度 */
     }
     
     .ibm-logo {

@@ -1,0 +1,322 @@
+/* 软盘驱动器专用样式表 */
+
+/* 软盘驱动器容器 */
+.floppy-drives-container {
+    display: flex;
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* 驱动器容器 */
+.drive-container {
+    position: relative;
+    flex: 1;
+}
+
+/* 软盘驱动器外壳 */
+.floppy-drive {
+    width: 100%;
+    height: 60px;
+    background-color: #222;
+    border: 2px solid #444;
+    border-radius: 3px;
+    position: relative;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+}
+
+/* 软盘插入口 */
+.floppy-slot {
+    width: 240px; 
+    height: 13px; 
+    background-color: #0a0a0a;
+    border-radius: 1px;
+    margin-left: 35px;
+    margin-bottom: 10px;
+    position: relative;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+/* 插入指示三角形 */
+.insert-indicator {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 10px solid rgba(255, 255, 255, 0.85);
+    animation: bounce 1s ease-in-out infinite alternate;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* 三角形上下晃动动画 */
+@keyframes bounce {
+    from { transform: translate(-50%, -80%); }
+    to { transform: translate(-50%, -20%); }
+}
+
+/* 弹出按钮 */
+.eject-button {
+    width: 40px;
+    height: 27px;
+    background-color: #333;
+    border: 1px solid #555;
+    border-radius: 2px;
+    position: absolute;
+    right: 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 弹出按钮禁用状态 */
+.eject-button.disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.eject-button:not(.disabled):active {
+    background-color: #2a2a2a;
+    transform: translateY(1px);
+}
+
+/* 弹出按钮内的箭头 */
+.eject-arrow {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid #777;
+}
+
+/* 驱动器指示灯 */
+.drive-light {
+    width: 8px;
+    height: 8px;
+    background-color: #300;
+    border-radius: 50%;
+    position: absolute;
+    left: 15px;
+    bottom: 12px;
+    box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.drive-light.active {
+    background-color: #f00;
+    box-shadow: 0 0 5px #f00, inset 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 指示灯闪烁动画 */
+@keyframes blinkLight {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.drive-light.blinking {
+    animation: blinkLight 0.5s ease-in-out infinite;
+}
+
+/* 驱动器标签 */
+.drive-label {
+    position: absolute;
+    left: 10px; /* 靠左放置 */
+    top: 40%; /* 垂直居中 */
+    transform: translateY(-50%); /* 确保完全垂直居中 */
+    font-family: monospace;
+    font-size: 12px;
+    color: #999;
+    border: 1px solid #444; /* 添加边框 */
+    background-color: #222; /* 背景色 */
+    padding: 1px 4px; /* 添加内边距 */
+    border-radius: 2px; /* 圆角 */
+    width: 16px; /* 固定宽度 */
+    text-align: center; /* 文字居中 */
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.5); /* 内阴影效果 */
+}
+
+/* 软盘边缘 */
+.floppy-disk {
+    width: 225px; 
+    height: 7px; 
+    position: absolute;
+    left: 5px;
+    bottom: -20px;
+    display: none;
+}
+
+/* 软盘SVG确保完全填充父容器 */
+.floppy-disk svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* 完整软盘 */
+.full-floppy {
+    position: absolute;
+    width: 240px; /* 与插入口相同的宽度 */
+    height: 93px; /* 半高度 */
+    top: 40px;
+    left: 30px; /* 与插入口对齐 */
+    margin-left: 10px; /* 与插入口相同的左边距 */
+    cursor: pointer;
+    transition: transform 0.2s;
+    overflow: hidden; /* 隐藏底部部分 */
+}
+
+.full-floppy:hover {
+    transform: translateY(-5px);
+}
+
+/* 软盘渐隐效果 */
+.full-floppy:after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30px;
+    background: linear-gradient(to bottom, rgba(17,17,17,0) 0%, rgba(17,17,17,1) 100%);
+    pointer-events: none;
+}
+
+/* 完整软盘的插入动画 */
+@keyframes insertFullDisk {
+    0% { 
+        top: 40px; 
+        opacity: 1; 
+        clip-path: inset(0% 0% 0% 0%);
+    }
+    70% { 
+        top: 18px; 
+        opacity: 1; 
+        clip-path: inset(0% 0% 0% 0%);
+    }
+    100% { 
+        top: 18px; 
+        opacity: 0; 
+        clip-path: inset(0% 0% 100% 0%);
+    }
+}
+
+.inserting-full {
+    animation: insertFullDisk 1.5s forwards;
+    pointer-events: none;
+}
+
+/* 软盘插入/弹出动画 */
+@keyframes insertDisk {
+    from { bottom: -20px; }
+    to { bottom: 2.5px; }
+}
+
+@keyframes ejectDisk {
+    from { bottom: 2.5px; }
+    to { bottom: -20px; }
+}
+
+.inserting {
+    display: block;
+    animation: insertDisk 1.5s forwards;
+}
+
+.ejecting {
+    display: block;
+    animation: ejectDisk 1.5s forwards;
+}
+
+/* 弹出完整软盘的动画 */
+@keyframes ejectFullDisk {
+    0% { 
+        top: 18px; 
+        opacity: 0; 
+        clip-path: inset(100% 0% 0% 0%);
+    }
+    30% { 
+        top: 18px; 
+        opacity: 1; 
+        clip-path: inset(0% 0% 0% 0%);
+    }
+    100% { 
+        top: 40px; 
+        opacity: 1; 
+        clip-path: inset(0% 0% 0% 0%);
+    }
+}
+
+.ejecting-full {
+    display: block;
+    animation: ejectFullDisk 1.5s forwards;
+}
+
+/* 驱动器前面板纹理 */
+.drive-texture {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(90deg, 
+            rgba(255,255,255,0.03) 0%, 
+            rgba(255,255,255,0.05) 50%, 
+            rgba(255,255,255,0.03) 100%);
+    pointer-events: none;
+}
+
+/* 驱动器槽口边缘细节 */
+.slot-detail {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* 隐藏指示器当软盘已插入 */
+.disk-inserted .insert-indicator {
+    display: none;
+}
+
+/* 插入口悬停效果 */
+.floppy-slot:hover {
+    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+/* 隐藏完整软盘 */
+.hide-full-floppy {
+    display: none;
+}
+
+/* A盘特有样式 - 静态状态 */
+.drive-a .floppy-disk {
+    display: block;
+    bottom: 2.5px; /* 显示为已插入状态 */
+}
+
+.drive-a .drive-light {
+    background-color: #f00;
+    box-shadow: 0 0 5px #f00, inset 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+.drive-a .eject-button {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.drive-a .floppy-slot {
+    cursor: default;
+}
+
+.drive-a .insert-indicator {
+    display: none;
+}
