@@ -27,13 +27,13 @@ class GameModel {
         };
         
         // IBM SVG Logo路径
-        this.ibmLogoPath = '/assets/images/ibm-logo.svg';
+        this.ibmLogoPath = '/assets/images/imb-logo.svg';
 
         // 启动画面内容
         this.bootSequence = [
             {
                 type: "svg-logo",
-                content: "/assets/images/ibm-logo.svg"
+                content: "/assets/images/imb-logo.svg"
             },
             {
                 type: "text-center",
@@ -48,7 +48,7 @@ class GameModel {
             },
             {
                 type: "text-center",
-                content: "(C) Copyright IBM Corp 1981"
+                content: "(C) Copyright IMB Corp 1981"
             },
             {
                 type: "text-center",

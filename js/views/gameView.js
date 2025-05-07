@@ -64,9 +64,9 @@ class GameView {
                 switch(item.type) {
                     case 'svg-logo':
                         if (item.content && typeof item.content === 'string') {
-                            html = `<div class="ibm-logo"><img src="${item.content}" alt="IBM Logo"></div>`;
+                            html = `<div class="imb-logo"><img src="${item.content}" alt="imb Logo"></div>`;
                         } else {
-                            html = `<div class="ibm-logo">[IBM LOGO]</div>`;
+                            html = `<div class="imb-logo">[IMB LOGO]</div>`;
                         }
                         break;
                     case 'text-center':

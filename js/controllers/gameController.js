@@ -235,8 +235,8 @@ class GameController {
                     // 创建一个字符串变量，包含所有启动序列的HTML
                     let bootHTML = '';
                     
-                    // 添加IBM Logo
-                    bootHTML += `<div class="ibm-logo"><img src="${this.model.bootSequence[0].content}" alt="IBM Logo"></div>`;
+                    // 添加imb Logo
+                    bootHTML += `<div class="imb-logo"><img src="${this.model.bootSequence[0].content}" alt="IMB Logo"></div>`;
                     
                     // 添加Personal Computer
                     bootHTML += `<div class="boot-container"><div class="text-center">${this.model.bootSequence[1].content}</div></div>`;

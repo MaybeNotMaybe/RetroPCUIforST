@@ -507,8 +507,8 @@ body {
     border: 2px solid #ffb000;
 }
 
-/* 琥珀色模式下的IBM Logo */
-.screen.amber-mode .ibm-logo img {
+/* 琥珀色模式下的imb Logo */
+.screen.amber-mode .imb-logo img {
     filter: invert(70%) sepia(80%) saturate(1000%) hue-rotate(1deg) brightness(107%) contrast(104%);
 }
 
@@ -535,8 +535,8 @@ body {
     font-family: 'VT323', monospace;
 }
 
-/* IBM LOGO SVG样式 */
-.ibm-logo {
+/* imb LOGO SVG样式 */
+.imb-logo {
     display: block;
     width: 100%;
     max-width: 400px; /* 减小logo尺寸确保完全显示 */
@@ -545,19 +545,19 @@ body {
     text-align: center;
 }
 
-.ibm-logo img {
+.imb-logo img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     filter: invert(83%) sepia(28%) saturate(1166%) hue-rotate(86deg) brightness(107%) contrast(104%); /* 使图像变为绿色 */
 }
 
-.ibm-logo svg {
+.imb-logo svg {
     width: 100%;
     height: 100%;
 }
 
-.ibm-logo svg path {
+.imb-logo svg path {
     fill: #33ff33;
 }
 
@@ -592,7 +592,7 @@ body {
         height: 50px; /* 较小屏幕上减小高度 */
     }
     
-    .ibm-logo {
+    .imb-logo {
         max-width: 320px;
         height: 80px;
     }
@@ -616,7 +616,7 @@ body {
         height: 45px; /* 更小屏幕上进一步减小高度 */
     }
     
-    .ibm-logo {
+    .imb-logo {
         max-width: 280px;
         height: 70px;
     }
