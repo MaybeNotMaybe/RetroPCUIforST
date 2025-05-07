@@ -97,13 +97,8 @@ class GameView {
             }
         };
         
-        if (skipDisplay) {
-            // 如果是跳过显示，直接执行
-            displayNext();
-        } else {
-            // 否则使用延迟
-            setTimeout(displayNext, delay);
-        }
+        // 开始显示
+        setTimeout(displayNext, delay);
     }
     
     powerOff() {
@@ -130,7 +125,14 @@ class GameView {
         // 逐行添加历史记录
         for (let line of history) {
             if (typeof line === 'string') {
-                this.output.innerHTML += line + "\n";
+                // 检查是否包含HTML标签（如启动序列）
+                if (line.includes('<div') || line.includes('<img')) {
+                    // 直接添加HTML内容
+                    this.output.innerHTML += line;
+                } else {
+                    // 普通文本行，添加换行符
+                    this.output.innerHTML += line + "\n";
+                }
             }
         }
         
