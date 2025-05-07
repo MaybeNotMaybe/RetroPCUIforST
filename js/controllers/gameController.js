@@ -37,10 +37,15 @@ class GameController {
 
     // 保存设置到localStorage
     saveSettings() {
+        // 获取软盘状态（如果软盘控制器存在）
+        const floppyDriveState = this.floppyController ? this.floppyController.getFloppyState() : null;
+        
         const settings = {
             isPowerOn: this.model.isOn,
             colorMode: document.getElementById('colorToggle').classList.contains('amber') ? 'amber' : 'green',
-            terminalHistory: this.model.isOn ? this.model.getHistory() : []
+            terminalHistory: this.model.isOn ? this.model.getHistory() : [],
+            // 关键: 添加软盘状态到保存的设置中
+            floppyDriveState: floppyDriveState
         };
         
         // 只有开机状态才保存历史记录
