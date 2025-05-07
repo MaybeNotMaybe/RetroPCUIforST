@@ -28,6 +28,9 @@ class GameController {
         // 添加颜色切换功能
         this.setupColorToggle();
 
+        // 立即初始化软盘状态
+        this.initializeFloppyState();
+
         // 设置软盘驱动器控制
         this.setupFloppyDriveControls();
 
@@ -39,6 +42,10 @@ class GameController {
 
         // 从localStorage加载设置
         this.loadSettings();
+
+        setTimeout(() => {
+            document.querySelector('.floppy-drives-container').classList.add('floppy-initialized');
+        }, 100);
     }
 
     // 保存设置到localStorage
@@ -175,6 +182,9 @@ class GameController {
                         } else {
                             this.view.driveLightB.classList.remove('active');
                         }
+                    }else {
+                        // 如果没有插入软盘，确保完整软盘正确显示
+                        this.view.fullFloppyB.classList.remove('hide-full-floppy');
                     }
                 }
                 
@@ -383,6 +393,32 @@ class GameController {
             // 保存颜色模式设置
             this.saveSettings();
         });
+    }
+
+    initializeFloppyState() {
+        try {
+            const savedSettings = localStorage.getItem('terminalSettings');
+            
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                
+                // 仅处理软盘状态
+                if (settings.floppyDriveState && settings.floppyDriveState.diskInserted) {
+                    // 立即隐藏完整软盘
+                    this.view.fullFloppyB.classList.add('hide-full-floppy');
+                    
+                    // 立即设置软盘位置
+                    this.view.floppyDiskB.style.display = 'block';
+                    this.view.floppyDiskB.style.bottom = '2.5px';
+                    this.view.floppySlotB.classList.add('disk-inserted');
+                } else {
+                    // 如果没有插入软盘，确保完整软盘可见
+                    this.view.fullFloppyB.classList.remove('init-hidden');
+                }
+            }
+        } catch (error) {
+            console.error("初始化软盘状态失败:", error);
+        }
     }
 
     setupFloppyDriveControls() {
