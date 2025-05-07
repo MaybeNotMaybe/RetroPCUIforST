@@ -173,6 +173,23 @@
     overflow: hidden; /* 隐藏底部部分 */
 }
 
+/* 初始隐藏类 - 防止软盘SVG闪烁 */
+.init-hidden {
+    opacity: 0; /* 使用opacity而不是display:none，以便动画能正常工作 */
+}
+
+/* 软盘驱动器初始化完成后会添加此类 */
+.floppy-initialized .full-floppy {
+    opacity: 1;
+    transition: opacity 0.3s;
+}
+
+/* 调整floppy-initialized类的过渡效果，使其更平滑 */
+.floppy-initialized .full-floppy.hide-full-floppy {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
 .full-floppy:hover {
     transform: translateY(-5px);
 }
