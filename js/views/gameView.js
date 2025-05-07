@@ -10,6 +10,13 @@ class GameView {
         this.diskLight = document.getElementById('diskLight');
         this.networkLight = document.getElementById('networkLight');
         this.prompt = document.querySelector('.prompt');
+
+        // 软盘驱动器UI元素
+        this.floppySlotB = document.getElementById('floppySlotB');
+        this.floppyDiskB = document.getElementById('floppyDiskB');
+        this.ejectButtonB = document.getElementById('ejectButtonB');
+        this.driveLightB = document.getElementById('driveLightB');
+        this.fullFloppyB = document.getElementById('fullFloppyB');
         
         // 添加屏幕关闭效果的类
         this.screen.classList.add('screen-off');
@@ -209,5 +216,72 @@ class GameView {
         
         // 初始更新
         setTimeout(updateCursorPosition, 100);
+    }
+
+    startFloppyInsertAnimation(callback) {
+        // 首先执行完整软盘的插入动画
+        this.fullFloppyB.classList.add('inserting-full');
+        
+        // 指示灯闪烁动画
+        this.driveLightB.classList.add('blinking');
+        
+        // 在完整软盘即将完成动画时显示边缘软盘
+        setTimeout(() => {
+            this.floppyDiskB.style.display = 'block';
+            this.floppyDiskB.classList.add('inserting');
+            this.floppySlotB.classList.add('disk-inserted');
+        }, 1000);
+        
+        // 插入完成后
+        setTimeout(() => {
+            // 移除闪烁，保持常亮
+            this.driveLightB.classList.remove('blinking');
+            this.driveLightB.classList.add('active');
+            
+            // 启用弹出按钮
+            this.ejectButtonB.classList.remove('disabled');
+            
+            // 隐藏完整软盘
+            this.fullFloppyB.classList.add('hide-full-floppy');
+            this.fullFloppyB.classList.remove('inserting-full');
+            
+            // 执行回调
+            if (callback) callback();
+        }, 1500);
+    }
+    
+    startFloppyEjectAnimation(callback) {
+        this.floppyDiskB.classList.remove('inserting');
+        this.floppyDiskB.classList.add('ejecting');
+        this.floppySlotB.classList.remove('disk-inserted');
+        
+        // 显示完整软盘并开始弹出动画
+        this.fullFloppyB.classList.remove('hide-full-floppy');
+        this.fullFloppyB.classList.add('ejecting-full');
+        
+        // 指示灯闪烁动画
+        this.driveLightB.classList.remove('active');
+        this.driveLightB.classList.add('blinking');
+        
+        setTimeout(() => {
+            // 关闭指示灯
+            this.driveLightB.classList.remove('blinking');
+            this.driveLightB.classList.remove('active');
+            
+            // 重置软盘边缘
+            this.floppyDiskB.style.display = 'none';
+            this.floppyDiskB.classList.remove('ejecting');
+            
+            // 禁用弹出按钮
+            this.ejectButtonB.classList.add('disabled');
+            
+            // 重置完整软盘状态
+            setTimeout(() => {
+                this.fullFloppyB.classList.remove('ejecting-full');
+            }, 100);
+            
+            // 执行回调
+            if (callback) callback();
+        }, 1500);
     }
 }
