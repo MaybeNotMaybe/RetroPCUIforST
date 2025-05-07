@@ -16,28 +16,49 @@ body {
     overflow: hidden;
 }
 
-/* 计算机外壳 */
+/* 计算机外壳 - 4:3比例 */
 .computer-case {
-    width: 90vw;
-    max-width: 800px;
-    height: 85vh;
+    width: 80vmin;
+    height: 60vmin; /* 4:3比例 */
     background-color: #222;
     border-radius: 10px;
     border: 2px solid #444;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
     padding: 20px;
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
-/* 屏幕 */
-.screen {
-    background-color: #000;
+/* 屏幕和按钮的容器 */
+.screen-container {
+    display: flex;
     width: 100%;
     height: calc(100% - 50px);
-    overflow: hidden;
-    position: relative;
+    background-color: #000;
     border: 2px inset #444;
     border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 主终端区域 - 保持1:1比例 */
+.main-terminal-area {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 屏幕区域 - 1:1比例 */
+.screen {
+    width: 100%;
+    height: 0;
+    padding-bottom: 100%; /* 创建1:1比例的正方形 */
+    position: relative;
+    background-color: #000;
+    overflow: hidden;
 }
 
 /* CRT效果 */
@@ -79,7 +100,9 @@ body {
     height: 100%;
     padding: 15px;
     overflow-y: auto;
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
     z-index: 5;
     text-shadow: 0 0 5px rgba(51, 255, 51, 0.8);
     display: flex;
@@ -99,6 +122,7 @@ body {
 .prompt {
     display: flex;
     font-size: 1.2rem;
+    width: 100%;
 }
 
 .prompt-symbol {
@@ -115,6 +139,43 @@ body {
     width: 100%;
     outline: none;
     text-shadow: 0 0 5px rgba(51, 255, 51, 0.8);
+}
+
+/* 按钮面板区域 */
+.buttons-panel {
+    width: 100px;
+    height: 100%;
+    display: flex;
+    padding: 15px 5px;
+    gap: 5px;
+    background-color: #191919;
+    border-left: 2px solid #333;
+}
+
+/* 按钮列 */
+.buttons-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* 功能按钮 */
+.function-button {
+    flex: 1;
+    background-color: #333;
+    border: 2px outset #444;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.function-button:hover {
+    background-color: #3a3a3a;
+}
+
+.function-button:active {
+    border-style: inset;
+    background-color: #2a2a2a;
 }
 
 /* 控制面板 */

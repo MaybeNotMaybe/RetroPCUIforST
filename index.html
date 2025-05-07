@@ -11,16 +11,38 @@
 </head>
 <body>
     <div class="computer-case">
-        <div class="screen">
-            <div class="terminal" id="terminal">
-                <div class="output" id="output"></div>
-                <div class="prompt">
-                    <span class="prompt-symbol">></span>
-                    <input type="text" id="commandInput" spellcheck="false" autocomplete="off">
-                    <span class="cursor" id="cursor"></span>
+        <div class="screen-container">
+            <!-- 主终端区域 - 1:1比例 -->
+            <div class="main-terminal-area">
+                <div class="screen">
+                    <div class="terminal" id="terminal">
+                        <div class="output" id="output"></div>
+                        <div class="prompt">
+                            <span class="prompt-symbol">></span>
+                            <input type="text" id="commandInput" spellcheck="false" autocomplete="off">
+                            <span class="cursor" id="cursor"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 功能按钮区域 - 两列，每列4个 -->
+            <div class="buttons-panel">
+                <div class="buttons-column">
+                    <div class="function-button"></div>
+                    <div class="function-button"></div>
+                    <div class="function-button"></div>
+                    <div class="function-button"></div>
+                </div>
+                <div class="buttons-column">
+                    <div class="function-button"></div>
+                    <div class="function-button"></div>
+                    <div class="function-button"></div>
+                    <div class="function-button"></div>
                 </div>
             </div>
         </div>
+        
         <div class="control-panel">
             <div class="power-button" id="powerButton"></div>
             <div class="status-lights">
