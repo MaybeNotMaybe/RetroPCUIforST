@@ -23,14 +23,29 @@ class GameView {
         this.screen.classList.add('screen-on');
         this.clear();
         this.input.disabled = true;
+        
+        // 根据当前设置应用正确的颜色模式
+        const colorToggle = document.getElementById('colorToggle');
+        if (colorToggle.classList.contains('amber')) {
+            this.screen.classList.remove('green-mode');
+            this.screen.classList.add('amber-mode');
+        } else {
+            this.screen.classList.remove('amber-mode');
+            this.screen.classList.add('green-mode');
+        }
     }
     
-    displayBootSequence(bootSequence, callback) {
-        let delay = 600;
+    displayBootSequence(bootSequence, callback, skipDisplay = false) {
+        let delay = 300;
         let index = 0;
         
         // 确保滚动到顶部
         this.output.scrollTop = 0;
+        
+        if (!skipDisplay) {
+            // 清空输出区域，准备显示启动序列
+            this.clear();
+        }
         
         const displayNext = () => {
             if (index < bootSequence.length) {
@@ -41,12 +56,10 @@ class GameView {
                 
                 switch(item.type) {
                     case 'svg-logo':
-                        // 确保content直接是有效的路径
                         if (item.content && typeof item.content === 'string') {
                             html = `<div class="ibm-logo"><img src="${item.content}" alt="IBM Logo"></div>`;
                         } else {
-                            console.error("无效的IBM Logo路径:", item.content);
-                            html = `<div class="ibm-logo">[IBM LOGO]</div>`; // 回退显示
+                            html = `<div class="ibm-logo">[IBM LOGO]</div>`;
                         }
                         break;
                     case 'text-center':
@@ -59,25 +72,38 @@ class GameView {
                         html = `<div class="boot-container">${item.content}</div>`;
                 }
                 
-                this.output.innerHTML += html;
-
-                // 添加内容后立即滚动到底部
-                this.output.scrollTop = this.output.scrollHeight;
+                if (!skipDisplay) {
+                    this.output.innerHTML += html;
+                    this.output.scrollTop = this.output.scrollHeight;
+                }
                 
                 index++;
-                setTimeout(displayNext, 200);
+                
+                if (skipDisplay) {
+                    // 跳过显示过程，直接处理下一项
+                    displayNext();
+                } else {
+                    setTimeout(displayNext, 200);
+                }
             } else {
                 // 启动序列完成后增加一个空行
-                this.output.innerHTML += '<div class="boot-container">&nbsp;</div>';
-                // 确保滚动到底部
-                this.output.scrollTop = this.output.scrollHeight;
+                if (!skipDisplay) {
+                    this.output.innerHTML += '<div class="boot-container">&nbsp;</div>';
+                    this.output.scrollTop = this.output.scrollHeight;
+                }
+                
                 // 启动序列完成
                 if (callback) callback();
             }
         };
         
-        // 开始显示
-        setTimeout(displayNext, delay);
+        if (skipDisplay) {
+            // 如果是跳过显示，直接执行
+            displayNext();
+        } else {
+            // 否则使用延迟
+            setTimeout(displayNext, delay);
+        }
     }
     
     powerOff() {
@@ -90,13 +116,26 @@ class GameView {
             this.clear();
             return;
         }
-
-        if (!text.endsWith("\n")) {
-            text += "\n";
-        }
         
         this.output.innerHTML += text + "\n";
-        this.output.scrollTop = this.output.scrollHeight; // 只滚动输出区域
+        this.output.scrollTop = this.output.scrollHeight;
+    }
+
+    // 恢复完整历史记录
+    restoreHistory(history) {
+        this.clear();
+        
+        if (!history || history.length === 0) return;
+        
+        // 逐行添加历史记录
+        for (let line of history) {
+            if (typeof line === 'string') {
+                this.output.innerHTML += line + "\n";
+            }
+        }
+        
+        // 滚动到底部
+        this.output.scrollTop = this.output.scrollHeight;
     }
     
     clear() {

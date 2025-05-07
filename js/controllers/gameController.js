@@ -4,6 +4,12 @@ class GameController {
     constructor(model, view) {
         this.model = model;
         this.view = view;
+
+        // 设置输出回调
+        this.view.onOutputAdded = (text) => {
+            this.model.addToHistory(text);
+            this.saveSettings();
+        };
         
         // 绑定事件
         document.getElementById('powerButton').addEventListener('click', () => this.togglePower());
@@ -21,24 +27,132 @@ class GameController {
 
         // 添加颜色切换功能
         this.setupColorToggle();
+
+        // 从localStorage加载设置
+        this.loadSettings();
         
         // 添加调试日志
         console.log("游戏控制器已初始化");
+
+        // 从localStorage加载设置
+        this.loadSettings();
+    }
+
+    // 保存设置到localStorage
+    saveSettings() {
+        const settings = {
+            isPowerOn: this.model.isOn,
+            colorMode: document.getElementById('colorToggle').classList.contains('amber') ? 'amber' : 'green'
+        };
+        
+        // 只有开机状态才保存历史记录
+        if (this.model.isOn) {
+            settings.terminalHistory = this.model.getHistory();
+        } else {
+            // 关机状态不保存历史记录
+            settings.terminalHistory = [];
+        }
+        
+        localStorage.setItem('terminalSettings', JSON.stringify(settings));
+        console.log("设置已保存:", settings);
+    }
+    
+    // 从localStorage加载设置
+    loadSettings() {
+        try {
+            const savedSettings = localStorage.getItem('terminalSettings');
+            
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                
+                // 设置颜色模式
+                const colorToggle = document.getElementById('colorToggle');
+                const toggleSlider = colorToggle.querySelector('.toggle-slider');
+                
+                if (settings.colorMode === 'amber') {
+                    colorToggle.classList.add('amber');
+                    
+                    // 如果是开机状态，将滑块变为琥珀色
+                    if (settings.isPowerOn) {
+                        toggleSlider.style.backgroundColor = '#ffb000';
+                        toggleSlider.style.left = 'calc(100% - 16px)';
+                    } else {
+                        toggleSlider.style.backgroundColor = '#666';
+                        toggleSlider.style.left = 'calc(100% - 16px)';
+                    }
+                } else {
+                    colorToggle.classList.remove('amber');
+                    
+                    // 如果是开机状态，将滑块变为绿色
+                    if (settings.isPowerOn) {
+                        toggleSlider.style.backgroundColor = '#33ff33';
+                        toggleSlider.style.left = '2px';
+                    } else {
+                        toggleSlider.style.backgroundColor = '#666';
+                        toggleSlider.style.left = '2px';
+                    }
+                }
+                
+                // 设置初始电源状态
+                if (settings.isPowerOn && settings.terminalHistory && settings.terminalHistory.length > 0) {
+                    // 恢复开机状态
+                    this.model.isOn = true;
+                    this.model.terminalHistory = settings.terminalHistory;
+                    
+                    document.getElementById('powerButton').classList.add('on');
+                    document.querySelector('.screen').classList.remove('screen-off');
+                    document.querySelector('.screen').classList.add('screen-on');
+                    document.getElementById('diskLight').classList.add('active-green');
+                    
+                    // 应用颜色模式
+                    const screen = document.querySelector('.screen');
+                    if (settings.colorMode === 'amber') {
+                        screen.classList.remove('green-mode');
+                        screen.classList.add('amber-mode');
+                    } else {
+                        screen.classList.remove('amber-mode');
+                        screen.classList.add('green-mode');
+                    }
+                    
+                    // 显示命令行并启用输入
+                    document.querySelector('.prompt').classList.remove('hidden');
+                    this.view.input.disabled = false;
+                    
+                    // 恢复终端历史内容
+                    this.view.restoreHistory(settings.terminalHistory);
+                    
+                    setTimeout(() => {
+                        this.view.input.focus();
+                    }, 100);
+                } else {
+                    // 确保关机状态
+                    this.model.isOn = false;
+                    this.model.clearHistory(); // 确保历史被清除
+                    
+                    document.getElementById('powerButton').classList.remove('on');
+                    document.querySelector('.screen').classList.add('screen-off');
+                    document.querySelector('.screen').classList.remove('screen-on');
+                    document.querySelector('.prompt').classList.add('hidden');
+                    this.view.input.disabled = true;
+                    
+                    // 清空显示
+                    this.view.clear();
+                }
+            }
+        } catch (error) {
+            console.error("加载设置失败:", error);
+        }
     }
     
     togglePower() {
         if (!this.model.isOn) {
+            // 确保开机前清除历史记录
+            this.model.clearHistory();
+            
             this.model.isOn = true;
-
-            // 添加电源开启类，用于控制颜色滑块状态
-            document.body.classList.add('power-on');
             
             // 改变电源按钮样式
             document.getElementById('powerButton').classList.add('on');
-
-            // 根据滑块位置应用正确的颜色模式
-            const colorToggle = document.getElementById('colorToggle');
-            const screen = document.querySelector('.screen');
             
             // 开始硬盘闪烁
             document.getElementById('diskLight').classList.add('disk-flashing');
@@ -47,16 +161,17 @@ class GameController {
             document.querySelector('.screen').classList.remove('screen-off');
             
             this.view.powerOn();
+            this.view.clear(); // 确保屏幕是空的
             
             // 显示启动序列
             this.view.displayBootSequence(this.model.bootSequence, () => {
-                // 启动序列完成后，显示系统准备就绪的提示
                 setTimeout(() => {
-                    // 停止硬盘闪烁并设置为绿色常亮
                     document.getElementById('diskLight').classList.remove('disk-flashing');
                     document.getElementById('diskLight').classList.add('active-green');
                     
-                    this.view.displayOutput(this.model.locations[this.model.currentLocation].description);
+                    // 显示当前位置描述
+                    const locationText = this.model.locations[this.model.currentLocation].description;
+                    this.view.displayOutput(locationText);
                     
                     // 显示命令行
                     document.querySelector('.prompt').classList.remove('hidden');
@@ -64,14 +179,15 @@ class GameController {
                     // 启用输入
                     this.view.input.disabled = false;
                     this.view.input.focus();
-                }, 500); // 短暂延迟后显示提示
+                    
+                    // 保存设置
+                    this.saveSettings();
+                }, 500);
             });
             
             console.log("系统已开启");
         } else {
-            // 移除电源开启类
-            document.body.classList.remove('power-on');
-
+            // 显示关机消息
             this.view.displayOutput(this.model.powerOff());
             
             // 改变电源按钮样式
@@ -91,6 +207,9 @@ class GameController {
             setTimeout(() => {
                 document.querySelector('.screen').classList.add('screen-off');
                 this.view.powerOff();
+                
+                // 保存关机状态
+                this.saveSettings();
             }, 1000);
             
             console.log("系统已关闭");
@@ -102,20 +221,23 @@ class GameController {
         this.view.input.value = '';
         
         if (command.trim() !== '') {
-            console.log("处理命令:", command);
-            this.view.displayOutput(`> ${command}`);
+            // 显示用户输入
+            const inputText = `> ${command}`;
+            this.view.displayOutput(inputText);
+            this.model.addToHistory(inputText);
+            
             try {
                 const response = this.model.processCommand(command);
-                console.log("命令响应:", response);
                 this.view.displayOutput(response);
+                this.model.addToHistory(response);
                 
-                // 再次确保滚动到底部（在命令处理完成后）
-                setTimeout(() => {
-                    this.view.output.scrollTop = this.view.output.scrollHeight;
-                }, 10);
+                // 保存当前状态
+                this.saveSettings();
             } catch (error) {
                 console.error("命令处理错误:", error);
-                this.view.displayOutput("错误: 命令处理失败。系统故障。");
+                const errorText = "错误: 命令处理失败。系统故障。";
+                this.view.displayOutput(errorText);
+                this.model.addToHistory(errorText);
             }
         }
     }
@@ -123,6 +245,7 @@ class GameController {
     // 颜色切换功能
     setupColorToggle() {
         const colorToggle = document.getElementById('colorToggle');
+        const toggleSlider = colorToggle.querySelector('.toggle-slider');
         const screen = document.querySelector('.screen');
         
         // 默认设置为绿色模式
@@ -132,21 +255,38 @@ class GameController {
             // 切换开关样式
             colorToggle.classList.toggle('amber');
             
-            // 如果系统开启，则应用颜色样式
-            if (this.model.isOn) {
-                if (colorToggle.classList.contains('amber')) {
+            // 更新滑块位置和颜色
+            if (colorToggle.classList.contains('amber')) {
+                toggleSlider.style.left = 'calc(100% - 16px)';
+                
+                // 如果系统开启，更新为琥珀色
+                if (this.model.isOn) {
+                    toggleSlider.style.backgroundColor = '#ffb000';
                     screen.classList.remove('green-mode');
                     screen.classList.add('amber-mode');
                 } else {
+                    toggleSlider.style.backgroundColor = '#666';
+                }
+            } else {
+                toggleSlider.style.left = '2px';
+                
+                // 如果系统开启，更新为绿色
+                if (this.model.isOn) {
+                    toggleSlider.style.backgroundColor = '#33ff33';
                     screen.classList.remove('amber-mode');
                     screen.classList.add('green-mode');
+                } else {
+                    toggleSlider.style.backgroundColor = '#666';
                 }
-                // 保持焦点在输入框
+            }
+            
+            // 如果系统开启，保持焦点在输入框
+            if (this.model.isOn) {
                 this.view.input.focus();
             }
             
-            // 保存当前模式状态供系统开机时使用
-            this.colorMode = colorToggle.classList.contains('amber') ? 'amber' : 'green';
+            // 保存颜色模式设置
+            this.saveSettings();
         });
     }
 }
