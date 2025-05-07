@@ -23,7 +23,7 @@ class GameView {
     }
     
     displayBootSequence(bootSequence, callback) {
-        let delay = 600; // 减少初始延迟 (原来800ms，减少25%)
+        let delay = 600;
         let index = 0;
         
         // 确保滚动到顶部
@@ -38,7 +38,13 @@ class GameView {
                 
                 switch(item.type) {
                     case 'svg-logo':
-                        html = `<div class="ibm-logo">${item.content}</div>`;
+                        // 确保content直接是有效的路径
+                        if (item.content && typeof item.content === 'string') {
+                            html = `<div class="ibm-logo"><img src="${item.content}" alt="IBM Logo"></div>`;
+                        } else {
+                            console.error("无效的IBM Logo路径:", item.content);
+                            html = `<div class="ibm-logo">[IBM LOGO]</div>`; // 回退显示
+                        }
                         break;
                     case 'text-center':
                         html = `<div class="boot-container"><div class="text-center">${item.content}</div></div>`;
@@ -51,10 +57,9 @@ class GameView {
                 }
                 
                 this.output.innerHTML += html;
-                // 不要滚动，让内容保持在顶部
                 
                 index++;
-                setTimeout(displayNext, 400); // 减少行间显示延迟 (原来550ms，减少~25%)
+                setTimeout(displayNext, 400);
             } else {
                 // 启动序列完成后增加一个空行
                 this.output.innerHTML += '<div class="boot-container">&nbsp;</div>';
