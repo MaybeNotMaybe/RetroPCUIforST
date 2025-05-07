@@ -145,6 +145,9 @@ class GameController {
     }
     
     togglePower() {
+        const colorToggle = document.getElementById('colorToggle');
+        const toggleSlider = colorToggle.querySelector('.toggle-slider');
+        
         if (!this.model.isOn) {
             // 确保开机前清除历史记录
             this.model.clearHistory();
@@ -169,9 +172,34 @@ class GameController {
                     document.getElementById('diskLight').classList.remove('disk-flashing');
                     document.getElementById('diskLight').classList.add('active-green');
                     
+                    // 重要：将完整的启动序列HTML添加到历史记录
+                    // 创建一个字符串变量，包含所有启动序列的HTML
+                    let bootHTML = '';
+                    
+                    // 添加IBM Logo
+                    bootHTML += `<div class="ibm-logo"><img src="${this.model.bootSequence[0].content}" alt="IBM Logo"></div>`;
+                    
+                    // 添加Personal Computer
+                    bootHTML += `<div class="boot-container"><div class="text-center">${this.model.bootSequence[1].content}</div></div>`;
+                    
+                    // 添加安全操作系统框
+                    bootHTML += `<div class="boot-container"><div class="bordered-box">${this.model.bootSequence[2].content.join('<br>')}</div></div>`;
+                    
+                    // 添加其他文本行
+                    for (let i = 3; i < this.model.bootSequence.length; i++) {
+                        bootHTML += `<div class="boot-container"><div class="text-center">${this.model.bootSequence[i].content}</div></div>`;
+                    }
+                    
+                    // 添加空行
+                    bootHTML += '<div class="boot-container">&nbsp;</div>';
+                    
+                    // 将整个启动序列添加为一个历史条目
+                    this.model.addToHistory(bootHTML);
+                    
                     // 显示当前位置描述
                     const locationText = this.model.locations[this.model.currentLocation].description;
                     this.view.displayOutput(locationText);
+                    this.model.addToHistory(locationText);
                     
                     // 显示命令行
                     document.querySelector('.prompt').classList.remove('hidden');
@@ -179,6 +207,13 @@ class GameController {
                     // 启用输入
                     this.view.input.disabled = false;
                     this.view.input.focus();
+                    
+                    // 更新滑块颜色
+                    if (colorToggle.classList.contains('amber')) {
+                        toggleSlider.style.backgroundColor = '#ffb000';
+                    } else {
+                        toggleSlider.style.backgroundColor = '#33ff33';
+                    }
                     
                     // 保存设置
                     this.saveSettings();
