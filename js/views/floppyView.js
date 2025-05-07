@@ -20,6 +20,10 @@ class FloppyView {
             light: document.getElementById('driveLightB'),
             fullFloppy: document.getElementById('fullFloppyB')
         };
+
+        // 确保所有驱动器灯初始为关闭状态
+        this.driveA.light.classList.remove('active', 'blinking');
+        this.driveB.light.classList.remove('active', 'blinking');
     }
     
     // 初始化软盘驱动器UI
@@ -33,18 +37,12 @@ class FloppyView {
     updateDriveState(drive, state, systemOn) {
         const driveUI = drive === 'A' ? this.driveA : this.driveB;
         
-        // 更新灯光状态
-        if (systemOn) {
-            if (state.diskInserted) {
-                driveUI.light.classList.add('active');
-                driveUI.light.classList.remove('blinking');
-            } else {
-                driveUI.light.classList.remove('active');
-                driveUI.light.classList.remove('blinking');
-            }
-        } else {
-            driveUI.light.classList.remove('active');
-            driveUI.light.classList.remove('blinking');
+        // 更新灯光状态 - 先移除所有可能的状态类
+        driveUI.light.classList.remove('active', 'blinking');
+        
+        // 只有系统开机且软盘已插入时才点亮指示灯
+        if (systemOn && state.diskInserted) {
+            driveUI.light.classList.add('active');
         }
         
         // 更新B驱动器的软盘显示状态

@@ -92,13 +92,23 @@ class FloppyController {
     loadState() {
         try {
             const savedSettings = JSON.parse(localStorage.getItem('terminalSettings') || '{}');
+            
+            // 首先获取系统状态
+            const isSystemOn = this.systemStateProvider.isSystemOn();
+            
+            // 重要：确保所有驱动器灯光初始为关闭状态
+            this.view.driveA.light.classList.remove('active', 'blinking');
+            this.view.driveB.light.classList.remove('active', 'blinking');
+            
             if (savedSettings.floppyDriveState) {
                 this.model.loadState(savedSettings.floppyDriveState);
                 
                 // 更新UI以匹配加载的状态
-                const isSystemOn = this.systemStateProvider.isSystemOn();
                 this.view.updateDriveState('A', this.model.getDriveState('A'), isSystemOn);
                 this.view.updateDriveState('B', this.model.getDriveState('B'), isSystemOn);
+            } else {
+                // 如果没有保存的状态，仍然要确保A驱动器灯根据系统状态设置
+                this.view.updateDriveState('A', this.model.getDriveState('A'), isSystemOn);
             }
         } catch (error) {
             console.error('加载软盘状态失败', error);
