@@ -242,6 +242,9 @@ class GameController {
             // 隐藏命令行
             document.querySelector('.prompt').classList.add('hidden');
             
+            // 更新颜色切换按钮状态 - 将滑块颜色改为灰色
+            toggleSlider.style.backgroundColor = '#666';
+            
             // 发布系统电源状态事件 - 关机
             EventBus.emit('systemPowerChange', false);
             
