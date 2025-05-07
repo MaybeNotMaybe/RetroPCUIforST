@@ -14,7 +14,7 @@ window.onload = function() {
         // 创建系统状态提供者
         const systemStateProvider = new SystemStateProvider(gameModel);
         
-        // 创建简化的软盘控制器
+        // 创建软盘控制器
         const floppyController = new FloppyController(systemStateProvider);
         
         // 将软盘控制器引用附加到游戏控制器
