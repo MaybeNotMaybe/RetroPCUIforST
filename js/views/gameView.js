@@ -59,7 +59,7 @@ class GameView {
                 this.output.innerHTML += html;
                 
                 index++;
-                setTimeout(displayNext, 400);
+                setTimeout(displayNext, 200);
             } else {
                 // 启动序列完成后增加一个空行
                 this.output.innerHTML += '<div class="boot-container">&nbsp;</div>';

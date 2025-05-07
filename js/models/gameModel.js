@@ -28,7 +28,6 @@ class GameModel {
         this.bootSequence = [
             {
                 type: "svg-logo",
-                // 直接使用字符串而不是对象属性
                 content: "/assets/images/ibm-logo.svg"
             },
             {
@@ -38,8 +37,8 @@ class GameModel {
             {
                 type: "box",
                 content: [
-                    "Microsoft Adventure",
-                    "Version 1.00"
+                    "Secure Operating System",
+                    "V3.2.1 [1983-10-29]"
                 ]
             },
             {
@@ -48,15 +47,15 @@ class GameModel {
             },
             {
                 type: "text-center",
-                content: "(C) Copyright Softwin Assoc. 1979"
+                content: "Developed by DARPA"
             },
             {
                 type: "text-center",
-                content: "Implemented by Gordon Letwin"
+                content: "Restricted Access Terminal"
             },
             {
                 type: "text-center",
-                content: "Produced by Microsoft"
+                content: "Authorized Personnel Only"
             }
         ];
     }
