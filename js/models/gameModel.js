@@ -105,9 +105,7 @@ class GameModel {
             case "clear":
                 return "CLEAR_SCREEN";
             case "status":
-                return this.getStatus();
-            case "power off":
-                return this.powerOff();
+                return this.getStatus();        
         }
         
         // 处理带参数的命令
@@ -131,7 +129,6 @@ class GameModel {
         }
         
         helpText += "  clear - 清除屏幕\n";
-        helpText += "  power off - 关闭系统\n";
         
         return helpText;
     }

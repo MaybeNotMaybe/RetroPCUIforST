@@ -173,6 +173,7 @@ body {
     outline: none;
     text-shadow: 0 0 5px rgba(51, 255, 51, 0.8);
     caret-color: transparent; /* 隐藏原生光标 */
+    white-space: pre;
 }
 
 /* 命令提示符控制 */
