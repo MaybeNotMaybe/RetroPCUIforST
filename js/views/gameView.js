@@ -14,7 +14,7 @@ class GameView {
         // 添加屏幕关闭效果的类
         this.screen.classList.add('screen-off');
 
-        // 添加光标位置更新监听
+        // 设置自定义光标
         this.setupCursor();
     }
     
@@ -175,12 +175,17 @@ class GameView {
             // 获取光标在输入文本中的位置
             const cursorPosition = input.selectionStart;
             
-            // 创建一个临时span来测量文本宽度
+            // 创建一个临时span来测量文本宽度，确保空格被正确处理
             const tempSpan = document.createElement('span');
             tempSpan.style.font = window.getComputedStyle(input).font;
             tempSpan.style.position = 'absolute';
             tempSpan.style.visibility = 'hidden';
-            tempSpan.textContent = input.value.substring(0, cursorPosition);
+            tempSpan.style.whiteSpace = 'pre'; // 关键：确保空格被保留
+            
+            // 获取光标前的文本并替换空格为特殊HTML空格
+            const textBeforeCursor = input.value.substring(0, cursorPosition);
+            tempSpan.innerHTML = textBeforeCursor.replace(/ /g, '&nbsp;');
+            
             document.body.appendChild(tempSpan);
             
             // 计算光标位置，考虑提示符的宽度
