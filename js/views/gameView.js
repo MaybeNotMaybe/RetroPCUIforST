@@ -13,6 +13,9 @@ class GameView {
         
         // 添加屏幕关闭效果的类
         this.screen.classList.add('screen-off');
+
+        // 添加光标位置更新监听
+        this.setupCursor();
     }
     
     powerOn() {
@@ -109,5 +112,47 @@ class GameView {
         setTimeout(() => {
             this.networkLight.classList.remove('active');
         }, 1000);
+    }
+
+    // 设置光标跟踪
+    setupCursor() {
+        const input = this.input;
+        const cursor = this.cursor;
+        const promptSymbol = document.querySelector('.prompt-symbol');
+        
+        // 计算并更新光标位置的函数
+        const updateCursorPosition = () => {
+            // 获取光标在输入文本中的位置
+            const cursorPosition = input.selectionStart;
+            
+            // 创建一个临时span来测量文本宽度
+            const tempSpan = document.createElement('span');
+            tempSpan.style.font = window.getComputedStyle(input).font;
+            tempSpan.style.position = 'absolute';
+            tempSpan.style.visibility = 'hidden';
+            tempSpan.textContent = input.value.substring(0, cursorPosition);
+            document.body.appendChild(tempSpan);
+            
+            // 计算光标位置，考虑提示符的宽度
+            const symbolWidth = promptSymbol.offsetWidth;
+            const textWidth = tempSpan.offsetWidth;
+            
+            // 设置光标位置
+            cursor.style.left = `${symbolWidth + textWidth}px`;
+            cursor.style.top = '0px';
+            
+            // 移除临时span
+            document.body.removeChild(tempSpan);
+        };
+        
+        // 监听各种事件以更新光标位置
+        input.addEventListener('input', updateCursorPosition);
+        input.addEventListener('click', updateCursorPosition);
+        input.addEventListener('keyup', updateCursorPosition);
+        input.addEventListener('keydown', updateCursorPosition);
+        input.addEventListener('focus', updateCursorPosition);
+        
+        // 初始更新
+        setTimeout(updateCursorPosition, 100);
     }
 }
