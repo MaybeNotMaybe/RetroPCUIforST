@@ -287,6 +287,11 @@
     display: none;
 }
 
+.disk-inserted .floppy-disk {
+    display: block;
+    bottom: 2.5px !important; /* 确保位置始终正确，important确保优先级 */
+}
+
 /* 插入口悬停效果 */
 .floppy-slot:hover {
     box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.2);
@@ -303,10 +308,10 @@
     bottom: 2.5px; /* 显示为已插入状态 */
 }
 
-.drive-a .drive-light {
+/*.drive-a .drive-light {
     background-color: #f00;
     box-shadow: 0 0 5px #f00, inset 0 0 2px rgba(0, 0, 0, 0.2);
-}
+}*/
 
 .drive-a .eject-button {
     opacity: 0.5;
