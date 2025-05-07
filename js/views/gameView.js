@@ -111,6 +111,9 @@ class GameView {
     powerOff() {
         this.screen.classList.remove('screen-on');
         this.clear();
+        
+        // 关闭所有驱动器灯
+        this.turnOffDriveLights();
     }
     
     displayOutput(text) {
@@ -218,12 +221,14 @@ class GameView {
         setTimeout(updateCursorPosition, 100);
     }
 
-    startFloppyInsertAnimation(callback) {
+    startFloppyInsertAnimation(isSystemOn, callback) {
         // 首先执行完整软盘的插入动画
         this.fullFloppyB.classList.add('inserting-full');
         
-        // 指示灯闪烁动画
-        this.driveLightB.classList.add('blinking');
+        // 只有在系统开机时才闪烁指示灯
+        if (isSystemOn) {
+            this.driveLightB.classList.add('blinking');
+        }
         
         // 在完整软盘即将完成动画时显示边缘软盘
         setTimeout(() => {
@@ -234,9 +239,16 @@ class GameView {
         
         // 插入完成后
         setTimeout(() => {
-            // 移除闪烁，保持常亮
-            this.driveLightB.classList.remove('blinking');
-            this.driveLightB.classList.add('active');
+            // 只有在系统开机时才处理灯光
+            if (isSystemOn) {
+                // 移除闪烁，保持常亮
+                this.driveLightB.classList.remove('blinking');
+                this.driveLightB.classList.add('active');
+            } else {
+                // 关机状态下确保灯光关闭
+                this.driveLightB.classList.remove('blinking');
+                this.driveLightB.classList.remove('active');
+            }
             
             // 启用弹出按钮
             this.ejectButtonB.classList.remove('disabled');
@@ -250,7 +262,7 @@ class GameView {
         }, 1500);
     }
     
-    startFloppyEjectAnimation(callback) {
+    startFloppyEjectAnimation(isSystemOn, callback) {
         this.floppyDiskB.classList.remove('inserting');
         this.floppyDiskB.classList.add('ejecting');
         this.floppySlotB.classList.remove('disk-inserted');
@@ -259,9 +271,11 @@ class GameView {
         this.fullFloppyB.classList.remove('hide-full-floppy');
         this.fullFloppyB.classList.add('ejecting-full');
         
-        // 指示灯闪烁动画
-        this.driveLightB.classList.remove('active');
-        this.driveLightB.classList.add('blinking');
+        // 只有在系统开机时才闪烁指示灯
+        if (isSystemOn) {
+            this.driveLightB.classList.remove('active');
+            this.driveLightB.classList.add('blinking');
+        }
         
         setTimeout(() => {
             // 关闭指示灯
@@ -283,5 +297,18 @@ class GameView {
             // 执行回调
             if (callback) callback();
         }, 1500);
+    }
+
+    turnOffDriveLights() {
+        // A驱动器灯光关闭
+        const driveLightA = document.querySelector('.drive-a .drive-light');
+        if (driveLightA) {
+            driveLightA.classList.remove('active');
+            driveLightA.classList.remove('blinking');
+        }
+        
+        // B驱动器灯光关闭
+        this.driveLightB.classList.remove('active');
+        this.driveLightB.classList.remove('blinking');
     }
 }

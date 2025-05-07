@@ -182,15 +182,22 @@ class GameModel {
         }
         
         this.floppyDriveState.isProcessing = true;
-        return true;
+        
+        // 返回系统状态和处理结果
+        return {
+            success: true,
+            isSystemOn: this.isOn
+        };
     }
     
     completeFloppyInsertion() {
         this.floppyDriveState.isProcessing = false;
         this.floppyDriveState.diskInserted = true;
         
-        // 触发磁盘活动事件
-        EventBus.emit('diskActivity');
+        // 仅在系统开机时触发磁盘活动事件
+        if (this.isOn) {
+            EventBus.emit('diskActivity');
+        }
         return true;
     }
     
@@ -200,15 +207,22 @@ class GameModel {
         }
         
         this.floppyDriveState.isProcessing = true;
-        return true;
+        
+        // 返回系统状态和处理结果
+        return {
+            success: true,
+            isSystemOn: this.isOn
+        };
     }
-    
+
     completeFloppyEjection() {
         this.floppyDriveState.isProcessing = false;
         this.floppyDriveState.diskInserted = false;
         
-        // 触发磁盘活动事件
-        EventBus.emit('diskActivity');
+        // 仅在系统开机时触发磁盘活动事件
+        if (this.isOn) {
+            EventBus.emit('diskActivity');
+        }
         return true;
     }
     
