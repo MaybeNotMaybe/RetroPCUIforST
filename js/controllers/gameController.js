@@ -181,8 +181,12 @@ class GameController {
             // 显示启动序列
             this.view.displayBootSequence(this.model.bootSequence, () => {
                 setTimeout(() => {
+                    // 硬盘指示灯从闪烁变为常亮绿色
                     document.getElementById('diskLight').classList.remove('disk-flashing');
                     document.getElementById('diskLight').classList.add('active-green');
+                    
+                    // 重要：发布系统启动完成事件，让驱动器指示灯亮起
+                    EventBus.emit('systemBootComplete', true);
                     
                     // 重要：将完整的启动序列HTML添加到历史记录
                     // 创建一个字符串变量，包含所有启动序列的HTML
@@ -246,9 +250,6 @@ class GameController {
             
             // 隐藏命令行
             document.querySelector('.prompt').classList.add('hidden');
-            
-            // 更新颜色切换按钮状态 - 将滑块颜色改为灰色
-            toggleSlider.style.backgroundColor = '#666';
             
             // 发布系统电源状态事件 - 关机
             EventBus.emit('systemPowerChange', false);
