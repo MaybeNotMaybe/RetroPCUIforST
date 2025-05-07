@@ -16,10 +16,10 @@ body {
     overflow: hidden;
 }
 
-/* 计算机外壳 - 4:3比例 */
+/* 计算机外壳 - 固定4:3比例 */
 .computer-case {
-    width: 80vmin;
-    height: 60vmin; /* 4:3比例 */
+    width: 800px;
+    height: 600px; /* 4:3比例 */
     background-color: #222;
     border-radius: 10px;
     border: 2px solid #444;
@@ -42,20 +42,16 @@ body {
     position: relative;
 }
 
-/* 主终端区域 - 保持1:1比例 */
+/* 主终端区域 */
 .main-terminal-area {
-    flex: 1;
+    width: calc(100% - 120px); /* 减去按钮面板的宽度 */
     height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
-/* 屏幕区域 - 1:1比例 */
+/* 屏幕区域 */
 .screen {
     width: 100%;
-    height: 0;
-    padding-bottom: 100%; /* 创建1:1比例的正方形 */
+    height: 100%;
     position: relative;
     background-color: #000;
     overflow: hidden;
@@ -100,9 +96,7 @@ body {
     height: 100%;
     padding: 15px;
     overflow-y: auto;
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
     z-index: 5;
     text-shadow: 0 0 5px rgba(51, 255, 51, 0.8);
     display: flex;
@@ -116,6 +110,7 @@ body {
     font-size: 1.2rem;
     white-space: pre-wrap;
     flex-grow: 1;
+    overflow-y: auto;
 }
 
 /* 命令提示符 */
@@ -123,6 +118,8 @@ body {
     display: flex;
     font-size: 1.2rem;
     width: 100%;
+    position: relative;
+    flex-shrink: 0; /* 防止提示符被压缩 */
 }
 
 .prompt-symbol {
@@ -143,13 +140,14 @@ body {
 
 /* 按钮面板区域 */
 .buttons-panel {
-    width: 100px;
+    width: 120px;
     height: 100%;
     display: flex;
     padding: 15px 5px;
     gap: 5px;
     background-color: #191919;
     border-left: 2px solid #333;
+    flex-shrink: 0; /* 防止面板被压缩 */
 }
 
 /* 按钮列 */
@@ -264,9 +262,9 @@ body {
 .ibm-logo {
     display: block;
     width: 100%;
-    max-width: 500px;
+    max-width: 400px; /* 减小logo尺寸确保完全显示 */
     margin: 10px auto 20px auto;
-    height: 120px;
+    height: 100px; /* 减小高度 */
     text-align: center;
 }
 
@@ -293,4 +291,29 @@ body {
     display: block;
     width: 100%;
     text-align: center;
+}
+
+/* 媒体查询，确保在较小屏幕上能完整显示 */
+@media (max-height: 650px), (max-width: 850px) {
+    .computer-case {
+        width: 700px;
+        height: 525px;
+    }
+    
+    .ibm-logo {
+        max-width: 320px;
+        height: 80px;
+    }
+}
+
+@media (max-height: 550px), (max-width: 750px) {
+    .computer-case {
+        width: 600px;
+        height: 450px;
+    }
+    
+    .ibm-logo {
+        max-width: 280px;
+        height: 70px;
+    }
 }
