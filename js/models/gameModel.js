@@ -21,10 +21,6 @@ class GameModel {
                 }
             }
         };
-        this.floppyDriveState = {
-            diskInserted: false,
-            isProcessing: false
-        };
         
         // IBM SVG Logo路径
         this.ibmLogoPath = '/assets/images/imb-logo.svg';
@@ -175,59 +171,4 @@ class GameModel {
             `${target}: "你好，有什么我可以帮助你的吗？"\n\n` +
             `输入消息直接回复。输入 "disconnect" 断开连接。`;
     }
-
-    insertFloppyDisk() {
-        if (this.floppyDriveState.diskInserted || this.floppyDriveState.isProcessing) {
-            return false; // 已插入或正在处理中
-        }
-        
-        this.floppyDriveState.isProcessing = true;
-        
-        // 返回系统状态和处理结果
-        return {
-            success: true,
-            isSystemOn: this.isOn
-        };
-    }
-    
-    completeFloppyInsertion() {
-        this.floppyDriveState.isProcessing = false;
-        this.floppyDriveState.diskInserted = true;
-        
-        // 仅在系统开机时触发磁盘活动事件
-        if (this.isOn) {
-            EventBus.emit('diskActivity');
-        }
-        return true;
-    }
-    
-    ejectFloppyDisk() {
-        if (!this.floppyDriveState.diskInserted || this.floppyDriveState.isProcessing) {
-            return false; // 未插入或正在处理中
-        }
-        
-        this.floppyDriveState.isProcessing = true;
-        
-        // 返回系统状态和处理结果
-        return {
-            success: true,
-            isSystemOn: this.isOn
-        };
-    }
-
-    completeFloppyEjection() {
-        this.floppyDriveState.isProcessing = false;
-        this.floppyDriveState.diskInserted = false;
-        
-        // 仅在系统开机时触发磁盘活动事件
-        if (this.isOn) {
-            EventBus.emit('diskActivity');
-        }
-        return true;
-    }
-    
-    getFloppyDriveState() {
-        return { ...this.floppyDriveState };
-    }
-    
 }

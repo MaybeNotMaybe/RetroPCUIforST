@@ -28,24 +28,11 @@ class GameController {
         // 添加颜色切换功能
         this.setupColorToggle();
 
-        // 立即初始化软盘状态
-        this.initializeFloppyState();
-
-        // 设置软盘驱动器控制
-        this.setupFloppyDriveControls();
-
         // 从localStorage加载设置
         this.loadSettings();
         
         // 添加调试日志
         console.log("游戏控制器已初始化");
-
-        // 从localStorage加载设置
-        this.loadSettings();
-
-        setTimeout(() => {
-            document.querySelector('.floppy-drives-container').classList.add('floppy-initialized');
-        }, 100);
     }
 
     // 保存设置到localStorage
@@ -53,9 +40,7 @@ class GameController {
         const settings = {
             isPowerOn: this.model.isOn,
             colorMode: document.getElementById('colorToggle').classList.contains('amber') ? 'amber' : 'green',
-            terminalHistory: this.model.isOn ? this.model.getHistory() : [],
-            // 添加软盘状态
-            floppyDriveState: this.model.getFloppyDriveState()
+            terminalHistory: this.model.isOn ? this.model.getHistory() : []
         };
         
         // 只有开机状态才保存历史记录
@@ -137,6 +122,9 @@ class GameController {
                     setTimeout(() => {
                         this.view.input.focus();
                     }, 100);
+                    
+                    // 发布系统电源状态事件
+                    EventBus.emit('systemPowerChange', true);
                 } else {
                     // 确保关机状态
                     this.model.isOn = false;
@@ -150,52 +138,9 @@ class GameController {
                     
                     // 清空显示
                     this.view.clear();
-                }
-
-                // 恢复软盘状态
-                if (settings.floppyDriveState) {
-                    // 更新模型状态
-                    this.model.floppyDriveState = settings.floppyDriveState;
                     
-                    // 如果软盘已插入，更新UI状态
-                    if (settings.floppyDriveState.diskInserted) {
-                        // 确保软盘显示并且位置正确
-                        this.view.floppyDiskB.style.display = 'block';
-                        
-                        // 关键：不要加动画类，而是直接设置正确的样式位置
-                        // 移除所有可能的动画类
-                        this.view.floppyDiskB.classList.remove('inserting', 'ejecting');
-                        
-                        // 通过内联样式确保软盘位于正确位置
-                        this.view.floppyDiskB.style.bottom = '2.5px'; // 完全插入的位置
-                        
-                        this.view.floppySlotB.classList.add('disk-inserted');
-                        this.view.ejectButtonB.classList.remove('disabled');
-                        
-                        // 确保完整软盘隐藏
-                        this.view.fullFloppyB.classList.add('hide-full-floppy');
-                        this.view.fullFloppyB.classList.remove('inserting-full', 'ejecting-full');
-                        
-                        // 只有在系统开机时才点亮指示灯
-                        if (settings.isPowerOn) {
-                            this.view.driveLightB.classList.add('active');
-                        } else {
-                            this.view.driveLightB.classList.remove('active');
-                        }
-                    }else {
-                        // 如果没有插入软盘，确保完整软盘正确显示
-                        this.view.fullFloppyB.classList.remove('hide-full-floppy');
-                    }
-                }
-                
-                // 处理A驱动器的灯光状态
-                const driveLightA = document.querySelector('.drive-a .drive-light');
-                if (driveLightA) {
-                    if (settings.isPowerOn) {
-                        driveLightA.classList.add('active');
-                    } else {
-                        driveLightA.classList.remove('active');
-                    }
+                    // 发布系统电源状态事件
+                    EventBus.emit('systemPowerChange', false);
                 }
             }
         } catch (error) {
@@ -225,6 +170,9 @@ class GameController {
             this.view.powerOn();
             this.view.clear(); // 确保屏幕是空的
             
+            // 发布系统电源状态事件 - 开机
+            EventBus.emit('systemPowerChange', true);
+            
             // 显示启动序列
             this.view.displayBootSequence(this.model.bootSequence, () => {
                 setTimeout(() => {
@@ -236,7 +184,7 @@ class GameController {
                     let bootHTML = '';
                     
                     // 添加imb Logo
-                    bootHTML += `<div class="imb-logo"><img src="${this.model.bootSequence[0].content}" alt="IMB Logo"></div>`;
+                    bootHTML += `<div class="imb-logo"><img src="${this.model.bootSequence[0].content}" alt="imb Logo"></div>`;
                     
                     // 添加Personal Computer
                     bootHTML += `<div class="boot-container"><div class="text-center">${this.model.bootSequence[1].content}</div></div>`;
@@ -273,14 +221,6 @@ class GameController {
                     } else {
                         toggleSlider.style.backgroundColor = '#33ff33';
                     }
-
-                    // A驱动器灯常亮（A盘总是插入）
-                    document.querySelector('.drive-a .drive-light').classList.add('active');
-                    
-                    // 如果B驱动器有软盘，让B驱动器灯也常亮
-                    if (this.model.floppyDriveState.diskInserted) {
-                        this.view.driveLightB.classList.add('active');
-                    }
                     
                     // 保存设置
                     this.saveSettings();
@@ -302,6 +242,9 @@ class GameController {
             // 隐藏命令行
             document.querySelector('.prompt').classList.add('hidden');
             
+            // 发布系统电源状态事件 - 关机
+            EventBus.emit('systemPowerChange', false);
+            
             this.model.isOn = false;
             this.view.input.disabled = true;
             
@@ -313,9 +256,6 @@ class GameController {
                 // 保存关机状态
                 this.saveSettings();
             }, 1000);
-
-            // 关闭所有驱动器指示灯
-            this.view.turnOffDriveLights();
             
             console.log("系统已关闭");
         }
@@ -393,76 +333,5 @@ class GameController {
             // 保存颜色模式设置
             this.saveSettings();
         });
-    }
-
-    initializeFloppyState() {
-        try {
-            const savedSettings = localStorage.getItem('terminalSettings');
-            
-            if (savedSettings) {
-                const settings = JSON.parse(savedSettings);
-                
-                // 仅处理软盘状态
-                if (settings.floppyDriveState && settings.floppyDriveState.diskInserted) {
-                    // 立即隐藏完整软盘
-                    this.view.fullFloppyB.classList.add('hide-full-floppy');
-                    
-                    // 立即设置软盘位置
-                    this.view.floppyDiskB.style.display = 'block';
-                    this.view.floppyDiskB.style.bottom = '2.5px';
-                    this.view.floppySlotB.classList.add('disk-inserted');
-                } else {
-                    // 如果没有插入软盘，确保完整软盘可见
-                    this.view.fullFloppyB.classList.remove('init-hidden');
-                }
-            }
-        } catch (error) {
-            console.error("初始化软盘状态失败:", error);
-        }
-    }
-
-    setupFloppyDriveControls() {
-        // B驱动器的事件监听
-        this.view.floppySlotB.addEventListener('click', () => {
-            const floppyState = this.model.getFloppyDriveState();
-            if (!floppyState.diskInserted && !floppyState.isProcessing) {
-                this.insertFloppyDisk();
-            }
-        });
-        
-        this.view.fullFloppyB.addEventListener('click', () => {
-            const floppyState = this.model.getFloppyDriveState();
-            if (!floppyState.diskInserted && !floppyState.isProcessing) {
-                this.insertFloppyDisk();
-            }
-        });
-        
-        this.view.ejectButtonB.addEventListener('click', () => {
-            const floppyState = this.model.getFloppyDriveState();
-            if (floppyState.diskInserted && !floppyState.isProcessing && 
-                !this.view.ejectButtonB.classList.contains('disabled')) {
-                this.ejectFloppyDisk();
-            }
-        });
-    }
-    
-    insertFloppyDisk() {
-        const result = this.model.insertFloppyDisk();
-        if (result && result.success) {
-            this.view.startFloppyInsertAnimation(result.isSystemOn, () => {
-                this.model.completeFloppyInsertion();
-                this.saveSettings(); // 保存软盘状态
-            });
-        }
-    }
-    
-    ejectFloppyDisk() {
-        const result = this.model.ejectFloppyDisk();
-        if (result && result.success) {
-            this.view.startFloppyEjectAnimation(result.isSystemOn, () => {
-                this.model.completeFloppyEjection();
-                this.saveSettings(); // 保存软盘状态
-            });
-        }
     }
 }
