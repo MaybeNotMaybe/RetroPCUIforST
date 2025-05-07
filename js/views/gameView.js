@@ -60,12 +60,17 @@ class GameView {
                 }
                 
                 this.output.innerHTML += html;
+
+                // 添加内容后立即滚动到底部
+                this.output.scrollTop = this.output.scrollHeight;
                 
                 index++;
                 setTimeout(displayNext, 200);
             } else {
                 // 启动序列完成后增加一个空行
                 this.output.innerHTML += '<div class="boot-container">&nbsp;</div>';
+                // 确保滚动到底部
+                this.output.scrollTop = this.output.scrollHeight;
                 // 启动序列完成
                 if (callback) callback();
             }
@@ -84,6 +89,10 @@ class GameView {
         if (text === "CLEAR_SCREEN") {
             this.clear();
             return;
+        }
+
+        if (!text.endsWith("\n")) {
+            text += "\n";
         }
         
         this.output.innerHTML += text + "\n";
