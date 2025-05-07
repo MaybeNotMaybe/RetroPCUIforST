@@ -28,6 +28,9 @@ class GameController {
         // 添加颜色切换功能
         this.setupColorToggle();
 
+        // 设置软盘驱动器控制
+        this.setupFloppyDriveControls();
+
         // 从localStorage加载设置
         this.loadSettings();
         
@@ -42,7 +45,10 @@ class GameController {
     saveSettings() {
         const settings = {
             isPowerOn: this.model.isOn,
-            colorMode: document.getElementById('colorToggle').classList.contains('amber') ? 'amber' : 'green'
+            colorMode: document.getElementById('colorToggle').classList.contains('amber') ? 'amber' : 'green',
+            terminalHistory: this.model.isOn ? this.model.getHistory() : [],
+            // 添加软盘状态
+            floppyDriveState: this.model.getFloppyDriveState()
         };
         
         // 只有开机状态才保存历史记录
@@ -137,6 +143,21 @@ class GameController {
                     
                     // 清空显示
                     this.view.clear();
+                }
+
+                // 恢复软盘状态
+                if (settings.floppyDriveState) {
+                    // 更新模型状态
+                    this.model.floppyDriveState = settings.floppyDriveState;
+                    
+                    // 如果软盘已插入，更新UI状态
+                    if (settings.floppyDriveState.diskInserted) {
+                        this.view.floppyDiskB.style.display = 'block';
+                        this.view.floppySlotB.classList.add('disk-inserted');
+                        this.view.ejectButtonB.classList.remove('disabled');
+                        this.view.driveLightB.classList.add('active');
+                        this.view.fullFloppyB.classList.add('hide-full-floppy');
+                    }
                 }
             }
         } catch (error) {
@@ -323,5 +344,48 @@ class GameController {
             // 保存颜色模式设置
             this.saveSettings();
         });
+    }
+
+    setupFloppyDriveControls() {
+        // B驱动器的事件监听
+        this.view.floppySlotB.addEventListener('click', () => {
+            const floppyState = this.model.getFloppyDriveState();
+            if (!floppyState.diskInserted && !floppyState.isProcessing) {
+                this.insertFloppyDisk();
+            }
+        });
+        
+        this.view.fullFloppyB.addEventListener('click', () => {
+            const floppyState = this.model.getFloppyDriveState();
+            if (!floppyState.diskInserted && !floppyState.isProcessing) {
+                this.insertFloppyDisk();
+            }
+        });
+        
+        this.view.ejectButtonB.addEventListener('click', () => {
+            const floppyState = this.model.getFloppyDriveState();
+            if (floppyState.diskInserted && !floppyState.isProcessing && 
+                !this.view.ejectButtonB.classList.contains('disabled')) {
+                this.ejectFloppyDisk();
+            }
+        });
+    }
+    
+    insertFloppyDisk() {
+        if (this.model.insertFloppyDisk()) {
+            this.view.startFloppyInsertAnimation(() => {
+                this.model.completeFloppyInsertion();
+                this.saveSettings(); // 保存软盘状态
+            });
+        }
+    }
+    
+    ejectFloppyDisk() {
+        if (this.model.ejectFloppyDisk()) {
+            this.view.startFloppyEjectAnimation(() => {
+                this.model.completeFloppyEjection();
+                this.saveSettings(); // 保存软盘状态
+            });
+        }
     }
 }
