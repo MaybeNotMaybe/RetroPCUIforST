@@ -10,13 +10,6 @@ class GameView {
         this.diskLight = document.getElementById('diskLight');
         this.networkLight = document.getElementById('networkLight');
         this.prompt = document.querySelector('.prompt');
-
-        // 软盘驱动器UI元素
-        this.floppySlotB = document.getElementById('floppySlotB');
-        this.floppyDiskB = document.getElementById('floppyDiskB');
-        this.ejectButtonB = document.getElementById('ejectButtonB');
-        this.driveLightB = document.getElementById('driveLightB');
-        this.fullFloppyB = document.getElementById('fullFloppyB');
         
         // 添加屏幕关闭效果的类
         this.screen.classList.add('screen-off');
@@ -64,7 +57,7 @@ class GameView {
                 switch(item.type) {
                     case 'svg-logo':
                         if (item.content && typeof item.content === 'string') {
-                            html = `<div class="imb-logo"><img src="${item.content}" alt="imb Logo"></div>`;
+                            html = `<div class="imb-logo"><img src="${item.content}" alt="IMB Logo"></div>`;
                         } else {
                             html = `<div class="imb-logo">[IMB LOGO]</div>`;
                         }
@@ -111,9 +104,6 @@ class GameView {
     powerOff() {
         this.screen.classList.remove('screen-on');
         this.clear();
-        
-        // 关闭所有驱动器灯
-        this.turnOffDriveLights();
     }
     
     displayOutput(text) {
@@ -219,96 +209,5 @@ class GameView {
         
         // 初始更新
         setTimeout(updateCursorPosition, 100);
-    }
-
-    startFloppyInsertAnimation(isSystemOn, callback) {
-        // 首先执行完整软盘的插入动画
-        this.fullFloppyB.classList.add('inserting-full');
-        
-        // 只有在系统开机时才闪烁指示灯
-        if (isSystemOn) {
-            this.driveLightB.classList.add('blinking');
-        }
-        
-        // 在完整软盘即将完成动画时显示边缘软盘
-        setTimeout(() => {
-            this.floppyDiskB.style.display = 'block';
-            this.floppyDiskB.classList.add('inserting');
-            this.floppySlotB.classList.add('disk-inserted');
-        }, 1000);
-        
-        // 插入完成后
-        setTimeout(() => {
-            // 只有在系统开机时才处理灯光
-            if (isSystemOn) {
-                // 移除闪烁，保持常亮
-                this.driveLightB.classList.remove('blinking');
-                this.driveLightB.classList.add('active');
-            } else {
-                // 关机状态下确保灯光关闭
-                this.driveLightB.classList.remove('blinking');
-                this.driveLightB.classList.remove('active');
-            }
-            
-            // 启用弹出按钮
-            this.ejectButtonB.classList.remove('disabled');
-            
-            // 隐藏完整软盘
-            this.fullFloppyB.classList.add('hide-full-floppy');
-            this.fullFloppyB.classList.remove('inserting-full');
-            
-            // 执行回调
-            if (callback) callback();
-        }, 1500);
-    }
-    
-    startFloppyEjectAnimation(isSystemOn, callback) {
-        this.floppyDiskB.classList.remove('inserting');
-        this.floppyDiskB.classList.add('ejecting');
-        this.floppySlotB.classList.remove('disk-inserted');
-        
-        // 显示完整软盘并开始弹出动画
-        this.fullFloppyB.classList.remove('hide-full-floppy');
-        this.fullFloppyB.classList.add('ejecting-full');
-        
-        // 只有在系统开机时才闪烁指示灯
-        if (isSystemOn) {
-            this.driveLightB.classList.remove('active');
-            this.driveLightB.classList.add('blinking');
-        }
-        
-        setTimeout(() => {
-            // 关闭指示灯
-            this.driveLightB.classList.remove('blinking');
-            this.driveLightB.classList.remove('active');
-            
-            // 重置软盘边缘
-            this.floppyDiskB.style.display = 'none';
-            this.floppyDiskB.classList.remove('ejecting');
-            
-            // 禁用弹出按钮
-            this.ejectButtonB.classList.add('disabled');
-            
-            // 重置完整软盘状态
-            setTimeout(() => {
-                this.fullFloppyB.classList.remove('ejecting-full');
-            }, 100);
-            
-            // 执行回调
-            if (callback) callback();
-        }, 1500);
-    }
-
-    turnOffDriveLights() {
-        // A驱动器灯光关闭
-        const driveLightA = document.querySelector('.drive-a .drive-light');
-        if (driveLightA) {
-            driveLightA.classList.remove('active');
-            driveLightA.classList.remove('blinking');
-        }
-        
-        // B驱动器灯光关闭
-        this.driveLightB.classList.remove('active');
-        this.driveLightB.classList.remove('blinking');
     }
 }
