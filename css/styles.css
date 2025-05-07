@@ -1,3 +1,11 @@
+/* 本地字体定义 */
+@font-face {
+    font-family: 'VT323';
+    src: url('../assets/fonts/zpix.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* 全局样式 */
 * {
     margin: 0;
@@ -11,7 +19,6 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: 'VT323', monospace;
     color: #33ff33;
     overflow: hidden;
 }
@@ -112,6 +119,7 @@ body {
     text-shadow: 0 0 5px rgba(51, 255, 51, 0.8);
     display: flex;
     flex-direction: column;
+    font-family: 'VT323', monospace;
 }
 
 /* 隐藏滚动条但保留功能 */
@@ -136,6 +144,7 @@ body {
     white-space: pre-wrap;
     flex-grow: 1;
     overflow-y: auto;
+    font-family: 'VT323', monospace;
 }
 
 /* 命令提示符 */
@@ -156,7 +165,7 @@ body {
     background: transparent;
     border: none;
     color: #33ff33;
-    font-family: inherit;
+    font-family: 'VT323', monospace;
     font-size: inherit;
     width: 100%;
     outline: none;
@@ -229,7 +238,7 @@ body {
     border-radius: 3px;
     cursor: pointer;
     color: rgba(255, 255, 255, 0.7);
-    font-family: 'VT323', monospace;
+    font-family: sans-serif;
     font-size: 14px;
     text-align: center;
     line-height: 26px;
@@ -293,6 +302,7 @@ body {
 /* 指示灯标签 - 放在指示灯下方但不影响布局 */
 .status-light::after {
     position: absolute;
+    font-family: sans-serif;
     font-size: 8px;
     top: 16px; /* 放在指示灯下方 */
     left: 50%;
@@ -382,6 +392,7 @@ body {
     border: 2px solid #33ff33;
     max-width: 400px;
     text-align: center;
+    font-family: 'VT323', monospace;
 }
 
 /* IBM LOGO SVG样式 */
@@ -392,6 +403,13 @@ body {
     margin: 10px auto 20px auto;
     height: 100px; /* 减小高度 */
     text-align: center;
+}
+
+.ibm-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: invert(83%) sepia(28%) saturate(1166%) hue-rotate(86deg) brightness(107%) contrast(104%); /* 使图像变为绿色 */
 }
 
 .ibm-logo svg {
