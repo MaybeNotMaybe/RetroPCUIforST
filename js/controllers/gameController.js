@@ -17,6 +17,7 @@ class GameController {
         
         // 初始状态
         this.view.input.disabled = true;
+        document.querySelector('.prompt').classList.add('hidden'); // 初始状态隐藏命令行
         
         // 添加调试日志
         console.log("游戏控制器已初始化");
@@ -25,13 +26,30 @@ class GameController {
     togglePower() {
         if (!this.model.isOn) {
             this.model.isOn = true;
+            
+            // 改变电源按钮样式
+            document.getElementById('powerButton').classList.add('on');
+            
+            // 开始硬盘闪烁
+            document.getElementById('diskLight').classList.add('disk-flashing');
+            
+            // 移除屏幕关闭效果
+            document.querySelector('.screen').classList.remove('screen-off');
+            
             this.view.powerOn();
             
             // 显示启动序列
             this.view.displayBootSequence(this.model.bootSequence, () => {
                 // 启动序列完成后，显示系统准备就绪的提示
                 setTimeout(() => {
+                    // 停止硬盘闪烁并设置为绿色常亮
+                    document.getElementById('diskLight').classList.remove('disk-flashing');
+                    document.getElementById('diskLight').classList.add('active-green');
+                    
                     this.view.displayOutput(this.model.locations[this.model.currentLocation].description);
+                    
+                    // 显示命令行
+                    document.querySelector('.prompt').classList.remove('hidden');
                     
                     // 启用输入
                     this.view.input.disabled = false;
@@ -42,11 +60,26 @@ class GameController {
             console.log("系统已开启");
         } else {
             this.view.displayOutput(this.model.powerOff());
+            
+            // 改变电源按钮样式
+            document.getElementById('powerButton').classList.remove('on');
+            
+            // 关闭硬盘指示灯
+            document.getElementById('diskLight').classList.remove('disk-flashing');
+            document.getElementById('diskLight').classList.remove('active-green');
+            
+            // 隐藏命令行
+            document.querySelector('.prompt').classList.add('hidden');
+            
             this.model.isOn = false;
             this.view.input.disabled = true;
+            
+            // 屏幕变暗效果
             setTimeout(() => {
+                document.querySelector('.screen').classList.add('screen-off');
                 this.view.powerOff();
-            }, 2000);
+            }, 1000);
+            
             console.log("系统已关闭");
         }
     }

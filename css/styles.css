@@ -90,6 +90,17 @@ body {
     z-index: 11;
 }
 
+/* 屏幕关闭效果 */
+.screen.screen-off {
+    opacity: 0.3;
+    transition: opacity 1.5s;
+}
+
+.screen.screen-on {
+    opacity: 1;
+    animation: screenOn 2s forwards;
+}
+
 /* 终端区域 */
 .terminal {
     width: 100%;
@@ -152,6 +163,11 @@ body {
     text-shadow: 0 0 5px rgba(51, 255, 51, 0.8);
 }
 
+/* 命令提示符控制 */
+.prompt.hidden {
+    display: none;
+}
+
 /* 按钮面板区域 */
 .buttons-panel {
     width: 120px;
@@ -204,69 +220,106 @@ body {
     margin-top: 10px;
 }
 
-/* 电源按钮 - 方形设计 */
+/* 电源按钮 - 半透明亮灯设计 */
 .power-button {
     width: 60px;
     height: 30px;
-    background-color: #f44336; /* 关机状态为红色 */
-    border: 2px outset #777;
+    background-color: #3a0505; /* 关机状态为暗淡红色 */
+    border: 2px outset #555;
     border-radius: 3px;
     cursor: pointer;
-    color: white;
+    color: rgba(255, 255, 255, 0.7);
     font-family: 'VT323', monospace;
     font-size: 14px;
     text-align: center;
     line-height: 26px;
     user-select: none;
-    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
-    transition: background-color 0.3s, border 0.3s, transform 0.1s, box-shadow 0.1s;
+    box-shadow: inset 0 0 5px rgba(255, 0, 0, 0.2); /* 内部微弱红光 */
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 电源按钮内部光效 */
+.power-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, 
+                rgba(255, 0, 0, 0.05) 0%, 
+                rgba(255, 0, 0, 0.1) 50%, 
+                rgba(255, 0, 0, 0.05) 100%);
+    opacity: 0.3;
 }
 
 /* 电源开启状态 */
 .power-button.on {
-    background-color: #33cc33; /* 开机状态为绿色 */
-    border-style: inset;
-    transform: translateY(2px);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    background-color: #a00; /* 开机状态为亮红色 */
+    color: white;
+    box-shadow: 
+        inset 0 0 15px rgba(255, 50, 50, 0.8), /* 内部红光 */
+        0 0 5px rgba(255, 0, 0, 0.5); /* 外部红光晕 */
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
 }
 
+.power-button.on::before {
+    opacity: 1;
+}
+
+/* 状态指示灯容器 - 确保水平排列 */
 .status-lights {
     display: flex;
-    gap: 10px;
+    flex-direction: row;
+    gap: 20px; /* 增加指示灯之间的距离 */
+    align-items: center;
+    height: 30px; /* 固定高度容器 */
+    position: relative;
 }
 
+/* 状态指示灯样式 */
 .status-light {
     width: 12px;
     height: 12px;
     border-radius: 50%;
     background-color: #444;
+    box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s;
     position: relative;
 }
 
-.status-light.active {
-    background-color: #ffcc00;
-    box-shadow: 0 0 10px #ffcc00;
-}
-
-/* 指示灯标签 */
-.status-light:first-child::after {
-    content: "DISK";
+/* 指示灯标签 - 放在指示灯下方但不影响布局 */
+.status-light::after {
     position: absolute;
     font-size: 8px;
-    bottom: -12px;
+    top: 16px; /* 放在指示灯下方 */
     left: 50%;
     transform: translateX(-50%);
     color: #999;
+    white-space: nowrap;
+}
+
+/* 具体指示灯标签文本 */
+.status-light:first-child::after {
+    content: "DISK";
 }
 
 .status-light:last-child::after {
     content: "NET";
-    position: absolute;
-    font-size: 8px;
-    bottom: -12px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #999;
+}
+
+/* 黄色活动状态 */
+.status-light.active {
+    background-color: #ffcc00;
+    box-shadow: 0 0 10px #ffcc00, inset 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 绿色常亮状态 */
+.status-light.active-green {
+    background-color: #33cc33;
+    box-shadow: 0 0 10px #33cc33, inset 0 0 2px rgba(0, 0, 0, 0.2);
 }
 
 /* 指示灯闪烁动画 */

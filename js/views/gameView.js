@@ -10,6 +10,9 @@ class GameView {
         this.diskLight = document.getElementById('diskLight');
         this.networkLight = document.getElementById('networkLight');
         this.prompt = document.querySelector('.prompt');
+        
+        // 添加屏幕关闭效果的类
+        this.screen.classList.add('screen-off');
     }
     
     powerOn() {
@@ -88,6 +91,11 @@ class GameView {
         this.diskLight.classList.add('active');
         setTimeout(() => {
             this.diskLight.classList.remove('active');
+            
+            // 如果系统开机中，则恢复绿色常亮状态
+            if (document.getElementById('powerButton').classList.contains('on')) {
+                this.diskLight.classList.add('active-green');
+            }
         }, 1000);
     }
     
