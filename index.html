@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBM 5155 PC 终端冒险</title>
+    <!-- 通过CDN引入Google字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <!-- 引入CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="computer-case">
+        <div class="screen">
+            <div class="terminal" id="terminal">
+                <div class="output" id="output"></div>
+                <div class="prompt">
+                    <span class="prompt-symbol">></span>
+                    <input type="text" id="commandInput" spellcheck="false" autocomplete="off">
+                    <span class="cursor" id="cursor"></span>
+                </div>
+            </div>
+        </div>
+        <div class="control-panel">
+            <div class="power-button" id="powerButton"></div>
+            <div class="status-lights">
+                <div class="status-light" id="diskLight"></div>
+                <div class="status-light" id="networkLight"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通过CDN引入JavaScript文件 -->
+    <script src="js/eventBus.js"></script>
+    <script src="js/models/gameModel.js"></script>
+    <script src="js/views/gameView.js"></script>
+    <script src="js/controllers/gameController.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
