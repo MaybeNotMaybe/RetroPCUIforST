@@ -170,6 +170,7 @@ body {
     width: 100%;
     outline: none;
     text-shadow: 0 0 5px rgba(51, 255, 51, 0.8);
+    caret-color: transparent; /* 隐藏原生光标 */
 }
 
 /* 命令提示符控制 */
@@ -359,9 +360,12 @@ body {
     width: 0.6em;
     height: 1em;
     background-color: #33ff33;
-    margin-left: 2px;
     animation: blink 1s step-end infinite;
     vertical-align: text-bottom;
+    position: absolute; /* 改为绝对定位 */
+    left: 0; /* 初始位置 */
+    top: 0;
+    pointer-events: none; /* 确保光标不会阻止点击 */
 }
 
 /* 启动闪屏效果 */
