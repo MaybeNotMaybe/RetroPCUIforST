@@ -1,4 +1,5 @@
 // js/views/gameView.js
+// View - 处理界面显示
 class GameView {
     constructor() {
         this.terminal = document.getElementById('terminal');
@@ -19,7 +20,7 @@ class GameView {
     }
     
     displayBootSequence(bootSequence, callback) {
-        let delay = 800; // 初始延迟
+        let delay = 600; // 减少初始延迟 (原来800ms，减少25%)
         let index = 0;
         
         // 确保滚动到顶部
@@ -50,7 +51,7 @@ class GameView {
                 // 不要滚动，让内容保持在顶部
                 
                 index++;
-                setTimeout(displayNext, 550); // 行间显示延迟
+                setTimeout(displayNext, 400); // 减少行间显示延迟 (原来550ms，减少~25%)
             } else {
                 // 启动序列完成后增加一个空行
                 this.output.innerHTML += '<div class="boot-container">&nbsp;</div>';

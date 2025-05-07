@@ -103,6 +103,20 @@ body {
     flex-direction: column;
 }
 
+/* 隐藏滚动条但保留功能 */
+.terminal::-webkit-scrollbar,
+.output::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    background: transparent;
+}
+
+.terminal,
+.output {
+    -ms-overflow-style: none;  /* IE 和 Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
 /* 输出区域 */
 .output {
     margin-bottom: 10px;
@@ -148,6 +162,7 @@ body {
     background-color: #191919;
     border-left: 2px solid #333;
     flex-shrink: 0; /* 防止面板被压缩 */
+    align-items: flex-start; /* 顶部对齐 */
 }
 
 /* 按钮列 */
@@ -156,15 +171,18 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    height: 85%; /* 总高度小于主界面 */
 }
 
-/* 功能按钮 */
+/* 功能按钮 - 固定高度的正方形 */
 .function-button {
-    flex: 1;
+    width: 100%;
+    height: 55px; /* 固定高度 */
     background-color: #333;
     border: 2px outset #444;
     border-radius: 4px;
     cursor: pointer;
+    margin-bottom: 10px;
 }
 
 .function-button:hover {
@@ -304,6 +322,10 @@ body {
         max-width: 320px;
         height: 80px;
     }
+    
+    .function-button {
+        height: 45px;
+    }
 }
 
 @media (max-height: 550px), (max-width: 750px) {
@@ -315,5 +337,9 @@ body {
     .ibm-logo {
         max-width: 280px;
         height: 70px;
+    }
+    
+    .function-button {
+        height: 40px;
     }
 }
