@@ -19,8 +19,17 @@ class GameModel {
                     "connect [目标ID]": "连接到NPC终端",
                     "status": "检查系统状态",
                     "dir [驱动器]": "显示驱动器内容",
+                    "run [程序]": "运行指定的程序",
                     "clear": "清除屏幕"
                 }
+            }
+        };
+
+        // 可用程序列表
+        this.availablePrograms = {
+            "map": {
+                name: "地理信息系统",
+                description: "显示区域地图和位置信息"
             }
         };
         
@@ -172,6 +181,8 @@ class GameModel {
                 return this.getCommandUsage("connect");
             case "dir":
                 return this.getCommandUsage("dir");
+            case "run":
+                return this.getCommandUsage("run");
         }
         
         // 处理带参数的命令
@@ -183,9 +194,12 @@ class GameModel {
             return this.connect(command.substring(8));
         }
         
-        // 
         if (command.startsWith("dir ")) {
             return this.readDrive(command.substring(4));
+        }
+
+        if (command.startsWith("run ")) {
+            return this.runProgram(command.substring(4).trim());
         }
         
         return `未知命令: "${command}"\n输入 "help" 获取可用命令列表。`;
@@ -276,6 +290,32 @@ RAM空间: 12.4MB/20MB
         }
     }
 
+    runProgram(programName) {
+        // 验证程序名称
+        programName = programName.toLowerCase().trim();
+        
+        if (!programName) {
+            return this.getCommandUsage("run");
+        }
+        
+        // 检查是否为已知程序
+        if (programName === "map") {
+            // 触发硬盘活动指示灯
+            EventBus.emit('diskActivity');
+            
+            // 发布运行地图程序事件
+            setTimeout(() => {
+                EventBus.emit('runProgram', { program: 'map' });
+            }, 800); // 短暂延迟，模拟程序加载
+            
+            return `正在加载程序: 地理信息系统...\n\n执行中...`;
+        }
+        
+        // 其他程序可以在这里添加处理逻辑
+        
+        return `错误: 未找到程序 "${programName}"\n\n可用程序:\n- map: 地理信息系统`;
+    }
+
     // 返回命令的使用说明
     getCommandUsage(command) {
         switch(command.toLowerCase()) {
@@ -301,6 +341,14 @@ RAM空间: 12.4MB/20MB
                     `系统将列出该驱动器中的所有文件和目录。\n`+
                     `- A 驱动器: 系统盘，始终可用\n`+
                     `- B 驱动器: 数据盘，需插入软盘`;
+
+            case "run":
+                return `命令: run [程序]\n`+
+                    `功能: 运行指定的程序\n`+
+                    `示例: run map\n\n`+
+                    `使用方法: 输入"run"后跟随一个空格和您想运行的程序名称。\n`+
+                    `可用程序:\n`+
+                    `- map: 地理信息系统`;
                     
             default:
                 return `未知命令: "${command}"\n输入 "help" 获取可用命令列表。`;

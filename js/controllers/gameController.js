@@ -62,6 +62,8 @@ class GameController {
         
         // 添加调试日志
         console.log("游戏控制器已初始化");
+
+        this.setupFunctionButtons();
     }
 
     // 保存设置到localStorage
@@ -495,5 +497,33 @@ class GameController {
             // 保存颜色模式设置
             this.saveSettings();
         });
+    }
+
+    setupFunctionButtons() {
+        // 获取F1和F5按钮的直接引用
+        const f1Button = document.getElementById('fnButton1');
+        const f5Button = document.getElementById('fnButton5');
+        
+        // 为F1按钮添加单独的事件监听器
+        if (f1Button) {
+            f1Button.addEventListener('click', () => {
+                // 只在系统开机且地图显示时响应
+                if (this.model.isOn && window.mapController && window.mapController.model.isVisible) {
+                    window.mapController.toggleMapView();
+                }
+            });
+        }
+        
+        // 为F5按钮添加单独的事件监听器
+        if (f5Button) {
+            f5Button.addEventListener('click', () => {
+                // 只在系统开机且地图未显示时响应
+                if (this.model.isOn && window.mapController && !window.mapController.model.isVisible) {
+                    window.mapController.toggleMapView();
+                }
+            });
+        }
+        
+        console.log("功能按钮事件已设置");
     }
 }
