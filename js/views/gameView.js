@@ -15,14 +15,15 @@ class GameView {
         this.screen.classList.add('screen-off');
 
         // 设置打字速度（毫秒/字符）
-        this.typingSpeed = 15;
+        this.bootTypingSpeed = 1;     // 开机序列打字速度
+        this.commandTypingSpeed = 10; // 命令行打字速度
 
         // 设置自定义光标
         this.setupCursor();
     }
 
     // 逐字显示效果函数
-    typeWriterEffect(text, element, callback, speed = this.typingSpeed) {
+    typeWriterEffect(text, element, callback, speed) {
         if (!text || text.length === 0) {
             if (callback) callback();
             return;
@@ -115,11 +116,11 @@ class GameView {
                         centerContainer.appendChild(centerTextDiv);
                         this.output.appendChild(centerContainer);
                         
-                        // 使用打字机效果
+                        // 使用开机序列打字速度
                         this.typeWriterEffect(item.content, centerTextDiv, () => {
                             index++;
                             setTimeout(displayNext, 300);
-                        });
+                        }, this.bootTypingSpeed); // 使用开机序列速度
                         break;
                     
                     case 'box':
@@ -140,7 +141,7 @@ class GameView {
                                 const lineSpan = document.createElement('span');
                                 boxDiv.appendChild(lineSpan);
                                 
-                                // 使用打字机效果显示当前行
+                                // 使用开机序列打字速度
                                 this.typeWriterEffect(item.content[lineIndex], lineSpan, () => {
                                     lineIndex++;
                                     
@@ -153,7 +154,7 @@ class GameView {
                                         index++;
                                         setTimeout(displayNext, 300);
                                     }
-                                });
+                                }, this.bootTypingSpeed); // 使用开机序列速度
                             }
                         };
                         
@@ -167,11 +168,11 @@ class GameView {
                         defaultContainer.className = 'boot-container';
                         this.output.appendChild(defaultContainer);
                         
-                        // 使用打字机效果
+                        // 使用开机序列打字速度
                         this.typeWriterEffect(item.content, defaultContainer, () => {
                             index++;
                             setTimeout(displayNext, 300);
-                        });
+                        }, this.bootTypingSpeed); // 使用开机序列速度
                 }
             } else {
                 // 启动序列完成后增加一个空行
@@ -200,11 +201,11 @@ class GameView {
             return;
         }
         
-        // 使用打字机效果显示文本
+        // 使用命令行打字速度
         this.typeWriterEffect(text, this.output, () => {
             // 完成后确保滚动到底部
             this.output.scrollTop = this.output.scrollHeight;
-        });
+        }, this.commandTypingSpeed); // 使用命令行速度
     }
 
     // 恢复完整历史记录
