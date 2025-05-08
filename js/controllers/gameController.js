@@ -141,10 +141,12 @@ class GameController {
                     document.querySelector('.screen').classList.add('screen-on');
                     document.getElementById('diskLight').classList.add('active-green');
                     
-                    // 开启功能按钮指示灯
-                    this.functionButtons.forEach(button => {
-                        button.classList.add('powered');
-                    });
+                    setTimeout(() => {
+                        this.functionButtons.forEach(button => {
+                            if (button) button.classList.add('powered');
+                        });
+                        console.log("功能按钮灯光状态已应用");
+                    }, 100);
                     
                     // 应用颜色模式
                     const screen = document.querySelector('.screen');
