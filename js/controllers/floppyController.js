@@ -154,15 +154,15 @@ class FloppyController {
             window.gameController.saveSettings();
         }
         
-        // 触发磁盘活动事件
-        if (this.systemStateProvider.isSystemOn()) {
-            EventBus.emit('diskActivity', { drive: 'B' });
+        // // 触发磁盘活动事件
+        // if (this.systemStateProvider.isSystemOn()) {
+        //     EventBus.emit('diskActivity', { drive: 'B' });
             
-            // 磁盘活动结束后显示内容
-            setTimeout(() => {
-                this.displayFloppyContent();
-            }, 2000);
-        }
+        //     // 磁盘活动结束后显示内容
+        //     setTimeout(() => {
+        //         this.displayFloppyContent();
+        //     }, 2000);
+        // }
         
         return true;
     }
@@ -208,9 +208,10 @@ class FloppyController {
             if (this.floppyState.diskInserted) {
                 this.driveLightB.classList.add('active');
                 
-                // 短暂延迟后读取软盘内容
+                // 短暂延迟后触发读取活动
                 setTimeout(() => {
-                    this.displayFloppyContent();
+                    // 开始读取动画和内容加载（true表示显示读取提示）
+                    this.triggerDiskReadActivity(true);
                 }, 1000);
             }
         }
@@ -262,10 +263,10 @@ class FloppyController {
             this.fullFloppyB.classList.add('hide-full-floppy');
             this.fullFloppyB.classList.remove('inserting-full');
             
-            // 关键：如果系统已开机，触发一次硬盘读取活动
+            // 关键：如果系统已开机，立即开始硬盘读取活动和显示读取提示
             if (isSystemOn) {
-                // 先让系统硬盘指示灯闪烁，表示读取软盘数据
-                this.triggerDiskReadActivity();
+                // 开始硬盘读取活动和显示读取提示（同步进行）
+                this.triggerDiskReadActivity(true);
             }
             
             // 完成插入
@@ -274,15 +275,20 @@ class FloppyController {
     }
 
     // 触发硬盘读取活动
-    triggerDiskReadActivity() {
+    triggerDiskReadActivity(showReadingPrompt = false) {
         // 保存当前系统硬盘灯状态
         const wasActiveGreen = this.diskLight.classList.contains('active-green');
         
         // 先移除常亮状态
-        this.diskLight.classList.remove('active-green');
+        this.diskLight.classList.remove('active-green', 'active-blue');
         
         // 添加闪烁状态
         this.diskLight.classList.add('disk-flashing');
+        
+        // 如果需要显示读取提示，立即开始显示读取信息和加载动画
+        if (showReadingPrompt) {
+            this.startFloppyContentReading();
+        }
         
         // 2秒后结束硬盘活动
         setTimeout(() => {
@@ -297,6 +303,11 @@ class FloppyController {
             // 重要：读取完成后，才点亮驱动器B的指示灯
             if (this.systemStateProvider.isSystemOn() && this.floppyState.diskInserted) {
                 this.driveLightB.classList.add('active');
+            }
+            
+            // 如果启动了读取提示，完成后显示内容
+            if (showReadingPrompt) {
+                this.displayFloppyContentAfterLoading();
             }
         }, 2000);
     }
@@ -385,7 +396,12 @@ class FloppyController {
             return;
         }
         
-        // 获取游戏视图引用
+        // 开始硬盘读取活动和显示读取提示
+        this.triggerDiskReadActivity(true);
+    }
+
+    // 启动软盘内容读取提示和加载动画
+    startFloppyContentReading() {
         const gameController = window.gameController;
         if (!gameController || !gameController.view) {
             console.error("无法获取游戏视图对象");
@@ -397,31 +413,53 @@ class FloppyController {
         
         // 创建加载动画
         this.startLoadingAnimation();
+    }
+
+    // 读取完成后显示软盘内容
+    displayFloppyContentAfterLoading() {
+        // 停止加载动画
+        this.stopLoadingAnimation();
         
-        // 模拟磁盘读取延迟
-        setTimeout(() => {
-            // 停止加载动画
-            this.stopLoadingAnimation();
-            
-            // 获取软盘内容
-            const content = this.readFloppyContent();
-            
-            // 显示内容或错误消息
-            gameController.view.displayOutput("\n------------------------------------\n");
-            
-            if (content) {
-                gameController.view.displayOutput(content);
-            } else {
-                gameController.view.displayOutput("错误: 无法读取软盘内容或内容为空。");
-            }
-            
-            gameController.view.displayOutput("\n------------------------------------\n");
-            
-            // 如果存在 gameController，保存设置
-            if (gameController) {
+        // 获取软盘内容
+        const content = this.readFloppyContent();
+        
+        const gameController = window.gameController;
+        if (!gameController || !gameController.view) {
+            console.error("无法获取游戏视图对象");
+            return;
+        }
+        
+        // 显示内容前给出分隔线
+        gameController.view.displayOutput("\n------------------------------------\n");
+        
+        // 在显示内容时将硬盘指示灯切换为蓝色闪烁
+        this.diskLight.classList.remove('active-green', 'disk-flashing', 'active-blue');
+        this.diskLight.classList.add('blue-flashing');
+        
+        if (content) {
+            // 启动打字机效果，结束后恢复绿色指示灯
+            gameController.view.typeWriterEffect(content, document.getElementById('output'), () => {
+                // 打字效果结束后，移除蓝色闪烁，恢复绿色指示灯
+                this.diskLight.classList.remove('blue-flashing');
+                this.diskLight.classList.add('active-green');
+                
+                // 显示结束分隔线
+                gameController.view.displayOutput("\n------------------------------------\n");
+                
+                // 保存设置
                 gameController.saveSettings();
-            }
-        }, 2000);
+            }, 10); // 打字机效果速度
+        } else {
+            gameController.view.displayOutput("错误: 无法读取软盘内容或内容为空。");
+            gameController.view.displayOutput("\n------------------------------------\n");
+            
+            // 恢复绿色指示灯
+            this.diskLight.classList.remove('blue-flashing');
+            this.diskLight.classList.add('active-green');
+            
+            // 保存设置
+            gameController.saveSettings();
+        }
     }
 
     // 启动加载动画

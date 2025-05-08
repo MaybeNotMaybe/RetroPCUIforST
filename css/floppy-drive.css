@@ -373,3 +373,31 @@
 .amber-mode .loading-animation {
     color: #ffb000;  /* 琥珀色模式下的颜色 */
 }
+
+/* 蓝色指示灯 */
+.active-blue {
+    background-color: #0080ff !important;
+    box-shadow: 0 0 10px #0080ff, 0 0 5px #0080ff inset !important;
+    border-color: #006bdb !important;
+}
+
+/* 蓝色闪烁指示灯 */
+@keyframes blue-flash {
+    0% { 
+        background-color: #0080ff;
+        box-shadow: 0 0 10px #0080ff, 0 0 5px #0080ff inset;
+    }
+    50% { 
+        background-color: #004a91;
+        box-shadow: 0 0 5px #004a91, 0 0 2px #004a91 inset;
+    }
+    100% { 
+        background-color: #0080ff;
+        box-shadow: 0 0 10px #0080ff, 0 0 5px #0080ff inset;
+    }
+}
+
+.blue-flashing {
+    animation: blue-flash 0.8s infinite;
+    border-color: #006bdb !important;
+}
