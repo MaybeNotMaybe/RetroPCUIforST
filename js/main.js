@@ -1,4 +1,32 @@
 // js/main.js
+
+function setupFunctionButtonsForMap() {
+    const f1Button = document.getElementById('fnButton1');
+    const f5Button = document.getElementById('fnButton5');
+    
+    if (f1Button) {
+        f1Button.addEventListener('click', () => {
+            if (window.isSystemOperational() && 
+                window.mapController && 
+                window.mapController.model.isVisible) {
+                window.mapController.toggleMapView();
+            }
+        });
+    }
+    
+    if (f5Button) {
+        f5Button.addEventListener('click', () => {
+            if (window.isSystemOperational() && 
+                window.mapController && 
+                !window.mapController.model.isVisible) {
+                window.mapController.toggleMapView();
+            }
+        });
+    }
+    
+    console.log("地图功能按钮事件已设置");
+}
+
 window.onload = function() {
     try {
         console.log("初始化游戏...");
@@ -27,6 +55,18 @@ window.onload = function() {
         
         // 为了方便访问，也将mapController添加到window对象
         window.mapController = mapController;
+
+        // // 程序运行事件监听
+        // EventBus.on('runProgram', (data) => {
+        //     console.log(`正在运行程序: ${data.program}`);
+            
+        //     // 根据程序类型切换界面
+        //     if (data.program === 'map' && mapController) {
+        //         if (!mapController.model.isVisible) {
+        //             mapController.toggleMapView();
+        //         }
+        //     }
+        // });
         
         // 订阅系统电源变化事件
         EventBus.on('systemPowerChange', (isOn) => {
@@ -48,6 +88,9 @@ window.onload = function() {
                 mapView.updateColorMode(isAmber);
             }
         });
+
+        // 添加按钮事件设置
+        setTimeout(setupFunctionButtonsForMap, 1000);
         
         console.log("游戏初始化完成");
     } catch (error) {

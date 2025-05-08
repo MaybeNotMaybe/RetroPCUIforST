@@ -24,6 +24,13 @@ class MapController {
         EventBus.on('colorModeChanged', (isAmber) => {
             this.view.updateColorMode(isAmber);
         });
+
+        // 监听 runProgram 事件
+        EventBus.on('runProgram', (data) => {
+            if (data.program === 'map' && !this.model.isVisible) {
+                this.toggleMapView();
+            }
+        });
         
         // 监听功能键
         document.addEventListener('keydown', (e) => {
