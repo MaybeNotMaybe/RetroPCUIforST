@@ -30,6 +30,9 @@ class GameController {
         this.view.input.disabled = true;
         document.querySelector('.prompt').classList.add('hidden'); // 初始状态隐藏命令行
 
+        // 添加软盘读取询问标志
+        this.awaitingDiskReadResponse = false;
+
         // 添加颜色切换功能
         this.setupColorToggle();
 
@@ -327,6 +330,51 @@ class GameController {
             // 显示用户输入
             const inputText = `> ${command}`;
             this.view.displayOutput(inputText);
+            
+            // 检查是否正在等待软盘读取响应
+            if (this.awaitingDiskReadResponse) {
+                this.awaitingDiskReadResponse = false; // 重置标志
+                
+                // 处理Y/N响应
+                const response = command.trim().toLowerCase();
+                
+                // 添加输入到历史记录
+                this.model.addToHistory(inputText);
+                
+                // 检查是Y还是N (支持多种形式)
+                if (response === 'y' || response === 'yes') {
+                    const confirmMsg = "\n开始读取驱动器B中的软盘...";
+                    this.view.displayOutput(confirmMsg);
+                    this.model.addToHistory(confirmMsg);
+                    
+                    // 触发软盘读取
+                    if (this.floppyController) {
+                        this.floppyController.triggerDiskReadActivity(true);
+                    }
+                    
+                    // 保存当前状态
+                    this.saveSettings();
+                    return;
+                } else if (response === 'n' || response === 'no') {
+                    const cancelMsg = "\n已取消读取驱动器B中的软盘。";
+                    this.view.displayOutput(cancelMsg);
+                    this.model.addToHistory(cancelMsg);
+                    
+                    // 保存当前状态
+                    this.saveSettings();
+                    return;
+                } else {
+                    // 无效输入，重新提示
+                    const invalidMsg = "\n无效输入。请输入Y或N：";
+                    this.view.displayOutput(invalidMsg);
+                    this.model.addToHistory(invalidMsg);
+                    this.awaitingDiskReadResponse = true; // 继续等待有效响应
+                    
+                    // 保存当前状态
+                    this.saveSettings();
+                    return;
+                }
+            }
             
             try {
                 const response = this.model.processCommand(command);
