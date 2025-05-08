@@ -1,7 +1,7 @@
 /* 本地字体定义 */
 @font-face {
     font-family: 'VT323';
-    src: url('../assets/fonts/zpix.ttf') format('truetype');
+    src: url('https://cdn.jsdelivr.net/gh/SolidZORO/zpix-pixel-font@master/dist/zpix.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
