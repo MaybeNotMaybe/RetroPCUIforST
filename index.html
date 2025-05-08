@@ -7,6 +7,7 @@
     <!-- 引入CSS -->
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/floppy-drive.css">
+    <link rel="stylesheet" href="css/button.css">
 </head>
 <body>
     <div class="computer-wrapper">
@@ -29,16 +30,16 @@
                 <!-- 功能按钮区域 - 两列，每列4个 -->
                 <div class="buttons-panel">
                     <div class="buttons-column">
-                        <div class="function-button"></div>
-                        <div class="function-button"></div>
-                        <div class="function-button"></div>
-                        <div class="function-button"></div>
+                        <div id="fnButton1" class="function-button">F1</div>
+                        <div id="fnButton2" class="function-button">F2</div>
+                        <div id="fnButton3" class="function-button">F3</div>
+                        <div id="fnButton4" class="function-button">F4</div>
                     </div>
                     <div class="buttons-column">
-                        <div class="function-button"></div>
-                        <div class="function-button"></div>
-                        <div class="function-button"></div>
-                        <div class="function-button"></div>
+                        <div id="fnButton5" class="function-button">F5</div>
+                        <div id="fnButton6" class="function-button">F6</div>
+                        <div id="fnButton7" class="function-button">F7</div>
+                        <div id="fnButton8" class="function-button">F8</div>
                     </div>
                 </div>
             </div>
@@ -304,7 +305,7 @@
         // 提取内容并保留空白字符
         return data.substring(startIndex, endIndex).trim();
     };
-    
+
     // 检查系统是否可操作的辅助函数
     window.isSystemOperational = function() {
         // 获取游戏控制器
