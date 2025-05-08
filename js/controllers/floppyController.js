@@ -403,13 +403,19 @@ class FloppyController {
     // 启动软盘内容读取提示和加载动画
     startFloppyContentReading() {
         const gameController = window.gameController;
-        if (!gameController || !gameController.view) {
+        if (!gameController || !gameController.view || !gameController.model) {
             console.error("无法获取游戏视图对象");
             return;
         }
         
+        // 读取消息
+        const readingMessage = "\n正在读取软盘B内容...\n";
+        
         // 显示加载消息
-        gameController.view.displayOutput("\n正在读取软盘B内容...\n");
+        gameController.view.displayOutput(readingMessage);
+        
+        // 将读取消息添加到历史记录，带上特殊标记
+        gameController.model.addToHistory(readingMessage + "<!-- loading_indicator -->");
         
         // 创建加载动画
         this.startLoadingAnimation();
@@ -424,13 +430,19 @@ class FloppyController {
         const content = this.readFloppyContent();
         
         const gameController = window.gameController;
-        if (!gameController || !gameController.view) {
-            console.error("无法获取游戏视图对象");
+        if (!gameController || !gameController.view || !gameController.model) {
+            console.error("无法获取游戏控制器对象");
             return;
         }
         
+        // 分隔线
+        const separatorLine = "\n------------------------------------\n";
+        
         // 显示内容前给出分隔线
-        gameController.view.displayOutput("\n------------------------------------\n");
+        gameController.view.displayOutput(separatorLine);
+        
+        // 将分隔线添加到历史记录
+        gameController.model.addToHistory(separatorLine);
         
         // 在显示内容时将硬盘指示灯切换为蓝色闪烁
         this.diskLight.classList.remove('active-green', 'disk-flashing', 'active-blue');
@@ -439,19 +451,29 @@ class FloppyController {
         if (content) {
             // 启动打字机效果，结束后恢复绿色指示灯
             gameController.view.typeWriterEffect(content, document.getElementById('output'), () => {
+                // 关键：将完整的软盘内容添加到历史记录中
+                gameController.model.addToHistory(content);
+                
                 // 打字效果结束后，移除蓝色闪烁，恢复绿色指示灯
                 this.diskLight.classList.remove('blue-flashing');
                 this.diskLight.classList.add('active-green');
                 
                 // 显示结束分隔线
-                gameController.view.displayOutput("\n------------------------------------\n");
+                gameController.view.displayOutput(separatorLine);
+                
+                // 将结束分隔线添加到历史记录
+                gameController.model.addToHistory(separatorLine);
                 
                 // 保存设置
                 gameController.saveSettings();
             }, 10); // 打字机效果速度
         } else {
-            gameController.view.displayOutput("错误: 无法读取软盘内容或内容为空。");
-            gameController.view.displayOutput("\n------------------------------------\n");
+            const errorMessage = "错误: 无法读取软盘内容或内容为空。";
+            gameController.view.displayOutput(errorMessage);
+            gameController.model.addToHistory(errorMessage);
+            
+            gameController.view.displayOutput(separatorLine);
+            gameController.model.addToHistory(separatorLine);
             
             // 恢复绿色指示灯
             this.diskLight.classList.remove('blue-flashing');
@@ -503,6 +525,13 @@ class FloppyController {
             // 移除加载行
             if (this.loadingLine) {
                 this.loadingLine.textContent = "读取完成";
+                
+                // 将加载完成信息添加到历史
+                const gameController = window.gameController;
+                if (gameController && gameController.model) {
+                    gameController.model.addToHistory("读取完成");
+                }
+                
                 setTimeout(() => {
                     if (this.loadingLine && this.loadingLine.parentNode) {
                         this.loadingLine.parentNode.removeChild(this.loadingLine);
