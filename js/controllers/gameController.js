@@ -43,8 +43,6 @@ class GameController {
         const settings = {
             isPowerOn: this.model.isOn,
             colorMode: document.getElementById('colorToggle').classList.contains('amber') ? 'amber' : 'green',
-            terminalHistory: this.model.isOn ? this.model.getHistory() : [],
-            // 关键: 添加软盘状态到保存的设置中
             floppyDriveState: floppyDriveState
         };
         
@@ -56,8 +54,12 @@ class GameController {
             settings.terminalHistory = [];
         }
         
-        localStorage.setItem('terminalSettings', JSON.stringify(settings));
-        console.log("设置已保存:", settings);
+        try {
+            localStorage.setItem('terminalSettings', JSON.stringify(settings));
+            console.log("设置已保存");
+        } catch (e) {
+            console.error("保存设置失败:", e);
+        }
     }
     
     // 从localStorage加载设置

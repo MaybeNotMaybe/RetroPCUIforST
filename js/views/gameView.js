@@ -217,6 +217,11 @@ class GameView {
         // 逐行添加历史记录
         for (let line of history) {
             if (typeof line === 'string') {
+                // 过滤掉加载指示器标记
+                if (line.includes('<!-- loading_indicator -->')) {
+                    line = line.replace('<!-- loading_indicator -->', '');
+                }
+                
                 // 检查是否包含HTML标签（如启动序列）
                 if (line.includes('<div') || line.includes('<img')) {
                     // 直接添加HTML内容
