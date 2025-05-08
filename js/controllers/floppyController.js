@@ -213,14 +213,13 @@ class FloppyController {
             // 系统启动完成，打开A驱动器灯
             this.driveLightA.classList.add('active');
             
-            // 如果B驱动器已插入软盘，打开B驱动器灯并读取内容
+            // 如果B驱动器已插入软盘，打开B驱动器灯并询问用户
             if (this.floppyState.diskInserted) {
                 this.driveLightB.classList.add('active');
                 
-                // 短暂延迟后触发读取活动
+                // 短暂延迟后显示询问提示
                 setTimeout(() => {
-                    // 开始读取动画和内容加载（true表示显示读取提示）
-                    this.triggerDiskReadActivity(true);
+                    this.promptForDiskRead();
                 }, 1000);
             }
         }
@@ -336,6 +335,7 @@ class FloppyController {
             // 关键：如果系统已开机，立即开始硬盘读取活动和显示读取提示
             if (isSystemOn) {
                 // 开始硬盘读取活动和显示读取提示（同步进行）
+                // this.promptForDiskRead();
                 this.triggerDiskReadActivity(true);
             }
             
@@ -608,6 +608,23 @@ class FloppyController {
                     }
                     this.loadingLine = null;
                 }, 500);
+            }
+        }
+    }
+
+    // 询问用户是否读取软盘
+    promptForDiskRead() {
+        const gameController = window.gameController;
+        if (gameController && gameController.view) {
+            // 显示询问信息
+            gameController.view.displayOutput("\n检测到驱动器B:中已存在软盘，是否读取？Y/N");
+            
+            // 设置标志，表示等待用户回应
+            gameController.awaitingDiskReadResponse = true;
+            
+            // 将询问添加到历史记录
+            if (gameController.model) {
+                gameController.model.addToHistory("\n检测到驱动器B:中已存在软盘，是否读取？Y/N");
             }
         }
     }
