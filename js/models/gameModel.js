@@ -34,13 +34,13 @@ class GameModel {
         };
         
         // IBM SVG Logo路径
-        this.ibmLogoPath = 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/images/imb-logo.svg';
+        this.ibmLogoPath = 'https://files.catbox.moe/hl0jz8.svg';
 
         // 启动画面内容
         this.bootSequence = [
             {
                 type: "svg-logo",
-                content: "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/images/imb-logo.svg"
+                content: "https://files.catbox.moe/hl0jz8.svg"
             },
             {
                 type: "text-center",
