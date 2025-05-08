@@ -20,12 +20,33 @@ window.onload = function() {
         // 将软盘控制器引用附加到游戏控制器
         gameController.floppyController = floppyController;
         
+        // 初始化地图MVC
+        const mapModel = new MapModel();
+        const mapView = new MapView();
+        const mapController = new MapController(mapModel, mapView);
+        
+        // 为了方便访问，也将mapController添加到window对象
+        window.mapController = mapController;
+        
         // 订阅系统电源变化事件
         EventBus.on('systemPowerChange', (isOn) => {
             floppyController.handleSystemPowerChange(isOn);
             
             // 每次电源状态变化时保存设置
             gameController.saveSettings();
+            
+            // 如果系统关闭，确保地图也隐藏
+            if (!isOn && mapController.model.isVisible) {
+                mapController.model.setVisibility(false);
+                mapView.hide();
+            }
+        });
+        
+        // 添加颜色切换事件监听
+        EventBus.on('colorModeChanged', (isAmber) => {
+            if (mapController) {
+                mapView.updateColorMode(isAmber);
+            }
         });
         
         console.log("游戏初始化完成");

@@ -38,6 +38,27 @@ class GameController {
 
         // 从localStorage加载设置
         this.loadSettings();
+
+        // 功能按钮点击事件
+        this.functionButtons.forEach((button, index) => {
+            button.addEventListener('click', () => {
+                if (!this.model.isOn) return; // 系统关闭时按钮不响应
+                
+                // F1 - 切换到主终端
+                if (index === 0) {
+                    if (window.mapController && window.mapController.model.isVisible) {
+                        window.mapController.toggleMapView();
+                    }
+                }
+                
+                // F5 - 显示地图
+                if (index === 4) {
+                    if (window.mapController && !window.mapController.model.isVisible) {
+                        window.mapController.toggleMapView();
+                    }
+                }
+            });
+        });
         
         // 添加调试日志
         console.log("游戏控制器已初始化");
@@ -444,6 +465,9 @@ class GameController {
                     toggleSlider.style.backgroundColor = '#ffb000';
                     screen.classList.remove('green-mode');
                     screen.classList.add('amber-mode');
+                    
+                    // 发布颜色模式变化事件
+                    EventBus.emit('colorModeChanged', true);
                 } else {
                     toggleSlider.style.backgroundColor = '#666';
                 }
@@ -455,6 +479,9 @@ class GameController {
                     toggleSlider.style.backgroundColor = '#33ff33';
                     screen.classList.remove('amber-mode');
                     screen.classList.add('green-mode');
+                    
+                    // 发布颜色模式变化事件
+                    EventBus.emit('colorModeChanged', false);
                 } else {
                     toggleSlider.style.backgroundColor = '#666';
                 }
