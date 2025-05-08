@@ -118,6 +118,11 @@ class GameController {
                     document.querySelector('.screen').classList.add('screen-on');
                     document.getElementById('diskLight').classList.add('active-green');
                     
+                    // 开启功能按钮指示灯
+                    this.functionButtons.forEach(button => {
+                        button.classList.add('powered');
+                    });
+                    
                     // 应用颜色模式
                     const screen = document.querySelector('.screen');
                     if (settings.colorMode === 'amber') {
@@ -146,6 +151,11 @@ class GameController {
                     this.model.isOn = false;
                     this.model.systemState = this.model.SystemState.POWERED_OFF;
                     this.model.clearHistory(); // 确保历史被清除
+
+                    // 确保功能按钮指示灯熄灭
+                    this.functionButtons.forEach(button => {
+                        button.classList.remove('powered');
+                    });
                     
                     document.getElementById('powerButton').classList.remove('on');
                     document.querySelector('.screen').classList.add('screen-off');
@@ -294,7 +304,7 @@ class GameController {
             
             // 隐藏命令行
             document.querySelector('.prompt').classList.add('hidden');
-    
+            
             // 更新颜色切换按钮状态 - 将滑块颜色改为灰色
             toggleSlider.style.backgroundColor = '#666';
             
@@ -302,6 +312,11 @@ class GameController {
             EventBus.emit('systemPowerChange', false);
             
             this.view.input.disabled = true;
+            
+            // 关键修复：立即关闭所有功能按钮指示灯
+            this.functionButtons.forEach(button => {
+                button.classList.remove('powered');
+            });
             
             // 屏幕变暗效果
             setTimeout(() => {
