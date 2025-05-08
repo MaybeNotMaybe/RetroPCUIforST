@@ -281,12 +281,25 @@ class GameController {
             // 显示用户输入
             const inputText = `> ${command}`;
             this.view.displayOutput(inputText);
-            this.model.addToHistory(inputText);
             
             try {
                 const response = this.model.processCommand(command);
-                this.view.displayOutput(response);
-                this.model.addToHistory(response);
+                
+                // 检查是否为清屏命令
+                if (response === "CLEAR_SCREEN") {
+                    // 清除屏幕
+                    this.view.displayOutput(response);
+                    // 完全清除历史记录
+                    this.model.clearHistory();
+                    // 添加一个空字符串或特殊标记作为历史记录占位符
+                    // 这确保terminalHistory.length > 0，系统状态保持为开机
+                    this.model.addToHistory('');  // 添加空字符串作为占位符
+                } else {
+                    // 处理普通命令
+                    this.view.displayOutput(response);
+                    this.model.addToHistory(inputText);
+                    this.model.addToHistory(response);
+                }
                 
                 // 保存当前状态
                 this.saveSettings();
@@ -294,6 +307,7 @@ class GameController {
                 console.error("命令处理错误:", error);
                 const errorText = "错误: 命令处理失败。系统故障。";
                 this.view.displayOutput(errorText);
+                this.model.addToHistory(inputText);
                 this.model.addToHistory(errorText);
             }
         }
