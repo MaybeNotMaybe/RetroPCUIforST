@@ -14,8 +14,51 @@ class GameView {
         // 添加屏幕关闭效果的类
         this.screen.classList.add('screen-off');
 
+        // 设置打字速度（毫秒/字符）
+        this.typingSpeed = 15;
+
         // 设置自定义光标
         this.setupCursor();
+    }
+
+    // 逐字显示效果函数
+    typeWriterEffect(text, element, callback, speed = this.typingSpeed) {
+        if (!text || text.length === 0) {
+            if (callback) callback();
+            return;
+        }
+        
+        // 如果是HTML内容，直接添加不做处理
+        if (text.includes('<') && text.includes('>')) {
+            element.innerHTML += text;
+            if (callback) callback();
+            return;
+        }
+        
+        let i = 0;
+        const chars = text.split('');
+        
+        // 创建一个新的元素来存放打字内容
+        const lineElement = document.createElement('div');
+        lineElement.className = 'typed-line';
+        element.appendChild(lineElement);
+        
+        function typeChar() {
+            if (i < chars.length) {
+                lineElement.textContent += chars[i];
+                i++;
+                
+                // 滚动到底部
+                element.scrollTop = element.scrollHeight;
+                
+                setTimeout(typeChar, speed);
+            } else {
+                // 完成后调用回调
+                if (callback) callback();
+            }
+        }
+        
+        typeChar();
     }
     
     powerOn() {
@@ -36,7 +79,6 @@ class GameView {
     }
     
     displayBootSequence(bootSequence, callback, skipDisplay = false) {
-        let delay = 300;
         let index = 0;
         
         // 确保滚动到顶部
@@ -51,39 +93,85 @@ class GameView {
             if (index < bootSequence.length) {
                 const item = bootSequence[index];
                 
-                // 根据不同类型的内容创建不同的HTML
-                let html = '';
-                
                 switch(item.type) {
                     case 'svg-logo':
-                        if (item.content && typeof item.content === 'string') {
-                            html = `<div class="imb-logo"><img src="${item.content}" alt="IMB Logo"></div>`;
-                        } else {
-                            html = `<div class="imb-logo">[IMB LOGO]</div>`;
-                        }
+                        // Logo 直接添加
+                        const logoHtml = `<div class="imb-logo"><img src="${item.content}" alt="IMB Logo"></div>`;
+                        this.output.innerHTML += logoHtml;
+                        this.output.scrollTop = this.output.scrollHeight;
+                        
+                        setTimeout(() => {
+                            index++;
+                            displayNext();
+                        }, 500);
                         break;
+                    
                     case 'text-center':
-                        html = `<div class="boot-container"><div class="text-center">${item.content}</div></div>`;
+                        // 创建中心文本容器
+                        const centerContainer = document.createElement('div');
+                        centerContainer.className = 'boot-container';
+                        const centerTextDiv = document.createElement('div');
+                        centerTextDiv.className = 'text-center';
+                        centerContainer.appendChild(centerTextDiv);
+                        this.output.appendChild(centerContainer);
+                        
+                        // 使用打字机效果
+                        this.typeWriterEffect(item.content, centerTextDiv, () => {
+                            index++;
+                            setTimeout(displayNext, 300);
+                        });
                         break;
+                    
                     case 'box':
-                        html = `<div class="boot-container"><div class="bordered-box">${item.content.join('<br>')}</div></div>`;
+                        // 创建框容器
+                        const boxContainer = document.createElement('div');
+                        boxContainer.className = 'boot-container';
+                        const boxDiv = document.createElement('div');
+                        boxDiv.className = 'bordered-box';
+                        boxContainer.appendChild(boxDiv);
+                        this.output.appendChild(boxContainer);
+                        
+                        // 逐行处理框内容
+                        let lineIndex = 0;
+                        
+                        const processBoxLine = () => {
+                            if (lineIndex < item.content.length) {
+                                // 为每行创建一个span元素
+                                const lineSpan = document.createElement('span');
+                                boxDiv.appendChild(lineSpan);
+                                
+                                // 使用打字机效果显示当前行
+                                this.typeWriterEffect(item.content[lineIndex], lineSpan, () => {
+                                    lineIndex++;
+                                    
+                                    // 如果不是最后一行，添加换行
+                                    if (lineIndex < item.content.length) {
+                                        boxDiv.appendChild(document.createElement('br'));
+                                        setTimeout(processBoxLine, 200);
+                                    } else {
+                                        // 所有行处理完毕
+                                        index++;
+                                        setTimeout(displayNext, 300);
+                                    }
+                                });
+                            }
+                        };
+                        
+                        // 开始处理第一行
+                        processBoxLine();
                         break;
+                    
                     default:
-                        html = `<div class="boot-container">${item.content}</div>`;
-                }
-                
-                if (!skipDisplay) {
-                    this.output.innerHTML += html;
-                    this.output.scrollTop = this.output.scrollHeight;
-                }
-                
-                index++;
-                
-                if (skipDisplay) {
-                    // 跳过显示过程，直接处理下一项
-                    displayNext();
-                } else {
-                    setTimeout(displayNext, 200);
+                        // 创建默认容器
+                        const defaultContainer = document.createElement('div');
+                        defaultContainer.className = 'boot-container';
+                        this.output.appendChild(defaultContainer);
+                        
+                        // 使用打字机效果
+                        this.typeWriterEffect(item.content, defaultContainer, () => {
+                            index++;
+                            setTimeout(displayNext, 300);
+                        });
                 }
             } else {
                 // 启动序列完成后增加一个空行
@@ -98,7 +186,7 @@ class GameView {
         };
         
         // 开始显示
-        setTimeout(displayNext, delay);
+        setTimeout(displayNext, 500);
     }
     
     powerOff() {
@@ -112,8 +200,11 @@ class GameView {
             return;
         }
         
-        this.output.innerHTML += text + "\n";
-        this.output.scrollTop = this.output.scrollHeight;
+        // 使用打字机效果显示文本
+        this.typeWriterEffect(text, this.output, () => {
+            // 完成后确保滚动到底部
+            this.output.scrollTop = this.output.scrollHeight;
+        });
     }
 
     // 恢复完整历史记录
@@ -129,9 +220,12 @@ class GameView {
                 if (line.includes('<div') || line.includes('<img')) {
                     // 直接添加HTML内容
                     this.output.innerHTML += line;
-                } else {
-                    // 普通文本行，添加换行符
-                    this.output.innerHTML += line + "\n";
+                } else if (line.trim() !== '') {
+                    // 普通文本行，创建新的行元素
+                    const lineElement = document.createElement('div');
+                    lineElement.className = 'typed-line';
+                    lineElement.textContent = line;
+                    this.output.appendChild(lineElement);
                 }
             }
         }
