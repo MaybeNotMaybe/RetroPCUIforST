@@ -209,7 +209,7 @@ class GameModel {
                 `CONFIG.SYS      2,048 Byte\n` +
                 `KERNEL.SYS     65,536 Byte\n\n` +
                 `4 个文件      83,968 Byte\n` +
-                `剩余空间:   172,864 Byte`;
+                `剩余空间:   7,864 Byte`;
         }
         
         // 对于 B 驱动器，检查是否有软盘并触发读取
@@ -226,7 +226,7 @@ class GameModel {
             case "search":
                 return `命令: search [关键词]\n`+
                     `功能: 搜索数据库中的信息\n`+
-                    `示例: search 蓝光\n\n`+
+                    `示例: search 兰德\n\n`+
                     `使用方法: 输入"search"后跟随一个空格和您想搜索的关键词。\n`+
                     `系统将返回与关键词相关的所有匹配项。`;
                     
