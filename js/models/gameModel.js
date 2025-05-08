@@ -15,9 +15,11 @@ class GameModel {
                 description: "请输入'help'查看可用命令。",
                 commands: {
                     "help": "显示帮助信息",
-                    "search": "搜索数据库",
-                    "connect": "连接到NPC终端",
-                    "status": "检查系统状态"
+                    "search [关键词]": "搜索数据库",
+                    "connect [目标ID]": "连接到NPC终端",
+                    "status": "检查系统状态",
+                    "dir [驱动器]": "显示驱动器内容",
+                    "clear": "清除屏幕"
                 }
             }
         };
@@ -105,7 +107,15 @@ class GameModel {
             case "clear":
                 return "CLEAR_SCREEN";
             case "status":
-                return this.getStatus();        
+                return this.getStatus();
+            
+            // 处理无参数的命令情况
+            case "search":
+                return this.getCommandUsage("search");
+            case "connect":
+                return this.getCommandUsage("connect");
+            case "dir":
+                return this.getCommandUsage("dir");
         }
         
         // 处理带参数的命令
@@ -115,6 +125,11 @@ class GameModel {
         
         if (command.startsWith("connect ")) {
             return this.connect(command.substring(8));
+        }
+        
+        // 
+        if (command.startsWith("dir ")) {
+            return this.readDrive(command.substring(4));
         }
         
         return `未知命令: "${command}"\n输入 "help" 获取可用命令列表。`;
@@ -127,8 +142,6 @@ class GameModel {
         for (let cmd in location.commands) {
             helpText += `  ${cmd} - ${location.commands[cmd]}\n`;
         }
-        
-        helpText += "  clear - 清除屏幕\n";
         
         return helpText;
     }
@@ -171,4 +184,71 @@ class GameModel {
             `${target}: "你好，有什么我可以帮助你的吗？"\n\n` +
             `输入消息直接回复。输入 "disconnect" 断开连接。`;
     }
+
+    // 读取驱动器内容
+    readDrive(drive) {
+        // 规范化驱动器标识
+        drive = drive.trim().toUpperCase();
+        
+        // 验证驱动器标识
+        if (drive !== "A" && drive !== "B") {
+            return `错误: 无效的驱动器 "${drive}"\n有效的驱动器为: A, B`;
+        }
+        
+        // 触发磁盘活动指示灯
+        EventBus.emit('diskActivity');
+        
+        // 对于 A 驱动器，显示系统盘信息
+        if (drive === "A") {
+            return `驱动器 A: 系统盘\n\n` +
+                `卷标: SYSTEM\n` +
+                `序列号: 1984-03-21\n` +
+                `目录: /\n\n` +
+                `COMMAND.SYS    12,288 Byte\n` +
+                `SYSTEM.INI      4,096 Byte\n` +
+                `CONFIG.SYS      2,048 Byte\n` +
+                `KERNEL.SYS     65,536 Byte\n\n` +
+                `4 个文件      83,968 Byte\n` +
+                `剩余空间:   172,864 Byte`;
+        }
+        
+        // 对于 B 驱动器，检查是否有软盘并触发读取
+        if (drive === "B") {
+            // 通过发布事件来请求读取 B 驱动器
+            EventBus.emit('requestReadDriveB');
+            return "正在读取驱动器 B...";
+        }
+    }
+
+    // 返回命令的使用说明
+    getCommandUsage(command) {
+        switch(command.toLowerCase()) {
+            case "search":
+                return `命令: search [关键词]\n`+
+                    `功能: 搜索数据库中的信息\n`+
+                    `示例: search 蓝光\n\n`+
+                    `使用方法: 输入"search"后跟随一个空格和您想搜索的关键词。\n`+
+                    `系统将返回与关键词相关的所有匹配项。`;
+                    
+            case "connect":
+                return `命令: connect [目标ID]\n`+
+                    `功能: 连接到NPC或远程终端\n`+
+                    `示例: connect lab1\n\n`+
+                    `使用方法: 输入"connect"后跟随一个空格和您想连接的目标ID。\n`+
+                    `系统将尝试建立安全连接并启动通信会话。`;
+                    
+            case "dir":
+                return `命令: dir [驱动器]\n`+
+                    `功能: 显示指定驱动器的内容\n`+
+                    `示例: dir A 或 dir B\n\n`+
+                    `使用方法: 输入"dir"后跟随一个空格和驱动器字母(A或B)。\n`+
+                    `系统将列出该驱动器中的所有文件和目录。\n`+
+                    `- A 驱动器: 系统盘，始终可用\n`+
+                    `- B 驱动器: 数据盘，需插入软盘`;
+                    
+            default:
+                return `未知命令: "${command}"\n输入 "help" 获取可用命令列表。`;
+        }
+    }
+    
 }
