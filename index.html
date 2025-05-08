@@ -304,7 +304,23 @@
         // 提取内容并保留空白字符
         return data.substring(startIndex, endIndex).trim();
     };
-    </script>
+    
+    // 检查系统是否可操作的辅助函数
+    window.isSystemOperational = function() {
+        // 获取游戏控制器
+        const gameController = window.gameController;
+        if (!gameController || !gameController.model) {
+            return false;
+        }
+        
+        // 获取系统状态
+        const systemState = gameController.model.getSystemState();
+        const SystemState = gameController.model.SystemState;
+        
+        // 只有在完全开机状态下才允许操作
+        return systemState === SystemState.POWERED_ON;
+    };
+</script>
 
     <!-- 通过CDN引入JavaScript文件 -->
 

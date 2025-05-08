@@ -33,6 +33,12 @@ class FloppyController {
 
         // 订阅读取驱动器B请求事件
         EventBus.on('requestReadDriveB', this.handleReadDriveB.bind(this));
+
+        // 订阅系统关机事件
+        EventBus.on('systemShutdown', this.handleSystemShutdown.bind(this));
+        
+        // 系统状态变化事件
+        EventBus.on('systemStateChange', this.handleSystemStateChange.bind(this));
         
         console.log("软盘控制器已初始化");
     }
@@ -253,6 +259,43 @@ class FloppyController {
         
         // 如果有软盘，执行读取流程
         this.displayFloppyContent();
+    }
+
+    // 处理系统关机事件
+    handleSystemShutdown() {
+        console.log("软盘控制器: 收到系统关机事件");
+        
+        // 中断所有软盘操作
+        this.stopAllDiskOperations();
+    }
+
+    // 处理系统状态变化
+    handleSystemStateChange(stateData) {
+        console.log("软盘控制器: 系统状态变化为", stateData.state);
+        
+        // 如果系统正在关机，停止所有操作
+        if (stateData.state === 'POWERING_OFF') {
+            this.stopAllDiskOperations();
+        }
+    }
+
+    // 停止所有磁盘操作
+    stopAllDiskOperations() {
+        // 停止当前加载动画
+        if (this.loadingAnimationInterval) {
+            this.stopLoadingAnimation();
+        }
+        
+        // 停止硬盘指示灯闪烁
+        const diskLight = document.getElementById('diskLight');
+        diskLight.classList.remove('disk-flashing', 'blue-flashing');
+        
+        // 移除软盘驱动器指示灯状态
+        this.driveLightA.classList.remove('active', 'blinking');
+        this.driveLightB.classList.remove('active', 'blinking');
+        
+        // 重置正在处理标记
+        this.floppyState.isProcessing = false;
     }
     
     startFloppyInsertAnimation(isSystemOn) {

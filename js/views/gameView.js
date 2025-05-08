@@ -91,7 +91,15 @@ class GameView {
         }
         
         const displayNext = () => {
+            // 检查系统状态，如果已经进入关机状态，中断启动序列
+            const systemModel = window.gameController && window.gameController.model;
+            if (systemModel && systemModel.getSystemState() === systemModel.SystemState.POWERING_OFF) {
+                console.log("启动序列中断: 系统正在关闭");
+                return;
+            }
+            
             if (index < bootSequence.length) {
+                // 原有的启动序列显示代码...
                 const item = bootSequence[index];
                 
                 switch(item.type) {

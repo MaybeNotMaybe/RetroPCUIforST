@@ -61,6 +61,17 @@ class GameModel {
                 content: "Authorized Personnel Only"
             }
         ];
+
+        // 系统状态枚举
+        this.SystemState = {
+            POWERED_OFF: 'POWERED_OFF',
+            POWERING_ON: 'POWERING_ON',
+            POWERED_ON: 'POWERED_ON',
+            POWERING_OFF: 'POWERING_OFF'
+        };
+        
+        // 初始系统状态
+        this.systemState = this.SystemState.POWERED_OFF;
     }
 
     // 添加输出到历史记录
@@ -71,6 +82,11 @@ class GameModel {
             console.error("历史记录只能添加字符串", content);
         }
     }
+
+    // 获取系统状态
+    getSystemState() {
+        return this.systemState;
+    }    
     
     // 获取完整的历史记录
     getHistory() {
@@ -83,14 +99,54 @@ class GameModel {
     }
     
     powerOn() {
+        // 更新系统状态
+        this.systemState = this.SystemState.POWERING_ON;
+        
+        // 广播系统状态变化
+        EventBus.emit('systemStateChange', {
+            state: this.systemState,
+            isOn: false  // 尚未完全开机
+        });
+        
         this.isOn = true;
-        return "";  // 启动内容由bootSequence决定
+        return "";
     }
     
     powerOff() {
+        // 更新系统状态
+        this.systemState = this.SystemState.POWERING_OFF;
+        
+        // 广播系统状态变化
+        EventBus.emit('systemStateChange', {
+            state: this.systemState,
+            isOn: true  // 尚未完全关机
+        });
+        
         this.isOn = false;
         this.clearHistory();
-        return "系统关闭中...\n再见。";
+        return "\n\n系统关闭中...\n再见。";
+    }
+
+    // 开机完成方法
+    completeStartup() {
+        this.systemState = this.SystemState.POWERED_ON;
+        
+        // 广播系统状态变化
+        EventBus.emit('systemStateChange', {
+            state: this.systemState,
+            isOn: true  // 完全开机
+        });
+    }
+
+    // 关机完成方法
+    completeShutdown() {
+        this.systemState = this.SystemState.POWERED_OFF;
+        
+        // 广播系统状态变化
+        EventBus.emit('systemStateChange', {
+            state: this.systemState,
+            isOn: false  // 完全关机
+        });
     }
     
     processCommand(command) {
