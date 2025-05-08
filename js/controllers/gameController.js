@@ -102,6 +102,7 @@ class GameController {
                 if (settings.isPowerOn && settings.terminalHistory && settings.terminalHistory.length > 0) {
                     // 恢复开机状态
                     this.model.isOn = true;
+                    this.model.systemState = this.model.SystemState.POWERED_ON;
                     this.model.terminalHistory = settings.terminalHistory;
                     
                     document.getElementById('powerButton').classList.add('on');
@@ -135,6 +136,7 @@ class GameController {
                 } else {
                     // 确保关机状态
                     this.model.isOn = false;
+                    this.model.systemState = this.model.SystemState.POWERED_OFF;
                     this.model.clearHistory(); // 确保历史被清除
                     
                     document.getElementById('powerButton').classList.remove('on');
@@ -156,14 +158,28 @@ class GameController {
     }
     
     togglePower() {
+        // 获取当前系统状态
+        const currentState = this.model.getSystemState();
+        const SystemState = this.model.SystemState;
+        
+        // 检查当前状态，防止在转换过程中触发电源按钮
+        switch (currentState) {
+            case SystemState.POWERING_ON:
+                console.log("系统正在启动中，请等待...");
+                return false;
+                
+            case SystemState.POWERING_OFF:
+                console.log("系统正在关闭中，请等待...");
+                return false;
+        }
+        
         const colorToggle = document.getElementById('colorToggle');
         const toggleSlider = colorToggle.querySelector('.toggle-slider');
         
-        if (!this.model.isOn) {
+        if (currentState === SystemState.POWERED_OFF) {
+            // 开机流程
             // 确保开机前清除历史记录
             this.model.clearHistory();
-            
-            this.model.isOn = true;
             
             // 改变电源按钮样式
             document.getElementById('powerButton').classList.add('on');
@@ -177,7 +193,10 @@ class GameController {
             this.view.powerOn();
             this.view.clear(); // 确保屏幕是空的
             
-            // 发布系统电源状态事件 - 开机
+            // 调用模型的开机方法，更新状态
+            this.model.powerOn();
+            
+            // 发布系统电源状态事件 - 开机中
             EventBus.emit('systemPowerChange', true);
             
             // 显示启动序列
@@ -186,6 +205,9 @@ class GameController {
                     // 硬盘指示灯从闪烁变为常亮绿色
                     document.getElementById('diskLight').classList.remove('disk-flashing');
                     document.getElementById('diskLight').classList.add('active-green');
+                    
+                    // 标记系统启动完成
+                    this.model.completeStartup();
                     
                     // 重要：发布系统启动完成事件，让驱动器指示灯亮起
                     EventBus.emit('systemBootComplete', true);
@@ -238,28 +260,34 @@ class GameController {
                 }, 500);
             });
             
-            console.log("系统已开启");
-        } else {
+            console.log("系统正在启动...");
+            return true;
+        } else if (currentState === SystemState.POWERED_ON) {
+            // 关机流程
+            // 调用模型的关机方法，更新状态
+            const shutdownMessage = this.model.powerOff();
+            
             // 显示关机消息
-            this.view.displayOutput(this.model.powerOff());
+            this.view.displayOutput(shutdownMessage);
             
             // 改变电源按钮样式
             document.getElementById('powerButton').classList.remove('on');
             
-            // 关闭硬盘指示灯
-            document.getElementById('diskLight').classList.remove('disk-flashing');
-            document.getElementById('diskLight').classList.remove('active-green');
+            // 关闭所有指示灯
+            document.getElementById('diskLight').classList.remove('disk-flashing', 'active-green', 'active-blue', 'blue-flashing');
+            
+            // 关闭软盘相关的指示灯和动画
+            EventBus.emit('systemShutdown');
             
             // 隐藏命令行
             document.querySelector('.prompt').classList.add('hidden');
-
+    
             // 更新颜色切换按钮状态 - 将滑块颜色改为灰色
             toggleSlider.style.backgroundColor = '#666';
             
             // 发布系统电源状态事件 - 关机
             EventBus.emit('systemPowerChange', false);
             
-            this.model.isOn = false;
             this.view.input.disabled = true;
             
             // 屏幕变暗效果
@@ -267,12 +295,18 @@ class GameController {
                 document.querySelector('.screen').classList.add('screen-off');
                 this.view.powerOff();
                 
+                // 完成关机过程
+                this.model.completeShutdown();
+                
                 // 保存关机状态
                 this.saveSettings();
             }, 1000);
             
-            console.log("系统已关闭");
+            console.log("系统正在关闭...");
+            return true;
         }
+        
+        return false;
     }
     
     processInput() {
