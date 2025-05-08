@@ -157,6 +157,11 @@ class FloppyController {
         // 触发磁盘活动事件
         if (this.systemStateProvider.isSystemOn()) {
             EventBus.emit('diskActivity', { drive: 'B' });
+            
+            // 磁盘活动结束后显示内容
+            setTimeout(() => {
+                this.displayFloppyContent();
+            }, 2000);
         }
         
         return true;
@@ -196,12 +201,17 @@ class FloppyController {
     // 处理系统启动完成事件
     handleSystemBootComplete(isBooted) {
         if (isBooted) {
-            // 系统启动完成后，A驱动器灯亮起
+            // 系统启动完成，打开A驱动器灯
             this.driveLightA.classList.add('active');
             
-            // 如果B驱动器已插入软盘，B驱动器灯也亮起
+            // 如果B驱动器已插入软盘，打开B驱动器灯并读取内容
             if (this.floppyState.diskInserted) {
                 this.driveLightB.classList.add('active');
+                
+                // 短暂延迟后读取软盘内容
+                setTimeout(() => {
+                    this.displayFloppyContent();
+                }, 1000);
             }
         }
     }
@@ -351,6 +361,117 @@ class FloppyController {
                 this.diskLight.classList.remove('active');
                 this.diskLight.classList.add('active-green');
             }, 500);
+        }
+    }
+
+    // 读取软盘内容
+    readFloppyContent() {
+        if (!this.floppyState.diskInserted) {
+            return null;
+        }
+        
+        try {
+            // 从 gameDataString 提取内容
+            return window.extractTagContent(window.gameDataString, 'drive_B');
+        } catch (error) {
+            console.error("读取软盘内容失败:", error);
+            return null;
+        }
+    }
+
+    // 显示软盘内容（带加载动画）
+    displayFloppyContent() {
+        if (!this.systemStateProvider.isSystemOn() || !this.floppyState.diskInserted) {
+            return;
+        }
+        
+        // 获取游戏视图引用
+        const gameController = window.gameController;
+        if (!gameController || !gameController.view) {
+            console.error("无法获取游戏视图对象");
+            return;
+        }
+        
+        // 显示加载消息
+        gameController.view.displayOutput("\n正在读取软盘B内容...\n");
+        
+        // 创建加载动画
+        this.startLoadingAnimation();
+        
+        // 模拟磁盘读取延迟
+        setTimeout(() => {
+            // 停止加载动画
+            this.stopLoadingAnimation();
+            
+            // 获取软盘内容
+            const content = this.readFloppyContent();
+            
+            // 显示内容或错误消息
+            gameController.view.displayOutput("\n------------------------------------\n");
+            
+            if (content) {
+                gameController.view.displayOutput(content);
+            } else {
+                gameController.view.displayOutput("错误: 无法读取软盘内容或内容为空。");
+            }
+            
+            gameController.view.displayOutput("\n------------------------------------\n");
+            
+            // 如果存在 gameController，保存设置
+            if (gameController) {
+                gameController.saveSettings();
+            }
+        }, 2000);
+    }
+
+    // 启动加载动画
+    startLoadingAnimation() {
+        if (this.loadingAnimationInterval) {
+            clearInterval(this.loadingAnimationInterval);
+        }
+        
+        const loadingChars = ['\\', '|', '/', '-'];
+        let i = 0;
+        
+        // 创建专用于加载的行元素
+        const outputElement = document.getElementById('output');
+        const loadingLine = document.createElement('div');
+        loadingLine.className = 'typed-line loading-animation';
+        loadingLine.textContent = `读取中 ${loadingChars[i]}`;
+        outputElement.appendChild(loadingLine);
+        
+        // 存储引用以便稍后更新
+        this.loadingLine = loadingLine;
+        
+        // 滚动到底部
+        outputElement.scrollTop = outputElement.scrollHeight;
+        
+        // 开始动画
+        this.loadingAnimationInterval = setInterval(() => {
+            if (this.loadingLine) {
+                i = (i + 1) % loadingChars.length;
+                this.loadingLine.textContent = `读取中 ${loadingChars[i]}`;
+                outputElement.scrollTop = outputElement.scrollHeight;
+            }
+        }, 250);
+    }
+
+    // 停止加载动画
+    stopLoadingAnimation() {
+        if (this.loadingAnimationInterval) {
+            clearInterval(this.loadingAnimationInterval);
+            this.loadingAnimationInterval = null;
+            
+            // 移除加载行
+            if (this.loadingLine) {
+                this.loadingLine.textContent = "读取完成";
+                setTimeout(() => {
+                    if (this.loadingLine && this.loadingLine.parentNode) {
+                        this.loadingLine.parentNode.removeChild(this.loadingLine);
+                    }
+                    this.loadingLine = null;
+                }, 500);
+            }
         }
     }
 }
