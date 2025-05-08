@@ -30,6 +30,9 @@ class FloppyController {
         
         // 订阅系统启动完成事件
         EventBus.on('systemBootComplete', this.handleSystemBootComplete.bind(this));
+
+        // 订阅读取驱动器B请求事件
+        EventBus.on('requestReadDriveB', this.handleReadDriveB.bind(this));
         
         console.log("软盘控制器已初始化");
     }
@@ -226,6 +229,30 @@ class FloppyController {
         }
         
         // 注意：电源打开时，不立即亮灯，等待启动完成事件
+    }
+
+    // 处理读取驱动器B请求
+    handleReadDriveB() {
+        // 检查系统是否开机
+        if (!this.systemStateProvider.isSystemOn()) {
+            const gameController = window.gameController;
+            if (gameController && gameController.view) {
+                gameController.view.displayOutput("\n系统当前未开机，无法读取驱动器。\n");
+            }
+            return;
+        }
+        
+        // 检查B驱动器是否有软盘
+        if (!this.floppyState.diskInserted) {
+            const gameController = window.gameController;
+            if (gameController && gameController.view) {
+                gameController.view.displayOutput("\n错误: 驱动器 B 中没有软盘。\n请插入软盘后重试。\n");
+            }
+            return;
+        }
+        
+        // 如果有软盘，执行读取流程
+        this.displayFloppyContent();
     }
     
     startFloppyInsertAnimation(isSystemOn) {
