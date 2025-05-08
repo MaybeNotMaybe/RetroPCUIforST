@@ -141,6 +141,18 @@ class FloppyController {
     }
     
     insertFloppyDisk() {
+        // 检查系统是否处于开机/关机过程中
+        if (this.systemStateProvider && window.gameController && window.gameController.model) {
+            const currentState = window.gameController.model.getSystemState();
+            const SystemState = window.gameController.model.SystemState;
+            
+            // 如果系统正在开机或关机过程中，禁止操作
+            if (currentState === SystemState.POWERING_ON || currentState === SystemState.POWERING_OFF) {
+                console.log("系统正在开/关机过程中，无法操作软盘");
+                return false;
+            }
+        }
+        
         if (this.floppyState.diskInserted || this.floppyState.isProcessing) {
             return false;
         }
@@ -177,13 +189,45 @@ class FloppyController {
     }
     
     ejectFloppyDisk() {
+        // 检查系统是否处于开机/关机过程中
+        if (this.systemStateProvider && window.gameController && window.gameController.model) {
+            const currentState = window.gameController.model.getSystemState();
+            const SystemState = window.gameController.model.SystemState;
+            
+            // 如果系统正在开机或关机过程中，禁止操作
+            if (currentState === SystemState.POWERING_ON || currentState === SystemState.POWERING_OFF) {
+                console.log("系统正在开/关机过程中，无法操作软盘");
+                return false;
+            }
+        }
+        
         if (!this.floppyState.diskInserted || this.floppyState.isProcessing) {
             return false;
         }
         
-        this.floppyState.isProcessing = true;
+        // 检查是否正在等待软盘读取响应
+        const gameController = window.gameController;
+        if (gameController && gameController.awaitingDiskReadResponse) {
+            // 取消等待响应状态
+            gameController.awaitingDiskReadResponse = false;
+            
+            // 显示软盘已弹出消息
+            if (gameController.view) {
+                const cancelMsg = "\n用户已弹出软盘。操作已取消。";
+                gameController.view.displayOutput(cancelMsg);
+                
+                // 将消息添加到历史记录
+                if (gameController.model) {
+                    gameController.model.addToHistory(cancelMsg);
+                }
+                
+                // 保存当前状态
+                gameController.saveSettings();
+            }
+        }
         
-        // 开始弹出动画
+        // 继续正常的弹出流程
+        this.floppyState.isProcessing = true;
         const isSystemOn = this.systemStateProvider.isSystemOn();
         this.startFloppyEjectAnimation(isSystemOn);
         
