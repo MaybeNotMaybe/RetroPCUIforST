@@ -363,3 +363,13 @@
 .drive-a .insert-indicator {
     display: none;
 }
+
+
+.loading-animation {
+    color: #33ff33;  /* 绿色模式下的颜色 */
+    font-weight: bold;
+}
+
+.amber-mode .loading-animation {
+    color: #ffb000;  /* 琥珀色模式下的颜色 */
+}

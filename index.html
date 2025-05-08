@@ -225,6 +225,87 @@
         </div>
     </div>
 
+<script>
+    // 游戏数据字符串 - 将由插件自动填充
+    window.gameDataString = `
+<gametext>
+
+<mail>
+来自: 主管
+主题: 项目蓝光
+日期: 1984-03-25
+
+探员，
+
+我们已接收到关于"蓝光计划"的情报。这是一个高度机密的量子计算研究项目。
+请尽快搜集相关文档并确认项目负责人身份。
+
+小心行事。
+
+-- 主管
+</mail>
+
+<drive_B>
+文件: BLUE-1.DOC
+分类: 最高机密
+日期: 1984-01-15
+
+蓝光计划 - 阶段1报告
+==================
+
+项目概述:
+蓝光计划旨在研究量子纠缠现象及其在信息处理中的应用。初步实验表明，粒子间的纠缠状态可以用于传输信息，且不受传统物理限制。
+
+关键发现:
+1. 成功在实验室条件下维持了两个粒子的纠缠状态长达30秒
+2. 在分离距离达到100米的情况下观察到同步变化
+3. 信号传输尝试成功率: 37%
+
+团队成员:
+- 首席科学家: [数据已删除]
+- 量子物理专家: 李教授
+- 系统工程师: 马丁·科尔
+- 安全主管: [数据已删除]
+
+下一阶段计划:
+扩大实验规模，尝试在更远距离下测试信息传输可能性。
+
+注意: 所有实验必须在安全级别α设施内进行，未经授权不得将任何数据或设备移出。
+
+*该文档仅限授权人员查阅*
+</drive_B>
+
+</gametext>
+`;
+    
+    // 提取特定标签内容的函数
+    window.extractTagContent = function(data, tagName) {
+        // 处理两种标签格式: <tag>...</tag> 和 <tag>...</tag>
+        const openingTag = `<${tagName}>`;
+        const closingTag = `</${tagName}>`;
+        const alternativeClosingTag = `<${tagName}>`;
+        
+        let startIndex = data.indexOf(openingTag);
+        if (startIndex === -1) return null;
+        
+        startIndex += openingTag.length;
+        
+        // 先尝试标准闭合标签
+        let endIndex = data.indexOf(closingTag, startIndex);
+        
+        // 如果没找到，尝试替代格式
+        if (endIndex === -1) {
+            endIndex = data.indexOf(alternativeClosingTag, startIndex);
+        }
+        
+        // 如果两种闭合格式都没找到，返回null
+        if (endIndex === -1) return null;
+        
+        // 提取内容并保留空白字符
+        return data.substring(startIndex, endIndex).trim();
+    };
+    </script>
+
     <!-- 通过CDN引入JavaScript文件 -->
 
     <!-- 基础工具类 -->
