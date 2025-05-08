@@ -10,7 +10,12 @@ class GameController {
             this.model.addToHistory(text);
             this.saveSettings();
         };
-        
+
+        this.functionButtons = [];
+        for (let i = 1; i <= 8; i++) {
+            this.functionButtons.push(document.getElementById(`fnButton${i}`));
+        }
+
         // 绑定事件
         document.getElementById('powerButton').addEventListener('click', () => this.togglePower());
         document.getElementById('commandInput').addEventListener('keydown', (e) => {
@@ -211,6 +216,11 @@ class GameController {
                     
                     // 重要：发布系统启动完成事件，让驱动器指示灯亮起
                     EventBus.emit('systemBootComplete', true);
+
+                    // 开启功能按钮指示灯
+                    this.functionButtons.forEach(button => {
+                        button.classList.add('powered');
+                    });
                     
                     // 重要：将完整的启动序列HTML添加到历史记录
                     // 创建一个字符串变量，包含所有启动序列的HTML
