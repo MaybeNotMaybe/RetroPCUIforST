@@ -205,8 +205,8 @@ class GameModel {
     getStatus() {
         return `系统状态: 正常运行
 当前位置: ${this.currentLocation}
-内存使用率: 38%
-磁盘空间: 12.4MB/20MB
+cpu使用率: 38%
+RAM空间: 12.4MB/20MB
 网络状态: 已连接
 `;
     }
