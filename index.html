@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/floppy-drive.css">
     <link rel="stylesheet" href="css/button.css">
+    <link rel="stylesheet" href="css/map.css">
 </head>
 <body>
     <div class="computer-wrapper">
@@ -16,6 +17,7 @@
                 <!-- 主终端区域 -->
                 <div class="main-terminal-area">
                     <div class="screen">
+                        <!-- 终端界面 -->
                         <div class="terminal" id="terminal">
                             <div class="output" id="output"></div>
                             <div class="prompt">
@@ -24,19 +26,34 @@
                                 <span class="cursor" id="cursor"></span>
                             </div>
                         </div>
+                        
+                        <!-- 地图界面 -->
+                        <div class="map-interface" id="mapInterface" style="display: none;">
+                            <div class="map-header">
+                                <div class="map-title">地理信息系统 v1.0</div>
+                                <div class="map-status">加密连接: 已启用</div>
+                            </div>
+                            <div class="map-content" id="mapContent">
+                                <!-- 地图内容将在JavaScript中动态生成 -->
+                            </div>
+                            <div class="map-footer">
+                                <div class="map-coordinates">坐标: <span id="mapCoordinates">--.--, --.-</span></div>
+                                <div class="map-info">按 F1 返回终端</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- 功能按钮区域 - 两列，每列4个 -->
                 <div class="buttons-panel">
                     <div class="buttons-column">
-                        <div id="fnButton1" class="function-button">F1</div>
+                        <div id="fnButton1" class="function-button">终端</div>
                         <div id="fnButton2" class="function-button">F2</div>
                         <div id="fnButton3" class="function-button">F3</div>
                         <div id="fnButton4" class="function-button">F4</div>
                     </div>
                     <div class="buttons-column">
-                        <div id="fnButton5" class="function-button">F5</div>
+                        <div id="fnButton5" class="function-button">地图</div>
                         <div id="fnButton6" class="function-button">F6</div>
                         <div id="fnButton7" class="function-button">F7</div>
                         <div id="fnButton8" class="function-button">F8</div>
@@ -334,14 +351,17 @@
     <!-- 模型层 -->
     <script src="js/models/gameModel.js"></script>
     <script src="js/models/floppyModel.js"></script>
+    <script src="js/models/mapModel.js"></script>
 
     <!-- 视图层 -->
     <script src="js/views/gameView.js"></script>
     <script src="js/views/floppyView.js"></script>
+    <script src="js/views/mapView.js"></script>
 
     <!-- 控制器层 -->
     <script src="js/controllers/gameController.js"></script>
     <script src="js/controllers/floppyController.js"></script>
+    <script src="js/controllers/mapController.js"></script>
 
     <!-- 主入口文件 -->
     <script src="js/main.js"></script>
