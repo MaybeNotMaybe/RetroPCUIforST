@@ -326,6 +326,9 @@ class GameController {
             
             // 关闭软盘相关的指示灯和动画
             EventBus.emit('systemShutdown');
+
+            // 重置软盘读取响应等待标志
+            this.awaitingDiskReadResponse = false;
             
             // 隐藏命令行
             document.querySelector('.prompt').classList.add('hidden');
