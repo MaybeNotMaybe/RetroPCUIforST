@@ -158,10 +158,13 @@ class FloppyController {
         }
         
         this.floppyState.isProcessing = true;
-        
+      
         // 开始插入动画
         const isSystemOn = this.systemStateProvider.isSystemOn();
         this.startFloppyInsertAnimation(isSystemOn);
+
+        // 播放软盘插入声音
+        window.audioManager.play('floppyInsert');
         
         return true;
     }
@@ -225,9 +228,16 @@ class FloppyController {
                 gameController.saveSettings();
             }
         }
+
+        // 无论是否允许操作，总是播放点击声音
+        // window.audioManager.play('floppyButton');
                 
         // 继续正常的弹出流程
         this.floppyState.isProcessing = true;
+
+        // 播放软盘弹出声音
+        window.audioManager.play('floppyEject');
+
         const isSystemOn = this.systemStateProvider.isSystemOn();
         this.startFloppyEjectAnimation(isSystemOn);
         
@@ -392,6 +402,9 @@ class FloppyController {
     triggerDiskReadActivity(showReadingPrompt = false) {
         // 保存当前系统硬盘灯状态
         const wasActiveGreen = this.diskLight.classList.contains('active-green');
+
+        // 播放硬盘活动声音
+        window.audioManager.play('diskActivity');
         
         // 先移除常亮状态
         this.diskLight.classList.remove('active-green', 'active-blue');

@@ -56,3 +56,25 @@
     0% { transform: translateY(-100%); }
     100% { transform: translateY(0); }
 }
+
+.screen-flicker {
+    animation: flicker 0.015s ease-in-out forwards;
+}
+
+@keyframes flicker {
+    0% {
+        opacity: 1;
+    }
+    25% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.8;
+    }
+    75% {
+        opacity: 0.2;
+    }
+    100% {
+        opacity: 1;
+    }
+}

@@ -20,6 +20,7 @@ class GameModel {
                     "status": "检查系统状态",
                     "dir [驱动器]": "显示驱动器内容",
                     "run [程序]": "运行指定的程序",
+                    "sound [参数]": "管理系统音效设置", 
                     "clear": "清除屏幕"
                 }
             }
@@ -183,6 +184,8 @@ class GameModel {
                 return this.getCommandUsage("dir");
             case "run":
                 return this.getCommandUsage("run");
+            case "sound":
+                return this.getCommandUsage("sound");
         }
         
         // 处理带参数的命令
@@ -201,7 +204,11 @@ class GameModel {
         if (command.startsWith("run ")) {
             return this.runProgram(command.substring(4).trim());
         }
-        
+
+        if (command.startsWith("sound ")) {
+            return this.handleSoundCommand(command.substring(6));
+        }
+
         return `未知命令: "${command}"\n输入 "help" 获取可用命令列表。`;
     }
     
@@ -316,6 +323,44 @@ RAM空间: 12.4MB/20MB
         return `错误: 未找到程序 "${programName}"\n\n可用程序:\n- map: 地理信息系统`;
     }
 
+    // 处理声音设置命令
+    handleSoundCommand(args) {
+        const params = args.trim().split(' ');
+        
+        if (params[0] === 'on' || params[0] === 'enable') {
+            window.audioManager.toggleSound(true);
+            
+            // 播放一个短音效以确认音效已启用
+            setTimeout(() => window.audioManager.play('systemBeep'), 100);
+            
+            return "系统音效已启用。";
+        }
+        
+        if (params[0] === 'off' || params[0] === 'disable') {
+            window.audioManager.toggleSound(false);
+            return "系统音效已禁用。";
+        }
+        
+        if (params[0] === 'volume' && params[1]) {
+            const volume = parseFloat(params[1]);
+            if (!isNaN(volume) && volume >= 0 && volume <= 100) {
+                window.audioManager.setMasterVolume(volume / 100);
+                
+                // 如果音效已启用，播放一个短音效作为音量示例
+                if (window.audioManager.soundEnabled) {
+                    setTimeout(() => window.audioManager.play('systemBeep'), 100);
+                }
+                
+                return `系统音量已设置为 ${volume}%。`;
+            } else {
+                return "无效的音量值。请使用0-100之间的数字。";
+            }
+        }
+        
+        // 如果没有有效参数，显示使用说明
+        return this.getCommandUsage("sound");
+    }
+
     // 返回命令的使用说明
     getCommandUsage(command) {
         switch(command.toLowerCase()) {
@@ -349,7 +394,16 @@ RAM空间: 12.4MB/20MB
                     `使用方法: 输入"run"后跟随一个空格和您想运行的程序名称。\n`+
                     `可用程序:\n`+
                     `- map: 地理信息系统`;
-                    
+
+            case "sound":
+                return `命令: sound [参数]\n`+
+                    `功能: 设置音效开关与音量大小\n`+
+                    `示例: sound on/sound volume 50\n\n`+
+                    `使用方法:\n`+ 
+                    `- sound on - 启用音效\n`+
+                    `- sound off - 禁用音效\n`+
+                    `- sound volume [0-100] - 设置音效音量`;
+               
             default:
                 return `未知命令: "${command}"\n输入 "help" 获取可用命令列表。`;
         }
