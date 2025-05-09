@@ -1,0 +1,58 @@
+/* 光标闪烁 */
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+.cursor {
+    animation: blink 1s step-end infinite;
+}
+
+/* 硬盘指示灯闪烁 */
+@keyframes diskFlash {
+    0%, 100% { 
+        background-color: #444;
+        box-shadow: none;
+    }
+    50% { 
+        background-color: #ffcc00;
+        box-shadow: 0 0 10px #ffcc00;
+    }
+}
+
+/* 蓝色指示灯闪烁 */
+@keyframes blueFlash {
+    0%, 100% { 
+        background-color: #444;
+        box-shadow: none;
+    }
+    50% { 
+        background-color: #3399ff;
+        box-shadow: 0 0 10px #3399ff;
+    }
+}
+
+/* 启动闪屏效果 */
+@keyframes screenOn {
+    0% { opacity: 0; }
+    10% { opacity: 0.5; }
+    30% { opacity: 0.1; }
+    40% { opacity: 0.8; }
+    60% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+.screen-on {
+    animation: screenOn 2s forwards;
+}
+
+/* 软盘插入弹出动画 */
+@keyframes floppyInsert {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-100%); }
+}
+
+@keyframes floppyEject {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(0); }
+}

@@ -1,0 +1,48 @@
+/* 媒体查询，确保在较小屏幕上能完整显示 */
+@media (max-height: 650px), (max-width: 850px) {
+    .computer-wrapper {
+        width: 700px;
+    }
+    
+    .computer-case {
+        width: 700px;
+        height: 525px;
+    }
+    
+    .floppy-drive {
+        height: 50px;
+    }
+    
+    .imb-logo {
+        max-width: 320px;
+        height: 80px;
+    }
+    
+    .function-button {
+        height: 45px;
+    }
+}
+
+@media (max-height: 550px), (max-width: 750px) {
+    .computer-wrapper {
+        width: 600px;
+    }
+    
+    .computer-case {
+        width: 600px;
+        height: 450px;
+    }
+    
+    .floppy-drive {
+        height: 45px;
+    }
+    
+    .imb-logo {
+        max-width: 280px;
+        height: 70px;
+    }
+    
+    .function-button {
+        height: 40px;
+    }
+}
