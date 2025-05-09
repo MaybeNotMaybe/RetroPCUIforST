@@ -11,6 +11,10 @@
     top: 0;
     left: 0;
     z-index: 5; /* 确保在终端界面之上 */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 /* 地图头部 */
@@ -57,6 +61,13 @@
     width: fit-content;
 }
 
+/* 光标样式 */
+.map-cell.cursor-highlight {
+    border: 2px dashed currentColor;
+    background-color: rgba(255, 255, 255, 0.1);
+    z-index: 2;
+}
+
 .map-cell {
     width: 25px;
     height: 25px;
@@ -66,6 +77,10 @@
     align-items: center;
     font-size: 14px;
     transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none; /* Safari, Chrome */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* IE 10+ */
 }
 
 .green-mode .map-cell.location {
@@ -79,19 +94,35 @@
 }
 
 .map-cell.current {
-    animation: pulse 1.5s infinite alternate;
+    box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+    border-width: 2px;
+    z-index: 10; /* 确保在其他元素之上 */
 }
 
 .green-mode .map-cell.current {
-    background-color: rgba(0, 255, 0, 0.5);
+    border-color: #5fff5f;
+    background-color: rgba(0, 255, 0, 0.4);
 }
 
 .amber-mode .map-cell.current {
-    background-color: rgba(255, 176, 0, 0.5);
+    border-color: #ffc840;
+    background-color: rgba(255, 176, 0, 0.4);
 }
 
 .map-cell.highlighted {
-    box-shadow: 0 0 8px currentColor;
+    animation: highlight-pulse 1.5s infinite alternate;
+    z-index: 9; /* 高于普通单元格，但低于当前位置 */
+}
+
+/* 为不同的颜色模式添加更强的视觉效果 */
+.green-mode .map-cell.highlighted {
+    background-color: rgba(0, 255, 0, 0.3);
+    border-color: #33ff33;
+}
+
+.amber-mode .map-cell.highlighted {
+    background-color: rgba(255, 176, 0, 0.3);
+    border-color: #ffb000;
 }
 
 .map-connection {
@@ -129,13 +160,15 @@
 }
 
 .green-mode .legend-current {
-    background-color: rgba(0, 255, 0, 0.5);
-    border-color: #33ff33;
+    background-color: rgba(0, 255, 0, 0.4);
+    border-color: #5fff5f;
+    box-shadow: 0 0 5px rgba(0, 255, 0, 0.4);
 }
 
 .amber-mode .legend-current {
-    background-color: rgba(255, 176, 0, 0.5);
-    border-color: #ffb000;
+    background-color: rgba(255, 176, 0, 0.4);
+    border-color: #ffc840;
+    box-shadow: 0 0 5px rgba(255, 176, 0, 0.4);
 }
 
 .green-mode .legend-location {
@@ -202,4 +235,10 @@
 /* 确保地图界面在屏幕关闭时也隐藏 */
 .screen-off .map-interface {
     display: none !important;
+}
+
+/* 为高亮添加脉动动画 */
+@keyframes highlight-pulse {
+    0% { opacity: 0.7; }
+    100% { opacity: 1; }
 }

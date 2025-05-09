@@ -11,6 +11,9 @@ class MapView {
         
         // 获取屏幕元素，用于确定颜色模式
         this.screen = document.querySelector('.screen');
+
+        // 当前光标元素引用
+        this.cursorElement = null;
     }
     
     // 初始化地图UI
@@ -36,10 +39,18 @@ class MapView {
                 </div>
             </div>
         `;
+
+        // 添加光标元素
+        const mapGrid = document.getElementById('mapGrid');
+        if (mapGrid) {
+            this.cursorElement = document.createElement('div');
+            this.cursorElement.className = 'map-cursor';
+            mapGrid.appendChild(this.cursorElement);
+        }
     }
     
     // 渲染完整地图
-    renderMap(locations, currentLocation) {
+    renderMap(locations, currentLocation, onLocationClick = null) {
         // 确保mapGrid元素存在
         const mapGrid = document.getElementById('mapGrid');
         if (!mapGrid) {
@@ -50,8 +61,8 @@ class MapView {
         // 清空现有内容
         mapGrid.innerHTML = '';
         
-        // 创建20x20的网格
-        for (let y = 0; y < 20; y++) {
+        // 创建20x14的网格
+        for (let y = 0; y < 14; y++) {
             for (let x = 0; x < 20; x++) {
                 const cell = document.createElement('div');
                 cell.className = 'map-cell';
@@ -77,65 +88,49 @@ class MapView {
             }
             
             // 为每个位置添加点击事件监听器
-            cell.addEventListener('click', () => {
+            cell.addEventListener('click', (e) => {
+                // 阻止事件冒泡，防止触发背景点击取消选择
+                e.stopPropagation();
+                
                 // 发布位置选择事件
                 EventBus.emit('locationSelected', name);
+                
+                // 如果提供了点击回调，则调用并传递位置信息
+                if (onLocationClick) {
+                    onLocationClick(name, x, y);
+                }
             });
         }
-        
-        // 绘制连接线
-        this.drawConnections(locations);
         
         // 更新坐标显示
         const currentCoords = locations[currentLocation].coordinates;
         this.mapCoordinates.textContent = `${currentCoords[0]}.0, ${currentCoords[1]}.0`;
+        
+        // 重新添加光标元素
+        this.cursorElement = document.createElement('div');
+        this.cursorElement.className = 'map-cursor';
+        mapGrid.appendChild(this.cursorElement);
     }
-    
-    // 绘制位置之间的连接线
-    drawConnections(locations) {
+
+    // 更新光标位置
+    updateCursorPosition(position) {
+        if (!this.cursorElement) return;
+        
+        const cellSize = 26; // 单元格尺寸（包括边框）
+        this.cursorElement.style.left = `${position.x * cellSize}px`;
+        this.cursorElement.style.top = `${position.y * cellSize}px`;
+        
+        // 高亮当前单元格
         const mapGrid = document.getElementById('mapGrid');
+        const cells = mapGrid.querySelectorAll('.map-cell');
         
-        // 移除现有的连接线
-        const existingConnections = document.querySelectorAll('.map-connection');
-        existingConnections.forEach(conn => conn.remove());
+        // 移除所有cursor-highlight类
+        cells.forEach(cell => cell.classList.remove('cursor-highlight'));
         
-        // 遍历所有位置
-        for (const [name, data] of Object.entries(locations)) {
-            const [x1, y1] = data.coordinates;
-            
-            // 遍历该位置的所有连接
-            for (const connectedName of data.connections) {
-                // 防止重复绘制连接线（只绘制字母顺序较小的一方到另一方）
-                if (name < connectedName) {
-                    const [x2, y2] = locations[connectedName].coordinates;
-                    
-                    // 创建连接线元素
-                    const connection = document.createElement('div');
-                    connection.className = 'map-connection';
-                    
-                    // 计算线的位置和尺寸
-                    const cellSize = 26; // 单元格尺寸（包括边框）
-                    const startX = x1 * cellSize + cellSize / 2;
-                    const startY = y1 * cellSize + cellSize / 2;
-                    const endX = x2 * cellSize + cellSize / 2;
-                    const endY = y2 * cellSize + cellSize / 2;
-                    
-                    // 计算连线长度和角度
-                    const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-                    const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
-                    
-                    // 设置连线样式
-                    connection.style.width = `${length}px`;
-                    connection.style.height = '1px';
-                    connection.style.left = `${startX}px`;
-                    connection.style.top = `${startY}px`;
-                    connection.style.transformOrigin = '0 0';
-                    connection.style.transform = `rotate(${angle}deg)`;
-                    
-                    // 添加到地图网格
-                    mapGrid.appendChild(connection);
-                }
-            }
+        // 添加到当前单元格
+        const index = position.y * 20 + position.x;
+        if (cells[index]) {
+            cells[index].classList.add('cursor-highlight');
         }
     }
     
