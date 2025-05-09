@@ -6,7 +6,8 @@ class FloppyController {
         // 软盘B驱动器状态
         this.floppyState = {
             diskInserted: false,
-            isProcessing: false
+            isProcessing: false,
+            isReading: false
         };
         
         // 获取DOM元素
@@ -203,6 +204,28 @@ class FloppyController {
                 return false;
             }
         }
+
+        // 检查软盘是否正在读取，如果是则禁止弹出
+        if (this.floppyState.isReading) {
+            console.log("软盘正在读取中，无法弹出");
+            
+            // 如果系统已开机，显示提示消息
+            if (this.systemStateProvider.isSystemOn() && window.gameController && window.gameController.view) {
+                window.gameController.view.displayOutput("\n错误: 软盘正在读取中，请等待读取完成后再弹出。\n");
+                
+                // 将消息添加到历史记录
+                if (window.gameController.model) {
+                    window.gameController.model.addToHistory("\n错误: 软盘正在读取中，请等待读取完成后再弹出。\n");
+                }
+            }
+            
+            // 播放按钮点击音效作为反馈
+            if (window.audioManager) {
+                window.audioManager.play('floppyButton');
+            }
+            
+            return false;
+        }
         
         if (!this.floppyState.diskInserted || this.floppyState.isProcessing) {
             return false;
@@ -239,6 +262,8 @@ class FloppyController {
                 
         // 继续正常的弹出流程
         this.floppyState.isProcessing = true;
+
+        window.audioManager.stopFloppyReadingSound();
 
         // 播放软盘弹出声音
         window.audioManager.play('floppyEject');
@@ -342,6 +367,7 @@ class FloppyController {
         // 停止当前加载动画
         if (this.loadingAnimationInterval) {
             this.stopLoadingAnimation();
+            this.floppyState.isReading = false;
         }
         
         // 停止硬盘指示灯闪烁
@@ -539,7 +565,14 @@ class FloppyController {
 
     // 启动软盘内容读取提示和加载动画
     startFloppyContentReading() {
+        // 设置标志表示正在读取
+        this.floppyState.isReading = true;
+        
+        // 禁用弹出按钮的视觉效果
+        this.ejectButtonB.classList.add('disabled');
+        
         const gameController = window.gameController;
+
         if (!gameController || !gameController.view || !gameController.model) {
             console.error("无法获取游戏视图对象");
             return;
@@ -609,6 +642,14 @@ class FloppyController {
                 // 打字机效果完成后停止软盘读取循环音效
                 if (window.audioManager) {
                     window.audioManager.stopFloppyReadingSound();
+                }
+
+                // 设置标志表示读取已完成
+                this.floppyState.isReading = false;
+                
+                // 恢复弹出按钮
+                if (this.floppyState.diskInserted) {
+                    this.ejectButtonB.classList.remove('disabled');
                 }
                 
                 // 保存设置
