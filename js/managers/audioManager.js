@@ -5,26 +5,26 @@ class AudioManager {
         // 音效库
         this.sounds = {
             // UI音效
-            buttonClick: { src: 'assets/sounds/crt-button.mp3', volume: 0.7 },
-            powerButton: { src: 'assets/sounds/crt-button.mp3', volume: 0.4 },
-            functionButton: { src: 'assets/sounds/crt-button-com.mp3', volume: 0.6 },
-            toggleSwitch: { src: 'assets/sounds/floppy_button.mp3', volume: 1 },
+            buttonClick: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/crt-button.mp3', volume: 0.7 },
+            powerButton: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/crt-button.mp3', volume: 0.4 },
+            functionButton: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/crt-button-com.mp3', volume: 0.6 },
+            toggleSwitch: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_button.mp3', volume: 1 },
             
             // 软盘相关音效
-            floppyInsert: { src: 'assets/sounds/floppy_insert.mp3', volume: 1 },
-            floppyEject: { src: 'assets/sounds/floppy_eject.mp3', volume: 1 },
-            floppyRead: { src: 'assets/sounds/floppy_read.mp3', volume: 0 },
-            floppyButton: { src: 'assets/sounds/floppy_button.mp3', volume: 1 },
+            floppyInsert: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_insert.mp3', volume: 1 },
+            floppyEject: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_eject.mp3', volume: 1 },
+            floppyRead: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_read.mp3', volume: 0 },
+            floppyButton: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_button.mp3', volume: 1 },
 
             // 屏幕相关音效
-            screenOn: { src: 'assets/sounds/crt-ON.mp3', volume: 0.3 },
-            screenOff: { src: 'assets/sounds/crt-OFF.mp3', volume: 0.3 },
+            screenOn: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/crt-ON.mp3', volume: 0.3 },
+            screenOff: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/crt-OFF.mp3', volume: 0.3 },
             screenSwitch: { src: 'https://cdn.example.com/sounds/screen_switch.mp3', volume: 0.6 },
             
             // 硬盘/系统音效
-            diskActivity: { src: 'assets/sounds/floppy_read.mp3', volume: 0.5 },
+            diskActivity: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_read.mp3', volume: 0.5 },
             systemBeep: { src: 'https://cdn.example.com/sounds/system_beep.mp3', volume: 0.7 },
-            keypress: { src: 'assets/sounds/crt-switch.mp3', volume: 0.3 }
+            keypress: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/crt-switch.mp3', volume: 0.3 }
             
         };
 
