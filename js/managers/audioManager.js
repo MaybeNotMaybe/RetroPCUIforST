@@ -13,7 +13,7 @@ class AudioManager {
             // 软盘相关音效
             floppyInsert: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_insert.mp3', volume: 1 },
             floppyEject: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_eject.mp3', volume: 1 },
-            floppyRead: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_read.mp3', volume: 0 },
+            floppyRead: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/ffloppy_read.mp3', volume: 0 },
             floppyButton: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_button.mp3', volume: 1 },
 
             // 屏幕相关音效
