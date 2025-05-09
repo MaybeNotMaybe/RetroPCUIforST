@@ -211,8 +211,8 @@ class FloppyController {
             // 取消等待响应状态
             gameController.awaitingDiskReadResponse = false;
             
-            // 显示软盘已弹出消息
-            if (gameController.view) {
+            // 只有在系统实际开机状态下才显示消息
+            if (this.systemStateProvider.isSystemOn() && gameController.view) {
                 const cancelMsg = "\n用户已弹出软盘。操作已取消。";
                 gameController.view.displayOutput(cancelMsg);
                 
@@ -225,7 +225,7 @@ class FloppyController {
                 gameController.saveSettings();
             }
         }
-        
+                
         // 继续正常的弹出流程
         this.floppyState.isProcessing = true;
         const isSystemOn = this.systemStateProvider.isSystemOn();
