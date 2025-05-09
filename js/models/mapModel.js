@@ -2,22 +2,22 @@
 class MapModel {
     constructor() {
         // 地图初始化
-        this.currentLocation = "开始";
+        this.currentLocation = "办公室";
         this.locations = {
-            "开始": {
-                description: "终端所在的办公区，这里有多台计算机设备和打印机。",
+            "办公室": {
+                description: "情报分析人员所在的办公区，这里有多台计算机设备和打印机。",
                 coordinates: [5, 5],
                 connections: ["走廊", "资料室"]
             },
             "走廊": {
                 description: "连接办公区和其他房间的走廊，墙壁上挂着一些安全提醒。",
                 coordinates: [8, 5],
-                connections: ["开始", "档案室", "实验室"]
+                connections: ["办公室", "档案室", "实验室"]
             },
             "资料室": {
                 description: "存放各种纸质文档和资料的房间，有许多书架和文件柜。",
                 coordinates: [5, 8],
-                connections: ["开始", "储藏室"]
+                connections: ["办公室", "储藏室"]
             },
             "档案室": {
                 description: "存放重要档案的房间，需要特殊权限才能进入。",

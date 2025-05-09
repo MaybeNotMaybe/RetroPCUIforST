@@ -36,8 +36,9 @@
 /* 地图内容区域 */
 .map-content {
     flex: 1;
-    overflow: hidden; /* 移除滚动条但保留内容 */
+    overflow: hidden;
     position: relative;
+    transition: all 0.4s ease-out;
 }
 
 /* 地图底部 */
@@ -55,10 +56,50 @@
 .map-grid {
     display: grid;
     grid-template-columns: repeat(20, 25px);
-    grid-template-rows: repeat(20, 25px);
+    grid-template-rows: repeat(14, 25px);
     gap: 1px;
     margin: 10px auto;
     width: fit-content;
+    position: relative;
+    transition: transform 0.2s ease-out;
+    transform-origin: center center; /* 重置为默认中心点 */
+}
+
+/* 地图处于缩放状态 
+/* 
+.map-grid.zoomed {
+    scale: 1.5;
+    transform-origin: calc(60% - 100px) center; 
+} 
+*/
+
+/* 地图详情面板 - 缩放时显示在右侧 */
+.location-details {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #444;
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: all 0.4s ease-out;
+    position: relative;
+}
+
+/* 缩放状态下的详情面板 */
+.map-content.zoomed .location-details {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 30%;
+    max-height: 80%;
+    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid currentColor;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* 图例在缩放状态下隐藏 */
+.map-content.zoomed .map-legend {
+    opacity: 0;
+    visibility: hidden;
 }
 
 /* 光标样式 */
@@ -241,4 +282,25 @@
 @keyframes highlight-pulse {
     0% { opacity: 0.7; }
     100% { opacity: 1; }
+}
+
+/* 地图底部当前位置样式 */
+.map-current-location {
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.map-current-location span {
+    margin-left: 5px;
+    font-weight: bold;
+}
+
+/* 确保与当前颜色模式匹配 */
+.green-mode .map-current-location span {
+    color: #33ff33;
+}
+
+.amber-mode .map-current-location span {
+    color: #ffb000;
 }
