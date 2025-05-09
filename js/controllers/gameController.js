@@ -43,6 +43,34 @@ class GameController {
         // 从localStorage加载设置
         this.loadSettings();
 
+        // Enter 键快速获取焦点
+        document.addEventListener('keydown', (e) => {
+            // 如果按下的是 Enter 键
+            if (e.key === 'Enter') {
+                // 检查当前是否在地图界面
+                const isMapVisible = window.mapController && 
+                                    window.mapController.model.isVisible;
+                
+                // 获取命令输入框和其焦点状态
+                const commandInput = document.getElementById('commandInput');
+                const hasFocus = document.activeElement === commandInput;
+                
+                // 如果系统已开机，不在地图界面，输入框未禁用，且输入框未获得焦点
+                if (this.model.isOn && 
+                    !isMapVisible && 
+                    commandInput && 
+                    !commandInput.disabled && 
+                    !hasFocus) {
+                    
+                    // 阻止事件默认行为（可能会触发表单提交等）
+                    e.preventDefault();
+                    
+                    // 让输入框获得焦点
+                    commandInput.focus();
+                }
+            }
+        });
+
         // 功能按钮点击事件
         this.functionButtons.forEach((button, index) => {
             button.addEventListener('click', () => {
