@@ -125,7 +125,7 @@
 
 /* 光标 */
 .cursor {
-    display: inline-block;
+    display: none; /* 默认隐藏 */
     width: 0.6em;
     height: 1em;
     background-color: #33ff33;
@@ -169,8 +169,14 @@
     background-size: 100% 4px;
 }
 
+/* 在琥珀色模式下的光标颜色 */
 .screen.amber-mode .cursor {
     background-color: #ffb000;
+}
+
+/* 闪烁的光标样式 */
+.cursor.blink {
+    animation: blink 1s step-end infinite;
 }
 
 .screen.amber-mode .bordered-box {

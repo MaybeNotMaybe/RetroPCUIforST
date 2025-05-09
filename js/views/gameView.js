@@ -311,12 +311,27 @@ class GameView {
             document.body.removeChild(tempSpan);
         };
         
+        // 添加焦点事件监听器
+        input.addEventListener('focus', () => {
+            // 输入框获得焦点时，显示光标并添加闪烁动画
+            cursor.style.display = 'block';
+            cursor.classList.add('blink');
+            updateCursorPosition();
+        });
+        
+        input.addEventListener('blur', () => {
+            // 输入框失去焦点时，隐藏光标
+            cursor.style.display = 'none';
+        });
+        
         // 监听各种事件以更新光标位置
         input.addEventListener('input', updateCursorPosition);
         input.addEventListener('click', updateCursorPosition);
         input.addEventListener('keyup', updateCursorPosition);
         input.addEventListener('keydown', updateCursorPosition);
-        input.addEventListener('focus', updateCursorPosition);
+        
+        // 初始状态下，根据输入框是否有焦点设置光标可见性
+        cursor.style.display = document.activeElement === input ? 'block' : 'none';
         
         // 初始更新
         setTimeout(updateCursorPosition, 100);
