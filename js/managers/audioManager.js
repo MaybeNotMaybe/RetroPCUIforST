@@ -13,7 +13,7 @@ class AudioManager {
             // 软盘相关音效
             floppyInsert: { src: 'assets/sounds/floppy_insert.mp3', volume: 1 },
             floppyEject: { src: 'assets/sounds/floppy_eject.mp3', volume: 1 },
-            floppyRead: { src: 'https://cdn.example.com/sounds/floppy_read.mp3', volume: 0.6 },
+            floppyRead: { src: 'assets/sounds/floppy_read.mp3', volume: 0 },
             floppyButton: { src: 'assets/sounds/floppy_button.mp3', volume: 1 },
 
             // 屏幕相关音效
@@ -22,7 +22,7 @@ class AudioManager {
             screenSwitch: { src: 'https://cdn.example.com/sounds/screen_switch.mp3', volume: 0.6 },
             
             // 硬盘/系统音效
-            diskActivity: { src: 'https://cdn.example.com/sounds/disk_activity.mp3', volume: 0.5 },
+            diskActivity: { src: 'assets/sounds/floppy_read.mp3', volume: 0.5 },
             systemBeep: { src: 'https://cdn.example.com/sounds/system_beep.mp3', volume: 0.7 },
             keypress: { src: 'assets/sounds/crt-switch.mp3', volume: 0.3 }
             
@@ -33,8 +33,14 @@ class AudioManager {
         
         // 添加电脑运行声音
         this.sounds.computerRunning = { 
-            src: 'assets/sounds/computer_running.mp3', 
+            src: 'assets/sounds/ffloppy_read.mp3', 
             volume: 0.15, 
+            loop: true 
+        };
+
+        this.sounds.floppyReading = { 
+            src: 'assets/sounds/floppy_read_loop.mp3', 
+            volume: 0.3, 
             loop: true 
         };
         
@@ -164,24 +170,36 @@ class AudioManager {
     }
 
     // 停止循环音效
-    stopLoop(soundId) {
+    stopLoop(soundId, fadeTime = 1000) {
         if (!this.loopingSounds[soundId]) return;
         
         try {
-            // 淡出效果
-            this.fadeOut(this.loopingSounds[soundId], 1000).then(() => {
+            // 如果 fadeTime 为 0，则立即停止，不使用渐出效果
+            if (fadeTime <= 0) {
+                this.loopingSounds[soundId].pause();
+                this.loopingSounds[soundId].currentTime = 0;
+                return;
+            }
+            
+            // 使用指定的渐出时间
+            this.fadeOut(this.loopingSounds[soundId], fadeTime).then(() => {
                 this.loopingSounds[soundId].pause();
                 this.loopingSounds[soundId].currentTime = 0;
             });
         } catch (error) {
             console.error(`停止循环音效 ${soundId} 时出错:`, error);
             
-            // 如果淡出失败，直接停止
+            // 如果渐出失败，直接停止
             if (this.loopingSounds[soundId]) {
                 this.loopingSounds[soundId].pause();
                 this.loopingSounds[soundId].currentTime = 0;
             }
         }
+    }
+
+    // 添加指定音效停止方法
+    stopFloppyReadingSound(fadeTime = 0) {  // 默认为0，即无渐出效果
+        this.stopLoop('floppyReading', fadeTime);
     }
 
     // 音量淡出效果
@@ -191,15 +209,27 @@ class AudioManager {
                 resolve();
                 return;
             }
-
+            
+            // 确保时间为正数
+            const fadeDuration = Math.max(1, duration);
             const originalVolume = audioElement.volume;
-            const volumeStep = originalVolume / (duration / 50);
+            
+            // 如果时间过短，简化处理
+            if (fadeDuration < 50) {
+                audioElement.volume = 0;
+                resolve();
+                return;
+            }
+            
+            // 计算步进值 - 每50毫秒更新一次
+            const steps = fadeDuration / 50;
+            const volumeStep = originalVolume / steps;
             let currentVolume = originalVolume;
             
             const fadeInterval = setInterval(() => {
-                currentVolume -= volumeStep;
+                currentVolume = Math.max(0, currentVolume - volumeStep);
                 
-                if (currentVolume <= 0) {
+                if (currentVolume <= 0.01) {
                     clearInterval(fadeInterval);
                     audioElement.volume = 0;
                     resolve();
@@ -279,8 +309,18 @@ class AudioManager {
     }
 
     // 停止电脑运行声音
-    stopComputerSound() {
-        this.stopLoop('computerRunning');
+    stopComputerSound(fadeTime = 1000) {  // 默认使用1秒渐出
+        this.stopLoop('computerRunning', fadeTime);
+    }
+
+    // 开始播放软盘读取音效
+    startFloppyReadingSound() {
+        return this.playLoop('floppyReading');
+    }
+
+    // 停止软盘读取音效
+    stopFloppyReadingSound(fadeTime = 0) {
+        this.stopLoop('floppyReading', fadeTime);
     }
     
     // 设置主音量
