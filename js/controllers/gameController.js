@@ -111,14 +111,22 @@ class GameController {
                 // 设置颜色模式
                 const colorToggle = document.getElementById('colorToggle');
                 const toggleSlider = colorToggle.querySelector('.toggle-slider');
+                const screen = document.querySelector('.screen');
+                const computerCase = document.querySelector('.computer-case');
                 
                 if (settings.colorMode === 'amber') {
                     colorToggle.classList.add('amber');
                     
-                    // 如果是开机状态，将滑块变为琥珀色
+                    // 如果是开机状态，将滑块变为琥珀色并应用琥珀色模式到计算机外壳
                     if (settings.isPowerOn) {
                         toggleSlider.style.backgroundColor = '#ffb000';
                         toggleSlider.style.left = 'calc(100% - 16px)';
+                        
+                        // 为屏幕和计算机外壳添加琥珀色模式
+                        screen.classList.remove('green-mode');
+                        screen.classList.add('amber-mode');
+                        computerCase.classList.remove('green-mode');
+                        computerCase.classList.add('amber-mode');
                     } else {
                         toggleSlider.style.backgroundColor = '#666';
                         toggleSlider.style.left = 'calc(100% - 16px)';
@@ -130,6 +138,12 @@ class GameController {
                     if (settings.isPowerOn) {
                         toggleSlider.style.backgroundColor = '#33ff33';
                         toggleSlider.style.left = '2px';
+                        
+                        // 为屏幕和计算机外壳添加绿色模式
+                        screen.classList.remove('amber-mode');
+                        screen.classList.add('green-mode');
+                        computerCase.classList.remove('amber-mode');
+                        computerCase.classList.add('green-mode');
                     } else {
                         toggleSlider.style.backgroundColor = '#666';
                         toggleSlider.style.left = '2px';
@@ -485,12 +499,13 @@ class GameController {
         const toggleSlider = colorToggle.querySelector('.toggle-slider');
         const screen = document.querySelector('.screen');
         
+        // 获取计算机外壳元素（包含按钮和屏幕的共同父元素）
+        const computerCase = document.querySelector('.computer-case');
+        
         // 默认设置为绿色模式
         screen.classList.add('green-mode');
         
         colorToggle.addEventListener('click', () => {
-            // 播放开关音效
-            window.audioManager.play('toggleSwitch');
             // 切换开关样式
             colorToggle.classList.toggle('amber');
             
@@ -501,8 +516,14 @@ class GameController {
                 // 如果系统开启，更新为琥珀色
                 if (this.model.isOn) {
                     toggleSlider.style.backgroundColor = '#ffb000';
+                    
+                    // 为屏幕和计算机外壳添加琥珀色模式
                     screen.classList.remove('green-mode');
                     screen.classList.add('amber-mode');
+                    
+                    // 重要：也为计算机外壳添加琥珀色模式类
+                    computerCase.classList.remove('green-mode');
+                    computerCase.classList.add('amber-mode');
                     
                     // 发布颜色模式变化事件
                     EventBus.emit('colorModeChanged', true);
@@ -515,8 +536,14 @@ class GameController {
                 // 如果系统开启，更新为绿色
                 if (this.model.isOn) {
                     toggleSlider.style.backgroundColor = '#33ff33';
+                    
+                    // 为屏幕和计算机外壳移除琥珀色模式
                     screen.classList.remove('amber-mode');
                     screen.classList.add('green-mode');
+                    
+                    // 重要：也为计算机外壳移除琥珀色模式类
+                    computerCase.classList.remove('amber-mode');
+                    computerCase.classList.add('green-mode');
                     
                     // 发布颜色模式变化事件
                     EventBus.emit('colorModeChanged', false);

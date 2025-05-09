@@ -223,6 +223,11 @@ class FloppyController {
                 if (gameController.model) {
                     gameController.model.addToHistory(cancelMsg);
                 }
+
+                // 确保停止正在播放的软盘读取音效
+                if (window.audioManager) {
+                    window.audioManager.stopFloppyReadingSound();
+                }
                 
                 // 保存当前状态
                 gameController.saveSettings();
@@ -346,6 +351,11 @@ class FloppyController {
         // 移除软盘驱动器指示灯状态
         this.driveLightA.classList.remove('active', 'blinking');
         this.driveLightB.classList.remove('active', 'blinking');
+
+        // 确保停止软盘读取音效
+        if (window.audioManager) {
+            window.audioManager.stopFloppyReadingSound();
+        }
         
         // 重置正在处理标记
         this.floppyState.isProcessing = false;
@@ -546,6 +556,11 @@ class FloppyController {
         
         // 创建加载动画
         this.startLoadingAnimation();
+        
+        // 开始播放软盘读取循环音效
+        if (window.audioManager) {
+            window.audioManager.startFloppyReadingSound();
+        }
     }
 
     // 读取完成后显示软盘内容
@@ -590,6 +605,11 @@ class FloppyController {
                 
                 // 将结束分隔线添加到历史记录
                 gameController.model.addToHistory(separatorLine);
+
+                // 打字机效果完成后停止软盘读取循环音效
+                if (window.audioManager) {
+                    window.audioManager.stopFloppyReadingSound();
+                }
                 
                 // 保存设置
                 gameController.saveSettings();
@@ -601,6 +621,11 @@ class FloppyController {
             
             gameController.view.displayOutput(separatorLine);
             gameController.model.addToHistory(separatorLine);
+
+            // 错误情况下也要停止软盘读取循环音效
+            if (window.audioManager) {
+                window.audioManager.stopFloppyReadingSound();
+            }
             
             // 恢复绿色指示灯
             this.diskLight.classList.remove('blue-flashing');
