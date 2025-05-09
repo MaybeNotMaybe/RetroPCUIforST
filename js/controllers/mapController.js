@@ -127,6 +127,14 @@ class MapController {
             const location = this.model.getSelectedLocation();
             this.view.showLocationDetails(location);
             this.view.highlightLocation(locationName);
+            
+            // 如果尚未缩放，启用缩放
+            if (!this.view.isZoomed) {
+                this.view.toggleZoom({
+                    x: location.coordinates[0],
+                    y: location.coordinates[1]
+                });
+            }
         }
     }
     
@@ -172,6 +180,11 @@ class MapController {
             this.model.selectLocation(null);
             this.view.highlightLocation(null);
             this.view.showLocationDetails(null);
+            
+            // 如果处于缩放状态，取消缩放
+            if (this.view.isZoomed) {
+                this.view.toggleZoom();
+            }
         }
     }
     
@@ -238,6 +251,9 @@ class MapController {
             this.currentLocationIndex = this.locationPositions.findIndex(
                 pos => pos.x === closestLocation.x && pos.y === closestLocation.y
             );
+
+            // 自动选中新位置
+            this.handleLocationSelection(closestLocation.name);
         } else {
             // 如果没有找到，尝试当前方向上的任何地点（放宽约束）
             for (const location of this.locationPositions) {
@@ -267,6 +283,9 @@ class MapController {
                 this.currentLocationIndex = this.locationPositions.findIndex(
                     pos => pos.x === closestLocation.x && pos.y === closestLocation.y
                 );
+
+                // 自动选中新位置
+                this.handleLocationSelection(closestLocation.name);
             }
         }
     }
@@ -280,7 +299,7 @@ class MapController {
         
         if (this.locationPositions.length === 0) return;
         
-        // 更新索引
+        /// 更新索引
         this.currentLocationIndex = (this.currentLocationIndex + delta + this.locationPositions.length) % this.locationPositions.length;
         
         // 获取新位置
@@ -289,6 +308,9 @@ class MapController {
         
         // 更新视图
         this.view.updateCursorPosition(this.cursorPosition);
+        
+        // 自动选中新位置
+        this.handleLocationSelection(newPos.name);
     }
     
     // 初始化位置数组
@@ -353,8 +375,12 @@ class MapController {
     // 更新当前位置
     updateCurrentLocation(locationName) {
         if (this.model.setCurrentLocation(locationName)) {
-            // 如果地图可见，重新渲染
+            // 如果地图可见，更新显示
             if (this.model.isVisible) {
+                // 更新当前位置显示
+                this.view.updateCurrentLocation(locationName);
+                
+                // 重新渲染地图
                 this.renderMap();
             }
             return true;

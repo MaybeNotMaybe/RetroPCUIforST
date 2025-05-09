@@ -4,7 +4,10 @@ class MapView {
         // 获取DOM元素
         this.mapInterface = document.getElementById('mapInterface');
         this.mapContent = document.getElementById('mapContent');
-        this.mapCoordinates = document.getElementById('mapCoordinates');
+        // this.mapCoordinates = document.getElementById('mapCoordinates');
+
+        // 修改：获取显示当前位置的元素，而不是坐标
+       this.mapCurrentLocation = document.getElementById('mapCurrentLocation');
         
         // 缓存终端引用
         this.terminal = document.getElementById('terminal');
@@ -47,6 +50,9 @@ class MapView {
             this.cursorElement.className = 'map-cursor';
             mapGrid.appendChild(this.cursorElement);
         }
+
+        // 添加缩放状态标记
+        this.isZoomed = false;
     }
     
     // 渲染完整地图
@@ -102,14 +108,89 @@ class MapView {
             });
         }
         
-        // 更新坐标显示
-        const currentCoords = locations[currentLocation].coordinates;
-        this.mapCoordinates.textContent = `${currentCoords[0]}.0, ${currentCoords[1]}.0`;
+        // 更新当前位置显示
+        if (locations[currentLocation]) {
+            this.mapCurrentLocation.textContent = currentLocation;
+        } else {
+            this.mapCurrentLocation.textContent = "未知";
+        }
         
         // 重新添加光标元素
         this.cursorElement = document.createElement('div');
         this.cursorElement.className = 'map-cursor';
         mapGrid.appendChild(this.cursorElement);
+    }
+
+    // 切换缩放效果
+    toggleZoom(centerOn = null) {
+        const mapContent = document.querySelector('.map-content');
+        const mapGrid = document.getElementById('mapGrid');
+        
+        if (!mapContent || !mapGrid) return;
+        
+        // 切换缩放状态
+        this.isZoomed = !this.isZoomed;
+        
+        if (this.isZoomed) {
+            // 添加缩放类到内容区
+            mapContent.classList.add('zoomed');
+            
+            // 如果提供了中心点，应用缩放和居中
+            if (centerOn) {
+                this.zoomAndCenterOn(centerOn.x, centerOn.y);
+            }
+        } else {
+            // 移除缩放类
+            mapContent.classList.remove('zoomed');
+            
+            // 重置变换
+            mapGrid.style.transform = '';
+        }
+    }
+
+    // 缩放并居中到特定单元格
+    zoomAndCenterOn(x, y) {
+        const mapGrid = document.getElementById('mapGrid');
+        const mapContent = document.querySelector('.map-content');
+        
+        if (!mapGrid || !mapContent) return;
+        
+        // 缩放比例
+        const zoomScale = 1.5;
+        
+        // 获取地图内容区域的尺寸
+        const contentRect = mapContent.getBoundingClientRect();
+        const contentWidth = contentRect.width;
+        const contentHeight = contentRect.height;
+        
+        // 获取地图网格的尺寸
+        const gridRect = mapGrid.getBoundingClientRect();
+        const gridWidth = gridRect.width;
+        const gridHeight = gridRect.height;
+        
+        // 单元格尺寸
+        const cellSize = 26;
+        
+        // 计算选中单元格在网格中的位置
+        const cellX = x * cellSize + cellSize / 2;
+        const cellY = y * cellSize + cellSize / 2;
+        
+        // 计算目标中心点 - 略微靠右(网格宽度的40%)，垂直居中
+        const targetCenterX = contentWidth * 0.5;
+        const targetCenterY = contentHeight / 2;
+        
+        // 计算缩放后，单元格到网格原点的距离
+        const scaledCellX = cellX * zoomScale;
+        const scaledCellY = cellY * zoomScale;
+        
+        // 计算需要的平移量，使单元格位于目标中心点
+        const translateX = targetCenterX - scaledCellX;
+        const translateY = targetCenterY - scaledCellY;
+        
+        // 应用变换 - 同时缩放和平移
+        mapGrid.style.transform = `scale(${zoomScale}) translate(${translateX/zoomScale}px, ${translateY/zoomScale}px)`;
+        
+        console.log(`缩放到: (${x},${y}), 平移: (${translateX}px, ${translateY}px)`);
     }
 
     // 更新光标位置
@@ -139,6 +220,7 @@ class MapView {
         const detailsElement = document.getElementById('locationDetails');
         if (!detailsElement) return;
         
+        // 原有的位置详情代码保持不变
         if (!location) {
             detailsElement.innerHTML = `
                 <h3>位置详情</h3>
@@ -164,6 +246,21 @@ class MapView {
             <p>坐标: [${location.coordinates[0]}, ${location.coordinates[1]}]</p>
             ${connectionsHTML}
         `;
+        
+        // 如果处于缩放状态且位置改变，重新缩放和居中
+        if (this.isZoomed && location) {
+            // 使用短延迟确保DOM已更新
+            setTimeout(() => {
+                this.zoomAndCenterOn(location.coordinates[0], location.coordinates[1]);
+            }, 50);
+        }
+    }
+
+    // 更新当前位置显示
+    updateCurrentLocation(locationName) {
+        if (this.mapCurrentLocation) {
+            this.mapCurrentLocation.textContent = locationName || "未知";
+        }
     }
     
     // 高亮显示选中的位置
