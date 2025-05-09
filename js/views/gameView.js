@@ -18,6 +18,9 @@ class GameView {
         this.bootTypingSpeed = 1;     // 开机序列打字速度
         this.commandTypingSpeed = 10; // 命令行打字速度
 
+        // 添加键盘音效
+        this.setupKeyboardSounds();
+
         // 设置自定义光标
         this.setupCursor();
     }
@@ -318,4 +321,24 @@ class GameView {
         // 初始更新
         setTimeout(updateCursorPosition, 100);
     }
+
+    setupKeyboardSounds() {
+    const input = this.input;
+    
+    // 添加键盘按键音效
+    input.addEventListener('keydown', (e) => {
+        // 避免特殊键产生声音
+        if (!e.ctrlKey && !e.altKey && !e.metaKey && 
+            e.key !== 'Shift' && e.key !== 'Control' && 
+            e.key !== 'Alt' && e.key !== 'Meta') {
+            
+            // 对 Enter 键使用不同的音效
+            if (e.key === 'Enter') {
+                window.audioManager.play('keypress');
+            } else {
+                window.audioManager.play('keypress');
+            }
+        }
+    });
+}
 }

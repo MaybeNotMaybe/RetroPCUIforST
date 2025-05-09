@@ -17,7 +17,11 @@ class GameController {
         }
 
         // 绑定事件
-        document.getElementById('powerButton').addEventListener('click', () => this.togglePower());
+        document.getElementById('powerButton').addEventListener('click', () => {
+            // 播放音效
+            window.audioManager.play('powerButton');
+            this.togglePower();
+        });
         document.getElementById('commandInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') this.processInput();
         });
@@ -42,7 +46,10 @@ class GameController {
         // 功能按钮点击事件
         this.functionButtons.forEach((button, index) => {
             button.addEventListener('click', () => {
-                if (!this.model.isOn) return; // 系统关闭时按钮不响应
+                // 无论按钮功能是否可用，总是播放点击音效
+                window.audioManager.play('functionButton');
+                
+                if (!this.model.isOn) return; // 系统关闭时按钮不响应功能
                 
                 // F1 - 切换到主终端
                 if (index === 0) {
@@ -194,6 +201,14 @@ class GameController {
                     // 发布系统电源状态事件
                     EventBus.emit('systemPowerChange', false);
                 }
+
+                // 如果系统当前是开机状态，确保电脑运行音效正在播放
+                if (this.model.isOn && window.audioManager) {
+                    // 使用短延迟确保音频上下文已初始化
+                    setTimeout(() => {
+                        window.audioManager.startComputerSound();
+                    }, 300);
+                }
             }
         } catch (error) {
             console.error("加载设置失败:", error);
@@ -220,6 +235,14 @@ class GameController {
         const toggleSlider = colorToggle.querySelector('.toggle-slider');
         
         if (currentState === SystemState.POWERED_OFF) {
+            // 播放开机音效
+            window.audioManager.play('screenOn');
+            
+            // 启动电脑运行背景音效（短暂延迟，先让开机声完成一部分）
+            setTimeout(() => {
+                window.audioManager.startComputerSound();
+            }, 500);
+
             // 开机流程
             // 确保开机前清除历史记录
             this.model.clearHistory();
@@ -311,6 +334,12 @@ class GameController {
             console.log("系统正在启动...");
             return true;
         } else if (currentState === SystemState.POWERED_ON) {
+            // 播放关机音效
+            window.audioManager.play('screenOff');
+
+            // 停止电脑运行背景音效
+            window.audioManager.stopComputerSound();
+
             // 关机流程
             // 调用模型的关机方法，更新状态
             const shutdownMessage = this.model.powerOff();
@@ -460,6 +489,8 @@ class GameController {
         screen.classList.add('green-mode');
         
         colorToggle.addEventListener('click', () => {
+            // 播放开关音效
+            window.audioManager.play('toggleSwitch');
             // 切换开关样式
             colorToggle.classList.toggle('amber');
             

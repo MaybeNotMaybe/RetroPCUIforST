@@ -188,19 +188,25 @@ class MapView {
     
     // 显示地图界面
     show() {
-        // 隐藏终端，显示地图
-        this.terminal.style.display = 'none';
-        this.mapInterface.style.display = 'flex';
-        
-        // 确保地图界面继承当前屏幕的颜色模式
-        this.updateColorMode(this.screen.classList.contains('amber-mode'));
+        // 先添加闪烁效果
+        this.flickerScreen(() => {
+            // 闪烁结束后，显示地图界面
+            this.terminal.style.display = 'none';
+            this.mapInterface.style.display = 'flex';
+            
+            // 确保地图界面继承当前屏幕的颜色模式
+            this.updateColorMode(this.screen.classList.contains('amber-mode'));
+        });
     }
     
     // 隐藏地图界面
     hide() {
-        // 显示终端，隐藏地图
-        this.terminal.style.display = 'flex';
-        this.mapInterface.style.display = 'none';
+        // 先添加闪烁效果
+        this.flickerScreen(() => {
+            // 闪烁结束后，显示终端界面
+            this.terminal.style.display = 'flex';
+            this.mapInterface.style.display = 'none';
+        });
     }
     
     // 更新颜色模式
@@ -214,5 +220,29 @@ class MapView {
         } else {
             this.mapInterface.classList.add('green-mode');
         }
+    }
+
+    // 屏幕闪烁效果
+    flickerScreen(callback) {
+        // 获取当前屏幕
+        const screen = document.querySelector('.screen');
+
+        // 播放屏幕切换音效
+        window.audioManager.play('screenSwitch');
+        
+        // 保存当前的类，以便稍后恢复
+        const currentClasses = [...screen.classList];
+        
+        // 添加闪烁效果类
+        screen.classList.add('screen-flicker');
+        
+        // 闪烁持续时间 (75ms)
+        setTimeout(() => {
+            // 移除闪烁效果类
+            screen.classList.remove('screen-flicker');
+            
+            // 执行回调函数，继续切换流程
+            if (callback) callback();
+        }, 35);
     }
 }
