@@ -1,0 +1,69 @@
+/* 状态指示灯容器 */
+.status-lights {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: center;
+    height: 30px;
+    position: relative;
+}
+
+/* 状态指示灯样式 */
+.status-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #444;
+    box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s;
+    position: relative;
+}
+
+/* 指示灯标签 */
+.status-light::after {
+    position: absolute;
+    font-family: sans-serif;
+    font-size: 8px;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #999;
+    white-space: nowrap;
+}
+
+/* 指示灯标签文本 */
+.status-light:first-child::after {
+    content: "DISK";
+}
+
+.status-light:last-child::after {
+    content: "NET";
+}
+
+/* 黄色活动状态 */
+.status-light.active {
+    background-color: #ffcc00;
+    box-shadow: 0 0 10px #ffcc00, inset 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 绿色常亮状态 */
+.status-light.active-green {
+    background-color: #33cc33;
+    box-shadow: 0 0 10px #33cc33, inset 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 蓝色常亮状态 */
+.status-light.active-blue {
+    background-color: #3399ff;
+    box-shadow: 0 0 10px #3399ff, inset 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 硬盘指示灯闪烁 */
+.disk-flashing {
+    animation: diskFlash 0.5s infinite;
+}
+
+/* 蓝色闪烁 */
+.blue-flashing {
+    animation: blueFlash 0.5s infinite;
+}

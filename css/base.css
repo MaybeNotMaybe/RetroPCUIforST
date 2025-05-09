@@ -1,0 +1,81 @@
+/* 本地字体定义 */
+@font-face {
+    font-family: 'VT323';
+    src: url('https://cdn.jsdelivr.net/gh/SolidZORO/zpix-pixel-font@master/dist/zpix.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #111;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #33ff33;
+    overflow: hidden;
+}
+
+/* 计算机界面包装器样式 */
+.computer-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 800px;
+}
+
+/* 计算机外壳适应包装器宽度 */
+.computer-wrapper .computer-case {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+/* 计算机外壳 - 固定4:3比例 */
+.computer-case {
+    width: 800px;
+    height: 600px; /* 4:3比例 */
+    background-color: #222;
+    border-radius: 10px;
+    border: 2px solid #444;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 屏幕和按钮的容器 */
+.screen-container {
+    display: flex;
+    width: 100%;
+    height: calc(100% - 50px);
+    background-color: #000;
+    border: 2px inset #444;
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 主终端区域 */
+.main-terminal-area {
+    width: calc(100% - 120px); /* 减去按钮面板的宽度 */
+    height: 100%;
+}
+
+/* 控制面板 */
+.control-panel {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    margin-top: 10px;
+}
