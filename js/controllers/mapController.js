@@ -169,6 +169,14 @@ class MapController {
         } else {
             // 隐藏地图
             this.view.hide();
+
+            // 切换回终端时，自动将焦点设置到命令行输入框
+            setTimeout(() => {
+                const commandInput = document.getElementById('commandInput');
+                if (commandInput && !commandInput.disabled) {
+                    commandInput.focus();
+                }
+            }, 100);
         }
         
         return true;
