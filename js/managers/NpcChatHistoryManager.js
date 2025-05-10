@@ -24,107 +24,241 @@ class NpcChatHistoryManager {
     
     // 初始化聊天历史管理
     async initialize(npcId) {
-        if (!npcId) return false;
+        if (!npcId) {
+            console.error("初始化失败: NPC ID为空");
+            return false;
+        }
         
         this.currentNpcId = npcId;
+        console.log(`初始化聊天历史管理器: NPC=${npcId}`);
         
         try {
             // 1. 获取或创建当前聊天的世界书
             this.chatLorebook = await getOrCreateChatLorebook();
-            console.log(`聊天世界书: ${this.chatLorebook}`);
+            console.log(`聊天世界书创建/获取成功: ${this.chatLorebook}`);
             
-            // 2. 检查并创建NPC聊天条目
-            await this.ensureChatEntries();
+            // 2. 确保世界书条目创建完成并获取到UID
+            const entriesCreated = await this.ensureChatEntries();
+            console.log(`条目初始化结果: ${entriesCreated ? "成功" : "失败"}`);
+            console.log(`条目UID: 完整历史=${this.entryUids.fullHistory}, 最近聊天=${this.entryUids.recentChats}, 总结=${this.entryUids.summary}`);
             
-            // 3. 重置轮数计数
+            // 3. 验证所有必要的UID都已设置
+            if (!this.entryUids.fullHistory || !this.entryUids.recentChats || !this.entryUids.summary) {
+                console.error("初始化失败: 部分条目UID未设置");
+                return false;
+            }
+            
+            // 4. 重置轮数计数
             this.roundsSinceLastSummary = 0;
             
             return true;
         } catch (error) {
             console.error("初始化聊天历史管理器失败:", error);
+            console.error("错误详情:", error.stack || "无堆栈信息");
             return false;
         }
     }
     
     // 确保NPC聊天的三个条目都存在
     async ensureChatEntries() {
-        // 获取当前所有条目
-        const entries = await getLorebookEntries(this.chatLorebook);
-        
-        // 为当前NPC准备条目名称前缀
-        const prefix = `NPC_${this.currentNpcId}`;
-        
-        // 检查是否存在全部历史条目
-        const fullHistoryEntry = entries.find(e => e.comment === `${prefix}_FullHistory`);
-        if (!fullHistoryEntry) {
-            await this.createFullHistoryEntry(prefix);
-        } else {
-            this.entryUids.fullHistory = fullHistoryEntry.uid;
+        try {
+            // 获取当前所有条目
+            console.log(`获取世界书条目: ${this.chatLorebook}`);
+            const entries = await getLorebookEntries(this.chatLorebook);
+            
+            if (!entries || entries.length === 0) {
+                console.log("世界书为空或获取失败，将创建新条目");
+            } else {
+                console.log(`获取到${entries.length}个条目`);
+            }
+            
+            // 为当前NPC准备条目名称前缀
+            const prefix = `NPC_${this.currentNpcId}`;
+            
+            // 创建或查找所有必要条目
+            await Promise.all([
+                this.ensureFullHistoryEntry(entries, prefix),
+                this.ensureRecentChatsEntry(entries, prefix),
+                this.ensureSummaryEntry(entries, prefix)
+            ]);
+            
+            // 检查是否所有UID都已设置
+            const allUidsSet = 
+                this.entryUids.fullHistory !== null && 
+                this.entryUids.recentChats !== null && 
+                this.entryUids.summary !== null;
+                
+            console.log(`所有条目UID设置状态: ${allUidsSet ? "完成" : "未完成"}`);
+            return allUidsSet;
+        } catch (error) {
+            console.error("确保条目存在时出错:", error);
+            return false;
         }
-        
-        // 检查是否存在最近聊天条目
-        const recentChatsEntry = entries.find(e => e.comment === `${prefix}_RecentChats`);
-        if (!recentChatsEntry) {
-            await this.createRecentChatsEntry(prefix);
-        } else {
-            this.entryUids.recentChats = recentChatsEntry.uid;
+    }
+    
+    // 确保完整历史条目存在
+    async ensureFullHistoryEntry(entries, prefix) {
+        try {
+            const fullHistoryEntry = entries.find(e => e.comment === `${prefix}_FullHistory`);
+            if (fullHistoryEntry) {
+                console.log(`找到完整历史条目: UID=${fullHistoryEntry.uid}`);
+                this.entryUids.fullHistory = fullHistoryEntry.uid;
+                return true;
+            } else {
+                console.log("未找到完整历史条目，创建新条目");
+                const created = await this.createFullHistoryEntry(prefix);
+                return created;
+            }
+        } catch (error) {
+            console.error("确保完整历史条目存在时出错:", error);
+            return false;
         }
-        
-        // 检查是否存在聊天总结条目
-        const summaryEntry = entries.find(e => e.comment === `${prefix}_Summary`);
-        if (!summaryEntry) {
-            await this.createSummaryEntry(prefix);
-        } else {
-            this.entryUids.summary = summaryEntry.uid;
+    }
+    
+    // 确保最近聊天条目存在
+    async ensureRecentChatsEntry(entries, prefix) {
+        try {
+            const recentChatsEntry = entries.find(e => e.comment === `${prefix}_RecentChats`);
+            if (recentChatsEntry) {
+                console.log(`找到最近聊天条目: UID=${recentChatsEntry.uid}`);
+                this.entryUids.recentChats = recentChatsEntry.uid;
+                return true;
+            } else {
+                console.log("未找到最近聊天条目，创建新条目");
+                const created = await this.createRecentChatsEntry(prefix);
+                return created;
+            }
+        } catch (error) {
+            console.error("确保最近聊天条目存在时出错:", error);
+            return false;
+        }
+    }
+    
+    // 确保聊天总结条目存在
+    async ensureSummaryEntry(entries, prefix) {
+        try {
+            const summaryEntry = entries.find(e => e.comment === `${prefix}_Summary`);
+            if (summaryEntry) {
+                console.log(`找到聊天总结条目: UID=${summaryEntry.uid}`);
+                this.entryUids.summary = summaryEntry.uid;
+                return true;
+            } else {
+                console.log("未找到聊天总结条目，创建新条目");
+                const created = await this.createSummaryEntry(prefix);
+                return created;
+            }
+        } catch (error) {
+            console.error("确保聊天总结条目存在时出错:", error);
+            return false;
         }
     }
     
     // 创建全部聊天历史条目
     async createFullHistoryEntry(prefix) {
-        const { new_uids } = await createLorebookEntries(this.chatLorebook, [{
-            comment: `${prefix}_FullHistory`,
-            enabled: false,
-            type: 'selective',
-            position: 'before_character_definition',
-            keys: [this.currentNpcId],
-            content: `与${this.currentNpcId}的完整聊天历史：\n\n`,
-            logic: 'and_any'
-        }]);
-        
-        this.entryUids.fullHistory = new_uids[0];
-        console.log(`创建了全部历史条目，UID: ${this.entryUids.fullHistory}`);
+        try {
+            console.log(`开始创建完整历史条目: ${prefix}_FullHistory`);
+            const { new_uids } = await createLorebookEntries(this.chatLorebook, [{
+                comment: `${prefix}_FullHistory`,
+                enabled: false,
+                type: 'selective',
+                position: 'before_character_definition',
+                keys: [this.currentNpcId],
+                content: `与${this.currentNpcId}的完整聊天历史：\n\n`,
+                logic: 'and_any'
+            }]);
+            
+            if (!new_uids || new_uids.length === 0) {
+                throw new Error("创建条目失败: 没有返回UID");
+            }
+            
+            this.entryUids.fullHistory = new_uids[0];
+            console.log(`创建了完整历史条目，UID: ${this.entryUids.fullHistory}`);
+            
+            // 验证条目确实被创建了
+            const entries = await getLorebookEntries(this.chatLorebook);
+            const entry = entries.find(e => e.uid === this.entryUids.fullHistory);
+            if (!entry) {
+                throw new Error("条目验证失败: 创建的条目未找到");
+            }
+            
+            console.log(`完整历史条目创建并验证成功`);
+            return true;
+        } catch (error) {
+            console.error("创建完整历史条目失败:", error);
+            return false;
+        }
     }
     
     // 创建最近聊天条目
     async createRecentChatsEntry(prefix) {
-        const { new_uids } = await createLorebookEntries(this.chatLorebook, [{
-            comment: `${prefix}_RecentChats`,
-            enabled: false,
-            type: 'selective',
-            position: 'before_character_definition',
-            keys: [this.currentNpcId],
-            content: `与${this.currentNpcId}的最近${this.recentChatRounds}轮对话：\n\n`,
-            logic: 'and_any'
-        }]);
-        
-        this.entryUids.recentChats = new_uids[0];
-        console.log(`创建了最近聊天条目，UID: ${this.entryUids.recentChats}`);
+        try {
+            console.log(`开始创建最近聊天条目: ${prefix}_RecentChats`);
+            const { new_uids } = await createLorebookEntries(this.chatLorebook, [{
+                comment: `${prefix}_RecentChats`,
+                enabled: false,
+                type: 'selective',
+                position: 'before_character_definition',
+                keys: [this.currentNpcId],
+                content: `与${this.currentNpcId}的最近${this.recentChatRounds}轮对话：\n\n`,
+                logic: 'and_any'
+            }]);
+            
+            if (!new_uids || new_uids.length === 0) {
+                throw new Error("创建条目失败: 没有返回UID");
+            }
+            
+            this.entryUids.recentChats = new_uids[0];
+            console.log(`创建了最近聊天条目，UID: ${this.entryUids.recentChats}`);
+            
+            // 验证条目确实被创建了
+            const entries = await getLorebookEntries(this.chatLorebook);
+            const entry = entries.find(e => e.uid === this.entryUids.recentChats);
+            if (!entry) {
+                throw new Error("条目验证失败: 创建的条目未找到");
+            }
+            
+            console.log(`最近聊天条目创建并验证成功`);
+            return true;
+        } catch (error) {
+            console.error("创建最近聊天条目失败:", error);
+            return false;
+        }
     }
     
     // 创建聊天总结条目
     async createSummaryEntry(prefix) {
-        const { new_uids } = await createLorebookEntries(this.chatLorebook, [{
-            comment: `${prefix}_Summary`,
-            enabled: true,
-            type: 'constant',
-            position: 'after_author_note',
-            keys: [this.currentNpcId],
-            content: `与${this.currentNpcId}的对话尚未开始。`,
-            logic: 'and_any'
-        }]);
-        
-        this.entryUids.summary = new_uids[0];
-        console.log(`创建了聊天总结条目，UID: ${this.entryUids.summary}`);
+        try {
+            console.log(`开始创建聊天总结条目: ${prefix}_Summary`);
+            const { new_uids } = await createLorebookEntries(this.chatLorebook, [{
+                comment: `${prefix}_Summary`,
+                enabled: true,
+                type: 'constant',
+                position: 'after_author_note',
+                keys: [this.currentNpcId],
+                content: `与${this.currentNpcId}的对话尚未开始。`,
+                logic: 'and_any'
+            }]);
+            
+            if (!new_uids || new_uids.length === 0) {
+                throw new Error("创建条目失败: 没有返回UID");
+            }
+            
+            this.entryUids.summary = new_uids[0];
+            console.log(`创建了聊天总结条目，UID: ${this.entryUids.summary}`);
+            
+            // 验证条目确实被创建了
+            const entries = await getLorebookEntries(this.chatLorebook);
+            const entry = entries.find(e => e.uid === this.entryUids.summary);
+            if (!entry) {
+                throw new Error("条目验证失败: 创建的条目未找到");
+            }
+            
+            console.log(`聊天总结条目创建并验证成功`);
+            return true;
+        } catch (error) {
+            console.error("创建聊天总结条目失败:", error);
+            return false;
+        }
     }
     
     // 添加新的对话到历史记录
@@ -165,6 +299,7 @@ class NpcChatHistoryManager {
             return fullHistoryUpdated || recentChatsUpdated;
         } catch (error) {
             console.error("添加聊天记录失败:", error);
+            console.error("错误详情:", error.stack || "无堆栈信息");
             return false;
         }
     }
@@ -173,12 +308,17 @@ class NpcChatHistoryManager {
     async updateFullHistory(chatEntry) {
         if (!this.entryUids.fullHistory) {
             console.error("更新完整历史失败: 未找到条目UID");
-            return false;
+            // 尝试重新初始化条目
+            await this.ensureChatEntries();
+            // 如果初始化后依然没有UID，则返回失败
+            if (!this.entryUids.fullHistory) {
+                return false;
+            }
         }
         
         try {
             // 获取当前条目
-            console.log(`获取世界书条目: ${this.chatLorebook}`);
+            console.log(`获取世界书条目，用于更新完整历史: ${this.chatLorebook}`);
             const entries = await getLorebookEntries(this.chatLorebook);
             
             if (!entries || entries.length === 0) {
@@ -190,24 +330,25 @@ class NpcChatHistoryManager {
             
             if (!entry) {
                 console.error(`未找到完整历史条目, UID: ${this.entryUids.fullHistory}`);
-                // 尝试重新初始化
-                await this.ensureChatEntries();
-                return false;
+                // 尝试重新创建条目
+                const prefix = `NPC_${this.currentNpcId}`;
+                await this.createFullHistoryEntry(prefix);
+                // 获取新创建的条目
+                const newEntries = await getLorebookEntries(this.chatLorebook);
+                const newEntry = newEntries.find(e => e.uid === this.entryUids.fullHistory);
+                if (!newEntry) {
+                    return false;
+                }
+                return await this.updateEntryContent(newEntry, newEntry.content + chatEntry);
             }
             
             console.log(`找到完整历史条目, 当前长度: ${entry.content.length}字符`);
             
             // 添加新聊天到历史记录末尾
-            entry.content += chatEntry;
-            
-            // 更新条目
-            console.log(`正在更新完整历史条目...`);
-            await setLorebookEntries(this.chatLorebook, [entry]);
-            console.log(`完整历史条目更新成功`);
-            
-            return true;
+            return await this.updateEntryContent(entry, entry.content + chatEntry);
         } catch (error) {
             console.error("更新完整历史记录失败:", error);
+            console.error("错误详情:", error.stack || "无堆栈信息");
             return false;
         }
     }
@@ -216,7 +357,12 @@ class NpcChatHistoryManager {
     async updateRecentChats(chatEntry) {
         if (!this.entryUids.recentChats) {
             console.error("更新最近聊天失败: 未找到条目UID");
-            return false;
+            // 尝试重新初始化条目
+            await this.ensureChatEntries();
+            // 如果初始化后依然没有UID，则返回失败
+            if (!this.entryUids.recentChats) {
+                return false;
+            }
         }
         
         try {
@@ -233,9 +379,19 @@ class NpcChatHistoryManager {
             
             if (!entry) {
                 console.error(`未找到最近聊天条目, UID: ${this.entryUids.recentChats}`);
-                // 尝试重新初始化
-                await this.ensureChatEntries();
-                return false;
+                // 尝试重新创建条目
+                const prefix = `NPC_${this.currentNpcId}`;
+                await this.createRecentChatsEntry(prefix);
+                // 获取新创建的条目
+                const newEntries = await getLorebookEntries(this.chatLorebook);
+                const newEntry = newEntries.find(e => e.uid === this.entryUids.recentChats);
+                if (!newEntry) {
+                    return false;
+                }
+                
+                // 准备新条目内容
+                const header = `与${this.currentNpcId}的最近${this.recentChatRounds}轮对话：\n\n`;
+                return await this.updateEntryContent(newEntry, header + chatEntry);
             }
             
             console.log(`找到最近聊天条目, 当前长度: ${entry.content.length}字符`);
@@ -258,19 +414,8 @@ class NpcChatHistoryManager {
             }
             
             // 更新条目
-            entry.content = header + content;
-            console.log(`正在更新最近聊天条目，更新后长度: ${entry.content.length}字符`);
-            
-            // 先检查条目是否有效
-            if (!entry.uid || typeof entry.uid !== 'number') {
-                console.error("最近聊天条目UID无效，无法更新");
-                return false;
-            }
-            
-            await setLorebookEntries(this.chatLorebook, [entry]);
-            console.log(`最近聊天条目更新成功`);
-            
-            return true;
+            const newContent = header + content;
+            return await this.updateEntryContent(entry, newContent);
         } catch (error) {
             console.error("更新最近聊天记录失败:", error);
             console.error("错误详情:", error.stack || "无堆栈信息");
@@ -278,9 +423,54 @@ class NpcChatHistoryManager {
         }
     }
     
+    // 通用条目内容更新方法
+    async updateEntryContent(entry, newContent) {
+        try {
+            if (!entry || !entry.uid || typeof entry.uid !== 'number') {
+                console.error("条目无效或UID类型错误:", entry);
+                return false;
+            }
+            
+            console.log(`准备更新条目, UID=${entry.uid}, 内容长度=${newContent.length}字符`);
+            
+            // 创建一个只包含必要字段的更新对象
+            const updateEntry = {
+                uid: entry.uid,
+                content: newContent
+            };
+            
+            await setLorebookEntries(this.chatLorebook, [updateEntry]);
+            
+            // 验证更新是否成功
+            const verifyEntries = await getLorebookEntries(this.chatLorebook);
+            const verifyEntry = verifyEntries.find(e => e.uid === entry.uid);
+            
+            if (!verifyEntry) {
+                console.error("条目验证失败: 条目不存在");
+                return false;
+            }
+            
+            if (verifyEntry.content !== newContent) {
+                console.error("条目验证失败: 内容未正确更新");
+                console.log("期望内容长度:", newContent.length);
+                console.log("实际内容长度:", verifyEntry.content.length);
+                return false;
+            }
+            
+            console.log(`条目更新成功并已验证`);
+            return true;
+        } catch (error) {
+            console.error("更新条目内容失败:", error);
+            return false;
+        }
+    }
+    
     // 生成对话总结
     async generateSummary() {
-        if (!this.entryUids.summary || !this.entryUids.recentChats) return;
+        if (!this.entryUids.summary || !this.entryUids.recentChats) {
+            console.error("生成总结失败: 缺少必要的条目UID");
+            return false;
+        }
         
         try {
             console.log("开始生成聊天总结...");
@@ -290,7 +480,10 @@ class NpcChatHistoryManager {
             const summaryEntry = entries.find(e => e.uid === this.entryUids.summary);
             const recentChatsEntry = entries.find(e => e.uid === this.entryUids.recentChats);
             
-            if (!summaryEntry || !recentChatsEntry) return;
+            if (!summaryEntry || !recentChatsEntry) {
+                console.error("找不到总结或最近聊天条目");
+                return false;
+            }
             
             // 2. 启用总结提示词条目
             await this.toggleSummaryPrompt(true);
@@ -306,22 +499,35 @@ class NpcChatHistoryManager {
                     `现有总结:\n${currentSummary}\n\n` +
                     `最近对话:\n${recentChats}`;
                 
+                console.log("正在生成聊天总结...");
+                
                 // 4. 调用AI生成总结
                 const newSummary = await generate({
                     user_input: userInput,
                     should_stream: false
                 });
                 
+                console.log("总结生成完毕，准备提取内容");
+                
                 // 5. 提取总结内容
                 const extractedSummary = this.extractSummary(newSummary);
                 if (extractedSummary) {
-                    // 更新总结条目
-                    summaryEntry.content = extractedSummary;
-                    await setLorebookEntries(this.chatLorebook, [summaryEntry]);
-                    console.log("聊天总结已更新");
+                    console.log(`提取的总结内容长度: ${extractedSummary.length}字符`);
                     
-                    // 重置轮数计数
-                    this.roundsSinceLastSummary = 0;
+                    // 更新总结条目
+                    const updated = await this.updateEntryContent(summaryEntry, extractedSummary);
+                    if (updated) {
+                        console.log("聊天总结已成功更新");
+                        // 重置轮数计数
+                        this.roundsSinceLastSummary = 0;
+                        return true;
+                    } else {
+                        console.error("聊天总结更新失败");
+                        return false;
+                    }
+                } else {
+                    console.error("无法从AI响应中提取有效的总结内容");
+                    return false;
                 }
             } finally {
                 // 6. 禁用总结提示词条目 - 确保即使发生错误也会执行
@@ -329,54 +535,112 @@ class NpcChatHistoryManager {
             }
         } catch (error) {
             console.error("生成聊天总结失败:", error);
+            return false;
         }
     }
     
     // 提取总结内容
     extractSummary(text) {
-        const regex = /<summary>([\s\S]*?)<\/summary>/;
-        const match = text.match(regex);
-        return match ? match[1].trim() : text.trim();
+        try {
+            // 首先尝试使用<summary>标签提取
+            const regex = /<summary>([\s\S]*?)<\/summary>/;
+            const match = text.match(regex);
+            
+            if (match && match[1]) {
+                console.log("使用<summary>标签提取成功");
+                return match[1].trim();
+            }
+            
+            // 如果没有找到标签，则返回整个文本
+            console.log("未找到<summary>标签，使用整个响应文本");
+            return text.trim();
+        } catch (error) {
+            console.error("提取总结内容时出错:", error);
+            return text.trim(); // 出错时返回原始文本
+        }
     }
     
     // 断开连接时的清理
     async finalizeOnDisconnect() {
-        if (!this.chatLorebook || !this.currentNpcId) return;
+        if (!this.chatLorebook || !this.currentNpcId) {
+            console.log("无需清理: 没有活动的聊天会话");
+            return;
+        }
         
         console.log("连接清理中...");
         
-        // 如果启用了断开时总结功能，且有未总结的对话，进行最终总结
-        if (this.summarizeOnDisconnect && this.roundsSinceLastSummary > 0) {
-            await this.generateSummary();
+        try {
+            // 如果启用了断开时总结功能，且有未总结的对话，进行最终总结
+            if (this.summarizeOnDisconnect && this.roundsSinceLastSummary > 0) {
+                console.log(`断开连接前进行最终总结，未总结的对话轮数: ${this.roundsSinceLastSummary}`);
+                await this.generateSummary();
+            }
+        } catch (error) {
+            console.error("断开连接时的清理操作失败:", error);
+        } finally {
+            // 重置状态（无论是否出错都要执行）
+            console.log("重置聊天会话状态");
+            this.currentNpcId = null;
+            this.chatLorebook = null;
+            this.roundsSinceLastSummary = 0;
+            this.entryUids = {
+                fullHistory: null,
+                recentChats: null,
+                summary: null
+            };
         }
-        
-        // 重置状态
-        this.currentNpcId = null;
-        this.chatLorebook = null;
-        this.roundsSinceLastSummary = 0;
-        this.entryUids = {
-            fullHistory: null,
-            recentChats: null,
-            summary: null
-        };
     }
     
     // 获取聊天总结和最近聊天内容（用于注入到AI提示中）
     async getChatContext() {
         if (!this.chatLorebook || !this.currentNpcId) {
+            console.log("获取聊天上下文失败: 没有活动的聊天会话");
             return { summary: null, recentChats: null };
         }
         
         try {
+            console.log("正在获取聊天上下文...");
+            
+            // 验证UID是否存在
+            if (!this.entryUids.summary || !this.entryUids.recentChats) {
+                console.error("获取聊天上下文失败: 条目UID未设置");
+                return { summary: null, recentChats: null };
+            }
+            
             const entries = await getLorebookEntries(this.chatLorebook);
+            
+            if (!entries || entries.length === 0) {
+                console.error("获取世界书条目失败或返回空");
+                return { summary: null, recentChats: null };
+            }
             
             const summaryEntry = entries.find(e => e.uid === this.entryUids.summary);
             const recentChatsEntry = entries.find(e => e.uid === this.entryUids.recentChats);
             
-            return {
+            if (!summaryEntry) {
+                console.error(`未找到聊天总结条目, UID: ${this.entryUids.summary}`);
+            }
+            
+            if (!recentChatsEntry) {
+                console.error(`未找到最近聊天条目, UID: ${this.entryUids.recentChats}`);
+            }
+            
+            const context = {
                 summary: summaryEntry ? summaryEntry.content : null,
                 recentChats: recentChatsEntry ? recentChatsEntry.content : null
             };
+            
+            console.log("聊天上下文获取成功");
+            
+            // 记录内容长度（不打印完整内容以避免日志过长）
+            if (context.summary) {
+                console.log(`聊天总结长度: ${context.summary.length}字符`);
+            }
+            if (context.recentChats) {
+                console.log(`最近聊天长度: ${context.recentChats.length}字符`);
+            }
+            
+            return context;
         } catch (error) {
             console.error("获取聊天上下文失败:", error);
             return { summary: null, recentChats: null };
@@ -385,20 +649,27 @@ class NpcChatHistoryManager {
     
     // 设置配置参数
     setConfig(config) {
+        if (!config) return;
+        
         if (config.recentChatRounds !== undefined) {
             this.recentChatRounds = config.recentChatRounds;
+            console.log(`设置最近聊天轮数: ${this.recentChatRounds}`);
         }
         if (config.summarizeOnDisconnect !== undefined) {
             this.summarizeOnDisconnect = config.summarizeOnDisconnect;
+            console.log(`设置断开连接时总结: ${this.summarizeOnDisconnect}`);
         }
         if (config.summarizeEveryRounds !== undefined) {
             this.summarizeEveryRounds = config.summarizeEveryRounds;
+            console.log(`设置总结间隔轮数: ${this.summarizeEveryRounds}`);
         }
     }
 
     // 控制总结提示词的开关
     async toggleSummaryPrompt(enable) {
         try {
+            console.log(`${enable ? '启用' : '禁用'}总结提示词条目`);
+            
             // 获取当前角色卡的主要世界书
             const primaryLorebook = getCurrentCharPrimaryLorebook();
             
@@ -407,7 +678,9 @@ class NpcChatHistoryManager {
                 return false;
             }
             
-            return await LorebookUtils.toggleLorebookEntry(primaryLorebook, "summary_prompt", enable);
+            const result = await LorebookUtils.toggleLorebookEntry(primaryLorebook, "summary_prompt", enable);
+            console.log(`总结提示词条目${enable ? '启用' : '禁用'}结果: ${result ? "成功" : "失败"}`);
+            return result;
         } catch (error) {
             console.error(`${enable ? '启用' : '禁用'}总结提示词时出错`, error);
             return false;
