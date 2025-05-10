@@ -88,6 +88,9 @@ class GameModel {
         this.currentTarget = null;       // 当前连接的目标
         this.isWaitingResponse = false;  // 是否正在等待AI响应
         this.accumulatedInput = "";      // 累积的用户输入
+
+        // CDN基础URL配置
+        this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@bf2dc05/";
     }
 
     // 添加输出到历史记录
@@ -315,7 +318,7 @@ RAM空间: 12.4MB/20MB
         this.connectPrompt = await this.loadJsonFile('data/prompt/connect.json');
         
         if (!this.npcPrompt || !this.connectPrompt) {
-            return `错误: 无法加载"${target}"的配置信息。`;
+            return `错误: 无法加载"${target}"的配置信息。请检查网络连接或联系系统管理员。`;
         }
         
         // 设置连接状态
@@ -416,9 +419,13 @@ RAM空间: 12.4MB/20MB
     // 加载提示词文件
     async loadJsonFile(path) {
         try {
-            const response = await fetch(path);
+            // 构建完整的CDN URL
+            const fullUrl = this.cdnBaseUrl + path;
+            console.log(`正在从CDN加载文件: ${fullUrl}`);
+            
+            const response = await fetch(fullUrl);
             if (!response.ok) {
-                throw new Error(`无法加载文件：${path}`);
+                throw new Error(`无法加载文件：${fullUrl} (状态码: ${response.status})`);
             }
             return await response.json();
         } catch (error) {
@@ -430,9 +437,14 @@ RAM空间: 12.4MB/20MB
     // 检查NPC是否存在
     async checkNpcExists(npcId) {
         try {
-            const response = await fetch(`data/prompt/npc/${npcId}.json`);
+            // 构建完整的CDN URL
+            const fullUrl = this.cdnBaseUrl + `data/prompt/npc/${npcId}.json`;
+            console.log(`检查NPC文件是否存在: ${fullUrl}`);
+            
+            const response = await fetch(fullUrl);
             return response.ok;
         } catch (error) {
+            console.error(`检查NPC文件存在性失败: ${npcId}`, error);
             return false;
         }
     }
