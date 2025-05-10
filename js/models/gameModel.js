@@ -90,7 +90,7 @@ class GameModel {
         this.accumulatedInput = "";      // 累积的用户输入
 
         // CDN基础URL配置
-        this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@bf2dc05/";
+        this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@964bff7/";
     }
 
     // 添加输出到历史记录
