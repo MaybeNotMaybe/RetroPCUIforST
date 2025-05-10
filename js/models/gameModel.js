@@ -299,13 +299,16 @@ RAM空间: 12.4MB/20MB
             return disconnectMsg + "\n\n请重新发起连接。";
         }
         
+        // 确保target没有包含.json扩展名
+        const cleanTarget = target.endsWith('.json') ? target.slice(0, -5) : target;
+        
         // 检查目标NPC是否存在
-        const targetExists = await this.checkNpcExists(target);
+        const targetExists = await this.checkNpcExists(cleanTarget);
         if (!targetExists) {
-            return `错误: 无法找到ID为"${target}"的连接目标。`;
+            return `错误: 无法找到ID为"${cleanTarget}"的连接目标。`;
         }
         
-        return await this.connectToTarget(target);
+        return await this.connectToTarget(cleanTarget);
     }
 
     // 实际连接目标的方法
@@ -314,20 +317,23 @@ RAM空间: 12.4MB/20MB
         EventBus.emit('networkActivity');
         
         try {
+            // 确保target没有包含.json扩展名
+            const cleanTarget = target.endsWith('.json') ? target.slice(0, -5) : target;
+            
             // 加载NPC提示词和通用提示词
-            this.npcPrompt = await this.loadJsonFileWithRetry(`data/prompt/npc/${target}.json`);
+            this.npcPrompt = await this.loadJsonFileWithRetry(`data/prompt/npc/${cleanTarget}.json`);
             this.connectPrompt = await this.loadJsonFileWithRetry('data/prompt/connect.json');
             
             if (!this.npcPrompt || !this.connectPrompt) {
-                return `错误: 无法加载"${target}"的配置信息。请检查网络连接或联系系统管理员。`;
+                return `错误: 无法加载"${cleanTarget}"的配置信息。请检查网络连接或联系系统管理员。`;
             }
             
             // 设置连接状态
             this.isConnected = true;
-            this.currentTarget = target;
+            this.currentTarget = cleanTarget;
             this.accumulatedInput = "";
             
-            return `尝试连接到 "${target}"...\n\n` +
+            return `尝试连接到 "${cleanTarget}"...\n\n` +
                 `建立加密通道...\n` +
                 `验证身份...\n` +
                 `连接成功!\n\n` +
@@ -437,8 +443,11 @@ RAM空间: 12.4MB/20MB
     // 检查NPC是否存在
     async checkNpcExists(npcId) {
         try {
+            // 确保npcId没有包含.json扩展名
+            const cleanId = npcId.endsWith('.json') ? npcId.slice(0, -5) : npcId;
+            
             // 构建完整的CDN URL
-            const fullUrl = this.cdnBaseUrl + `data/prompt/npc/${npcId}.json`;
+            const fullUrl = this.cdnBaseUrl + `data/prompt/npc/${cleanId}.json`;
             console.log(`检查NPC文件是否存在: ${fullUrl}`);
             
             const response = await fetch(fullUrl);
