@@ -440,6 +440,40 @@ RAM空间: 12.4MB/20MB
         }
     }
 
+    async loadJsonFileWithRetry(path, maxRetries = 3, delay = 1000) {
+        let lastError;
+        
+        // 确保path不会有双重扩展名问题
+        const cleanPath = path.replace(/\.json\.json$/, '.json');
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const fullUrl = this.cdnBaseUrl + cleanPath;
+                console.log(`尝试加载 (${attempt}/${maxRetries}): ${fullUrl}`);
+                
+                const response = await fetch(fullUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error(`加载失败 (尝试 ${attempt}/${maxRetries}):`, error);
+                lastError = error;
+                
+                if (attempt < maxRetries) {
+                    // 等待一段时间后重试
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    // 每次重试增加延迟时间
+                    delay *= 1.5;
+                }
+            }
+        }
+        
+        console.error(`所有重试都失败:`, lastError);
+        return null;
+    }
+
     // 检查NPC是否存在
     async checkNpcExists(npcId) {
         try {
