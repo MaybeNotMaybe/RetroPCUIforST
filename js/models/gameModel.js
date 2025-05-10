@@ -82,6 +82,12 @@ class GameModel {
         
         // 初始系统状态
         this.systemState = this.SystemState.POWERED_OFF;
+        
+        // AI连接相关属性
+        this.isConnected = false;        // 是否处于连接状态
+        this.currentTarget = null;       // 当前连接的目标
+        this.isWaitingResponse = false;  // 是否正在等待AI响应
+        this.accumulatedInput = "";      // 累积的用户输入
     }
 
     // 添加输出到历史记录
@@ -165,6 +171,33 @@ class GameModel {
         command = command.toLowerCase().trim();
         
         if (command === "") return "";
+
+        // 检查是否处于连接状态
+        if (this.isConnected) {
+            // 处理特殊命令
+            if (command === "disconnect") {
+                return this.disconnect();
+            }
+            
+            if (command === "send") {
+                // 如果已经在等待响应，返回错误信息
+                if (this.isWaitingResponse) {
+                    return "请等待当前响应完成...";
+                }
+                
+                // 如果没有累积的输入，返回错误信息
+                if (!this.accumulatedInput.trim()) {
+                    return "错误: 没有要发送的消息。请先输入消息内容。";
+                }
+                
+                // 返回等待消息，实际发送在Controller中处理
+                return "等待回复中...";
+            }
+            
+            // 如果不是特殊命令，累积输入
+            this.accumulatedInput += (this.accumulatedInput ? "\n" : "") + command;
+            return `信息已添加。继续输入更多内容，或输入"send"发送。`;
+        }
         
         // 基本命令处理
         switch(command) {
@@ -251,15 +284,75 @@ RAM空间: 12.4MB/20MB
         // 模拟NPC连接功能
         if (!target) return "请指定连接目标。使用格式: connect [目标ID]";
         
+        // 如果已经连接到某个目标，先断开
+        if (this.isConnected) {
+            const disconnectMsg = this.disconnect();
+            // 返回断开消息和新连接消息
+            return disconnectMsg + "\n\n" + this.connectToTarget(target);
+        }
+        
+        return this.connectToTarget(target);
+    }
+
+    // 实际连接目标的方法
+    connectToTarget(target) {
         // 触发网络活动指示灯
         EventBus.emit('networkActivity');
+        
+        // 设置连接状态
+        this.isConnected = true;
+        this.currentTarget = target;
+        this.accumulatedInput = "";
         
         return `尝试连接到 "${target}"...\n\n` +
             `建立加密通道...\n` +
             `验证身份...\n` +
             `连接成功!\n\n` +
             `${target}: "你好，有什么我可以帮助你的吗？"\n\n` +
-            `输入消息直接回复。输入 "disconnect" 断开连接。`;
+            `输入消息内容，然后输入 "send" 发送消息。\n` +
+            `输入 "disconnect" 随时断开连接。`;
+    }
+
+    // 断开连接方法
+    disconnect() {
+        if (!this.isConnected) return "错误: 当前没有活跃的连接。";
+        
+        const target = this.currentTarget;
+        this.isConnected = false;
+        this.currentTarget = null;
+        this.isWaitingResponse = false;
+        this.accumulatedInput = "";
+        
+        return `已断开与 "${target}" 的连接。`;
+    }
+
+    // 发送消息方法
+    async sendMessage() {
+        if (!this.isConnected) return "错误: 当前没有活跃的连接。";
+        if (!this.accumulatedInput.trim()) return "错误: 没有要发送的消息。";
+        
+        // 设置等待标志
+        this.isWaitingResponse = true;
+        
+        try {
+            // 请求AI生成响应
+            const response = await generate({
+                user_input: this.accumulatedInput
+            });
+            
+            // 清空累积的输入
+            this.accumulatedInput = "";
+            
+            // 清除等待标志
+            this.isWaitingResponse = false;
+            
+            // 返回生成的响应
+            return `${this.currentTarget}: "${response}"`;
+        } catch (error) {
+            console.error("AI响应生成失败:", error);
+            this.isWaitingResponse = false;
+            return "错误: 无法获取响应。连接可能已中断。";
+        }
     }
 
     // 读取驱动器内容

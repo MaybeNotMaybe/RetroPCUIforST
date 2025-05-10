@@ -495,13 +495,17 @@ class GameController {
                 
                 // 检查是否为清屏命令
                 if (response === "CLEAR_SCREEN") {
-                    // 清除屏幕
+                    // 现有代码...
+                } else if (command.toLowerCase() === "send" && this.model.isConnected && !this.model.isWaitingResponse) {
+                    // 处理发送命令
+                    this.model.addToHistory(inputText);
+                    this.model.addToHistory(response);
+                    
+                    // 显示等待消息
                     this.view.displayOutput(response);
-                    // 完全清除历史记录
-                    this.model.clearHistory();
-                    // 添加一个空字符串或特殊标记作为历史记录占位符
-                    // 这确保terminalHistory.length > 0，系统状态保持为开机
-                    this.model.addToHistory('');  // 添加空字符串作为占位符
+                    
+                    // 异步发送消息并处理响应
+                    this.sendMessageAndHandleResponse();
                 } else {
                     // 处理普通命令
                     this.view.displayOutput(response);
@@ -518,6 +522,35 @@ class GameController {
                 this.model.addToHistory(inputText);
                 this.model.addToHistory(errorText);
             }
+        }
+    }
+
+    // 发送消息和处理响应的方法
+    async sendMessageAndHandleResponse() {
+        try {
+            // 触发网络活动指示灯
+            EventBus.emit('networkActivity');
+            
+            // 调用模型的sendMessage方法获取AI响应
+            const response = await this.model.sendMessage();
+            
+            // 触发网络活动指示灯（表示收到响应）
+            EventBus.emit('networkActivity');
+            
+            // 显示响应
+            this.view.displayOutput(response);
+            
+            // 添加到历史记录
+            this.model.addToHistory(response);
+            
+            // 保存设置
+            this.saveSettings();
+        } catch (error) {
+            console.error("处理AI响应时出错:", error);
+            
+            const errorMessage = "错误: 处理响应时出现问题。";
+            this.view.displayOutput(errorMessage);
+            this.model.addToHistory(errorMessage);
         }
     }
 
