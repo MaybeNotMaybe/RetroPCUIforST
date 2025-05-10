@@ -129,28 +129,40 @@ class NpcChatHistoryManager {
     
     // 添加新的对话到历史记录
     async addChat(userMessage, npcResponse) {
-        if (!this.chatLorebook || !this.currentNpcId) return false;
+        if (!this.chatLorebook || !this.currentNpcId) {
+            console.error("添加聊天失败: 世界书或NPC ID未设置");
+            return false;
+        }
         
         try {
             // 格式化聊天记录
             const timestamp = new Date().toLocaleString();
             const chatEntry = `[${timestamp}]\n用户: ${userMessage}\n${this.currentNpcId}: ${npcResponse}\n\n`;
             
+            console.log(`正在添加聊天记录, NPC: ${this.currentNpcId}, 长度: ${chatEntry.length}字符`);
+            
             // 1. 更新完整历史记录
-            await this.updateFullHistory(chatEntry);
+            const fullHistoryUpdated = await this.updateFullHistory(chatEntry);
+            if (!fullHistoryUpdated) {
+                console.warn("完整历史记录更新失败");
+            }
             
             // 2. 更新最近聊天记录
-            await this.updateRecentChats(chatEntry);
+            const recentChatsUpdated = await this.updateRecentChats(chatEntry);
+            if (!recentChatsUpdated) {
+                console.warn("最近聊天记录更新失败");
+            }
             
             // 3. 增加轮数计数
             this.roundsSinceLastSummary++;
+            console.log(`自上次摘要后的对话轮数: ${this.roundsSinceLastSummary}`);
             
             // 4. 检查是否需要进行总结
             if (this.roundsSinceLastSummary >= this.summarizeEveryRounds) {
                 await this.generateSummary();
             }
             
-            return true;
+            return fullHistoryUpdated || recentChatsUpdated;
         } catch (error) {
             console.error("添加聊天记录失败:", error);
             return false;
@@ -159,30 +171,75 @@ class NpcChatHistoryManager {
     
     // 更新完整历史记录
     async updateFullHistory(chatEntry) {
-        if (!this.entryUids.fullHistory) return;
+        if (!this.entryUids.fullHistory) {
+            console.error("更新完整历史失败: 未找到条目UID");
+            return false;
+        }
         
-        // 获取当前条目
-        const entries = await getLorebookEntries(this.chatLorebook);
-        const entry = entries.find(e => e.uid === this.entryUids.fullHistory);
-        
-        if (entry) {
+        try {
+            // 获取当前条目
+            console.log(`获取世界书条目: ${this.chatLorebook}`);
+            const entries = await getLorebookEntries(this.chatLorebook);
+            
+            if (!entries || entries.length === 0) {
+                console.error("获取世界书条目失败或返回空");
+                return false;
+            }
+            
+            const entry = entries.find(e => e.uid === this.entryUids.fullHistory);
+            
+            if (!entry) {
+                console.error(`未找到完整历史条目, UID: ${this.entryUids.fullHistory}`);
+                // 尝试重新初始化
+                await this.ensureChatEntries();
+                return false;
+            }
+            
+            console.log(`找到完整历史条目, 当前长度: ${entry.content.length}字符`);
+            
             // 添加新聊天到历史记录末尾
             entry.content += chatEntry;
             
             // 更新条目
+            console.log(`正在更新完整历史条目...`);
             await setLorebookEntries(this.chatLorebook, [entry]);
+            console.log(`完整历史条目更新成功`);
+            
+            return true;
+        } catch (error) {
+            console.error("更新完整历史记录失败:", error);
+            return false;
         }
     }
     
     // 更新最近聊天记录
     async updateRecentChats(chatEntry) {
-        if (!this.entryUids.recentChats) return;
+        if (!this.entryUids.recentChats) {
+            console.error("更新最近聊天失败: 未找到条目UID");
+            return false;
+        }
         
-        // 获取当前条目
-        const entries = await getLorebookEntries(this.chatLorebook);
-        const entry = entries.find(e => e.uid === this.entryUids.recentChats);
-        
-        if (entry) {
+        try {
+            // 获取当前条目
+            console.log(`获取世界书条目: ${this.chatLorebook}, 用于最近聊天记录`);
+            const entries = await getLorebookEntries(this.chatLorebook);
+            
+            if (!entries || entries.length === 0) {
+                console.error("获取世界书条目失败或返回空");
+                return false;
+            }
+            
+            const entry = entries.find(e => e.uid === this.entryUids.recentChats);
+            
+            if (!entry) {
+                console.error(`未找到最近聊天条目, UID: ${this.entryUids.recentChats}`);
+                // 尝试重新初始化
+                await this.ensureChatEntries();
+                return false;
+            }
+            
+            console.log(`找到最近聊天条目, 当前长度: ${entry.content.length}字符`);
+            
             // 分割聊天记录
             const header = `与${this.currentNpcId}的最近${this.recentChatRounds}轮对话：\n\n`;
             let content = entry.content.replace(header, '');
@@ -192,14 +249,32 @@ class NpcChatHistoryManager {
             
             // 保留最近的N轮对话
             const rounds = content.split('\n\n').filter(r => r.trim() !== '');
+            console.log(`当前对话轮数: ${rounds.length}, 最大保留轮数: ${this.recentChatRounds}`);
+            
             if (rounds.length > this.recentChatRounds) {
+                console.log(`超出最大轮数，正在裁剪最早的 ${rounds.length - this.recentChatRounds} 轮对话`);
                 rounds.splice(0, rounds.length - this.recentChatRounds);
                 content = rounds.join('\n\n') + (rounds.length > 0 ? '\n\n' : '');
             }
             
             // 更新条目
             entry.content = header + content;
+            console.log(`正在更新最近聊天条目，更新后长度: ${entry.content.length}字符`);
+            
+            // 先检查条目是否有效
+            if (!entry.uid || typeof entry.uid !== 'number') {
+                console.error("最近聊天条目UID无效，无法更新");
+                return false;
+            }
+            
             await setLorebookEntries(this.chatLorebook, [entry]);
+            console.log(`最近聊天条目更新成功`);
+            
+            return true;
+        } catch (error) {
+            console.error("更新最近聊天记录失败:", error);
+            console.error("错误详情:", error.stack || "无堆栈信息");
+            return false;
         }
     }
     

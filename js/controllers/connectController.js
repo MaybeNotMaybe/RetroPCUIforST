@@ -55,9 +55,11 @@ class ConnectController {
             }
             
             // 初始化聊天历史管理器
+            console.log(`正在初始化聊天历史管理器, NPC: ${cleanTarget}`);
             const initialized = await this.model.chatHistoryManager.initialize(cleanTarget);
             if (!initialized) {
                 console.warn(`警告: 无法初始化聊天历史管理，将不会保存聊天记录`);
+                // 可以选择在这里中断连接，或者允许继续但不保存聊天
             }
             
             // 设置连接状态
@@ -221,8 +223,11 @@ class ConnectController {
                 
                 // 更新聊天记录
                 if (parsedResponse) {
-                    // 更新聊天历史
-                    await this.model.updateChatHistory(messageToSend, parsedResponse);
+                    // 更新聊天历史并等待完成
+                    const historyUpdated = await this.model.updateChatHistory(messageToSend, parsedResponse);
+                    if (!historyUpdated) {
+                        console.warn("聊天历史更新失败，消息可能不会保存");
+                    }
                     
                     // 显示NPC回复
                     const npcResponse = this.view.displayNpcResponse(this.model.npcPrompt.name, parsedResponse);
