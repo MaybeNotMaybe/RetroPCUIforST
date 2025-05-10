@@ -297,14 +297,15 @@ class NpcChatHistoryManager {
     // 加载总结提示词
     async loadJsonFileWithRetry(path, maxRetries = 3, delay = 1000) {
         let lastError;
-        const cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@964bff7/";
+        // 删除本地硬编码的CDN URL
         
         // 确保path不会有双重扩展名问题
         const cleanPath = path.replace(/\.json\.json$/, '.json');
         
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                const fullUrl = cdnBaseUrl + cleanPath;
+                // 使用全局CDN URL
+                const fullUrl = window.cdnBaseUrl + cleanPath;
                 console.log(`尝试加载 (${attempt}/${maxRetries}): ${fullUrl}`);
                 
                 const response = await fetch(fullUrl);

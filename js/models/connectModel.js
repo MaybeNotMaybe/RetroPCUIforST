@@ -12,7 +12,7 @@ class ConnectModel {
         this.connectPrompt = null;
         
         // CDN基础URL配置
-        this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@964bff7/";
+        // this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@964bff7/";
 
         // 添加聊天历史管理器
         this.chatHistoryManager = new NpcChatHistoryManager();
@@ -52,7 +52,8 @@ class ConnectModel {
         
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                const fullUrl = this.cdnBaseUrl + cleanPath;
+                // 使用全局CDN URL
+                const fullUrl = window.cdnBaseUrl + cleanPath;
                 console.log(`尝试加载 (${attempt}/${maxRetries}): ${fullUrl}`);
                 
                 const response = await fetch(fullUrl);
@@ -84,8 +85,8 @@ class ConnectModel {
             // 确保npcId没有包含.json扩展名
             const cleanId = npcId.endsWith('.json') ? npcId.slice(0, -5) : npcId;
             
-            // 构建完整的CDN URL
-            const fullUrl = this.cdnBaseUrl + `data/prompt/npc/${cleanId}.json`;
+            // 构建完整的CDN URL，使用全局变量
+            const fullUrl = window.cdnBaseUrl + `data/prompt/npc/${cleanId}.json`;
             console.log(`检查NPC文件是否存在: ${fullUrl}`);
             
             const response = await fetch(fullUrl);

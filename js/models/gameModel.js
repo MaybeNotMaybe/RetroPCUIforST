@@ -276,7 +276,8 @@ RAM空间: 12.4MB/20MB
         
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                const fullUrl = this.cdnBaseUrl + cleanPath;
+                // 使用全局CDN URL
+                const fullUrl = window.cdnBaseUrl + cleanPath;
                 console.log(`尝试加载 (${attempt}/${maxRetries}): ${fullUrl}`);
                 
                 const response = await fetch(fullUrl);
