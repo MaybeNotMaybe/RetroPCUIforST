@@ -56,8 +56,16 @@ class NpcChatHistoryManager {
             this.state.lorebookName = await getOrCreateChatLorebook();
             console.log(`已获取聊天世界书: ${this.state.lorebookName}`);
             
-            // 确保必要的条目存在
-            await this._ensureRequiredEntries();
+            // 添加延迟以确保世界书创建完成
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            // 尝试直接创建必要条目，而不是先检查现有条目
+            try {
+                await this._createRequiredEntries();
+            } catch (error) {
+                console.warn("直接创建条目失败，尝试备用方法:", error);
+                await this._ensureRequiredEntries();
+            }
             
             // 标记为已初始化
             this.state.initialized = true;
@@ -70,26 +78,31 @@ class NpcChatHistoryManager {
     
     // 添加聊天记录
     async addChat(userMessage, npcResponse) {
-        // 验证状态
+        // 验证状态，如果未初始化则尝试恢复
         if (!this._validateState()) {
-            return false;
+            if (this.state.npcId) {
+                console.warn(`检测到聊天管理器未正确初始化，尝试恢复 (NPC: ${this.state.npcId})...`);
+                const reinitialized = await this.initialize(this.state.npcId);
+                if (!reinitialized) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
         }
         
         try {
             // 格式化聊天记录
             const chatEntry = this._formatChatEntry(userMessage, npcResponse);
             
-            // 同时更新两个条目
-            const [fullHistoryUpdated, recentChatsUpdated] = await Promise.all([
-                this._updateEntry('fullHistory', entry => {
-                    // 追加到全部历史
-                    return { ...entry, content: entry.content + chatEntry };
-                }),
-                this._updateEntry('recentChats', entry => {
-                    // 更新最近聊天，保留指定轮数
-                    return this._updateRecentChatsContent(entry, chatEntry);
-                })
-            ]);
+            // 分别更新两个条目（不使用Promise.all，避免竞态条件）
+            const fullHistoryUpdated = await this._updateEntry('fullHistory', entry => {
+                return { ...entry, content: entry.content + chatEntry };
+            });
+            
+            const recentChatsUpdated = await this._updateEntry('recentChats', entry => {
+                return this._updateRecentChatsContent(entry, chatEntry);
+            });
             
             // 任一更新成功即视为成功
             const updateSuccessful = fullHistoryUpdated || recentChatsUpdated;
@@ -246,23 +259,93 @@ class NpcChatHistoryManager {
     // 验证当前状态
     _validateState() {
         if (!this.state.initialized || !this.state.npcId || !this.state.lorebookName) {
-            console.error("操作失败: 聊天历史管理器未正确初始化");
+            console.warn("操作失败: 聊天历史管理器未正确初始化");
             return false;
         }
         
         return true;
     }
     
+    // 直接创建所有必要条目
+    async _createRequiredEntries() {
+        try {
+            const prefix = `NPC_${this.state.npcId}`;
+            
+            // 准备要创建的条目
+            const entriesToCreate = [
+                {
+                    comment: `${prefix}_FullHistory`,
+                    enabled: false,
+                    type: 'selective',
+                    position: 'before_character_definition',
+                    keys: [this.state.npcId],
+                    content: `与${this.state.npcId}的完整聊天历史：\n\n`,
+                    logic: 'and_any'
+                },
+                {
+                    comment: `${prefix}_RecentChats`,
+                    enabled: false,
+                    type: 'selective',
+                    position: 'before_character_definition',
+                    keys: [this.state.npcId],
+                    content: `与${this.state.npcId}的最近${this.config.recentChatRounds}轮对话：\n\n`,
+                    logic: 'and_any'
+                },
+                {
+                    comment: `${prefix}_Summary`,
+                    enabled: true,
+                    type: 'constant',
+                    position: 'after_author_note',
+                    keys: [this.state.npcId],
+                    content: `与${this.state.npcId}的对话尚未开始。`,
+                    logic: 'and_any'
+                }
+            ];
+            
+            // 创建条目
+            const result = await createLorebookEntries(
+                this.state.lorebookName, 
+                entriesToCreate
+            );
+            
+            if (result && result.new_uids && result.new_uids.length === 3) {
+                this.entryUids.fullHistory = result.new_uids[0];
+                this.entryUids.recentChats = result.new_uids[1];
+                this.entryUids.summary = result.new_uids[2];
+                
+                console.log(`创建了所有必要条目，UIDs: ${result.new_uids.join(', ')}`);
+                return true;
+            } else {
+                throw new Error("创建条目失败，未收到预期的UID数量");
+            }
+        } catch (error) {
+            console.error("创建必要条目失败:", error);
+            throw error;
+        }
+    }
+    
     // 确保必要的条目存在
     async _ensureRequiredEntries() {
         try {
+            // 防御性代码：确保世界书名称存在
+            if (!this.state.lorebookName) {
+                throw new Error("世界书名称未设置");
+            }
+            
             // 获取所有条目
-            const entries = await this._getEntries();
+            let entries;
+            try {
+                entries = await getLorebookEntries(this.state.lorebookName);
+                if (!entries) entries = [];
+            } catch (error) {
+                console.warn("获取条目失败，假设为空数组:", error);
+                entries = [];
+            }
             
             // 为当前NPC准备条目名称前缀
             const prefix = `NPC_${this.state.npcId}`;
             
-            // 检查并创建条目
+            // 配置各个条目类型
             const entriesConfig = [
                 {
                     type: 'fullHistory',
@@ -302,61 +385,81 @@ class NpcChatHistoryManager {
                 }
             ];
             
-            // 检查和创建所有必要条目
+            // 创建不存在的条目
+            const entriesToCreate = [];
+            
             for (const config of entriesConfig) {
                 const existingEntry = entries.find(e => e.comment === config.comment);
                 
                 if (existingEntry) {
-                    // 如果条目已存在，记录UID
+                    // 条目已存在，记录UID
                     this.entryUids[config.type] = existingEntry.uid;
                     console.log(`找到${config.type}条目，UID: ${existingEntry.uid}`);
                 } else {
-                    // 如果条目不存在，创建新条目
-                    const { new_uids } = await createLorebookEntries(
-                        this.state.lorebookName, 
-                        [config.template]
-                    );
-                    
-                    this.entryUids[config.type] = new_uids[0];
-                    console.log(`创建了${config.type}条目，UID: ${new_uids[0]}`);
+                    // 条目不存在，添加到待创建列表
+                    entriesToCreate.push(config.template);
+                }
+            }
+            
+            // 如果有需要创建的条目，批量创建它们
+            if (entriesToCreate.length > 0) {
+                console.log(`需要创建 ${entriesToCreate.length} 个条目`);
+                const result = await createLorebookEntries(
+                    this.state.lorebookName, 
+                    entriesToCreate
+                );
+                
+                if (!result || !result.new_uids) {
+                    throw new Error("创建条目失败");
+                }
+                
+                // 记录新创建条目的UID
+                let uidIndex = 0;
+                for (const config of entriesConfig) {
+                    if (!this.entryUids[config.type] && uidIndex < result.new_uids.length) {
+                        this.entryUids[config.type] = result.new_uids[uidIndex++];
+                        console.log(`创建了${config.type}条目，UID: ${this.entryUids[config.type]}`);
+                    }
                 }
             }
             
             return true;
         } catch (error) {
-            console.error("确保必要条目存在时出错:", error);
+            console.error("确保必要条目失败:", error);
             throw error;
         }
     }
     
-    // 带重试的获取世界书条目
+    // 获取世界书条目（改进版本，允许空数组结果）
     async _getEntries() {
         const { maxRetries, retryDelay, retryMultiplier } = this.retryOptions;
         let delay = retryDelay;
         
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
+                console.log(`尝试获取世界书条目 (${attempt}/${maxRetries}): ${this.state.lorebookName}`);
                 const entries = await getLorebookEntries(this.state.lorebookName);
                 
-                if (!entries || entries.length === 0) {
-                    throw new Error("获取世界书条目返回空结果");
-                }
-                
-                return entries;
+                // 允许空数组作为有效结果
+                return entries || [];
             } catch (error) {
-                if (attempt < maxRetries) {
-                    console.warn(`获取世界书条目尝试 ${attempt}/${maxRetries} 失败，将在 ${delay}ms 后重试:`, error);
+                const isLastAttempt = attempt >= maxRetries;
+                console.warn(`获取世界书条目尝试 ${attempt}/${maxRetries} 失败${isLastAttempt ? '' : '，稍后重试'}:`, error);
+                
+                if (!isLastAttempt) {
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= retryMultiplier;
-                } else {
-                    console.error(`获取世界书条目在 ${maxRetries} 次尝试后仍然失败:`, error);
-                    throw error;
+                } else if (attempt === maxRetries) {
+                    console.error(`获取世界书条目失败，返回空数组`);
+                    return []; // 最后一次尝试失败后返回空数组
                 }
             }
         }
+        
+        return []; // 防御性代码，确保总是返回数组
     }
     
-    // 更新条目
+    // 更新条目（改进版本）
     async _updateEntry(entryType, updater) {
         if (!this.entryUids[entryType]) {
             console.error(`更新条目失败: ${entryType} 的UID未设置`);
@@ -390,11 +493,13 @@ class NpcChatHistoryManager {
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= retryMultiplier;
                 } else {
-                    console.error(`更新${entryType}条目在 ${maxRetries} 次尝试后仍然失败:`, error);
+                    console.error(`更新${entryType}条目失败:`, error);
                     return false;
                 }
             }
         }
+        
+        return false;
     }
     
     // 更新最近聊天内容
