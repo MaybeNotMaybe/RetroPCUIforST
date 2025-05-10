@@ -1,0 +1,8 @@
+{
+  "name": "NPC名称",
+  "role": "NPC身份/角色",
+  "background": "NPC背景信息",
+  "knowledge": "NPC知道的信息",
+  "style": "回复风格",
+  "personality": "性格特点"
+}

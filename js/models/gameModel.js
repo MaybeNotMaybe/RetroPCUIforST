@@ -193,6 +193,12 @@ class GameModel {
                 // 返回等待消息，实际发送在Controller中处理
                 return "等待回复中...";
             }
+
+            // 添加clear命令，清除当前累积的输入
+            if (command === "clear") {
+                this.accumulatedInput = "";
+                return "已清除当前输入内容。";
+            }
             
             // 如果不是特殊命令，累积输入
             this.accumulatedInput += (this.accumulatedInput ? "\n" : "") + command;
@@ -280,24 +286,37 @@ RAM空间: 12.4MB/20MB
             `输入 "open [编号]" 打开对应结果`;
     }
     
-    connect(target) {
+    async connect(target) {
         // 模拟NPC连接功能
         if (!target) return "请指定连接目标。使用格式: connect [目标ID]";
         
         // 如果已经连接到某个目标，先断开
         if (this.isConnected) {
             const disconnectMsg = this.disconnect();
-            // 返回断开消息和新连接消息
-            return disconnectMsg + "\n\n" + this.connectToTarget(target);
+            return disconnectMsg + "\n\n请重新发起连接。";
         }
         
-        return this.connectToTarget(target);
+        // 检查目标NPC是否存在
+        const targetExists = await this.checkNpcExists(target);
+        if (!targetExists) {
+            return `错误: 无法找到ID为"${target}"的连接目标。`;
+        }
+        
+        return await this.connectToTarget(target);
     }
 
     // 实际连接目标的方法
-    connectToTarget(target) {
+    async connectToTarget(target) {
         // 触发网络活动指示灯
         EventBus.emit('networkActivity');
+        
+        // 加载NPC提示词和通用提示词
+        this.npcPrompt = await this.loadJsonFile(`data/prompt/npc/${target}.json`);
+        this.connectPrompt = await this.loadJsonFile('data/prompt/connect.json');
+        
+        if (!this.npcPrompt || !this.connectPrompt) {
+            return `错误: 无法加载"${target}"的配置信息。`;
+        }
         
         // 设置连接状态
         this.isConnected = true;
@@ -308,9 +327,9 @@ RAM空间: 12.4MB/20MB
             `建立加密通道...\n` +
             `验证身份...\n` +
             `连接成功!\n\n` +
-            `${target}: "你好，有什么我可以帮助你的吗？"\n\n` +
             `输入消息内容，然后输入 "send" 发送消息。\n` +
-            `输入 "disconnect" 随时断开连接。`;
+            `输入 "disconnect" 断开连接。\n` +
+            `输入 "clear" 清除当前输入内容。`;
     }
 
     // 断开连接方法
@@ -335,9 +354,37 @@ RAM空间: 12.4MB/20MB
         this.isWaitingResponse = true;
         
         try {
+            // 准备NPC系统提示词
+            const npcSystemPrompt = `你是${this.npcPrompt.name}，${this.npcPrompt.role}。
+    背景：${this.npcPrompt.background}
+    知识：${this.npcPrompt.knowledge}
+    风格：${this.npcPrompt.style}
+    性格：${this.npcPrompt.personality}`;
+
+            // 准备格式指令
+            const formatPrompt = this.connectPrompt.system_prompt + "\n" + 
+                this.connectPrompt.format_instructions + "\n" +
+                "记住：必须将所有回复内容放在<npc_reply>标签中。";
+            
             // 请求AI生成响应
             const response = await generate({
-                user_input: this.accumulatedInput
+                user_input: this.accumulatedInput,
+                injects: [
+                    { 
+                        role: 'system', 
+                        content: formatPrompt, 
+                        position: 'before_prompt', 
+                        depth: 0, 
+                        should_scan: true 
+                    },
+                    { 
+                        role: 'system', 
+                        content: npcSystemPrompt, 
+                        position: 'in_chat', 
+                        depth: 0, 
+                        should_scan: true 
+                    }
+                ]
             });
             
             // 清空累积的输入
@@ -346,12 +393,47 @@ RAM空间: 12.4MB/20MB
             // 清除等待标志
             this.isWaitingResponse = false;
             
-            // 返回生成的响应
-            return `${this.currentTarget}: "${response}"`;
+            // 解析响应，提取<npc_reply>标签中的内容
+            let parsedResponse = this.extractNpcReply(response);
+            
+            // 返回解析后的响应
+            return parsedResponse ? `${this.npcPrompt.name}: ${parsedResponse}` : 
+                "错误: 无法获取有效响应。";
         } catch (error) {
             console.error("AI响应生成失败:", error);
             this.isWaitingResponse = false;
             return "错误: 无法获取响应。连接可能已中断。";
+        }
+    }
+
+    // 辅助函数：提取<npc_reply>标签中的内容
+    extractNpcReply(text) {
+        const regex = /<npc_reply>([\s\S]*?)<\/npc_reply>/;
+        const match = text.match(regex);
+        return match ? match[1].trim() : null;
+    }
+
+    // 加载提示词文件
+    async loadJsonFile(path) {
+        try {
+            const response = await fetch(path);
+            if (!response.ok) {
+                throw new Error(`无法加载文件：${path}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error(`加载JSON文件失败: ${path}`, error);
+            return null;
+        }
+    }
+
+    // 检查NPC是否存在
+    async checkNpcExists(npcId) {
+        try {
+            const response = await fetch(`data/prompt/npc/${npcId}.json`);
+            return response.ok;
+        } catch (error) {
+            return false;
         }
     }
 

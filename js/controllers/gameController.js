@@ -436,7 +436,7 @@ class GameController {
         return false;
     }
     
-    processInput() {
+    async processInput() {
         const command = this.view.input.value;
         this.view.input.value = '';
         
@@ -491,6 +491,19 @@ class GameController {
             }
             
             try {
+                // 处理connect命令需要异步
+                if (command.toLowerCase().startsWith('connect ')) {
+                    const target = command.substring(8).trim();
+                    const response = await this.model.connect(target);
+                    
+                    this.view.displayOutput(response);
+                    this.model.addToHistory(inputText);
+                    this.model.addToHistory(response);
+                    
+                    this.saveSettings();
+                    return;
+                }
+                
                 const response = this.model.processCommand(command);
                 
                 // 检查是否为清屏命令
