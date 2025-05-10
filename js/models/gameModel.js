@@ -169,26 +169,6 @@ class GameModel {
         
         if (command === "") return "";
         
-        // 检查是否处于连接状态
-        // if (this.isConnected) {
-        //     // 只保留disconnect命令的处理
-        //     if (command === "disconnect") {
-        //         return this.disconnect();
-        //     }
-            
-        //     // 如果正在等待AI响应，提示用户等待
-        //     if (this.isWaitingResponse) {
-        //         return "系统正在处理上一条消息，请稍候...";
-        //     }
-            
-        //     // 所有其他输入都视为要发送的消息
-        //     // 设置当前行为要发送的消息
-        //     this.messageToSend = command;
-            
-        //     // 返回特殊标记，表示需要发送消息
-        //     return "SEND_MESSAGE";
-        // }
-        
         // 基本命令处理
         switch(command) {
             case "help":

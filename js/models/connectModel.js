@@ -13,6 +13,10 @@ class ConnectModel {
         
         // CDN基础URL配置
         this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@964bff7/";
+
+        // 添加聊天历史管理器
+        this.chatHistoryManager = new NpcChatHistoryManager();
+
     }
     
     // 检查是否当前已连接
@@ -90,5 +94,26 @@ class ConnectModel {
             console.error(`检查NPC文件存在性失败: ${npcId}`, error);
             return false;
         }
+    }
+    
+    // 获取当前聊天上下文
+    async getChatContext() {
+        if (this.isConnected && this.currentTarget) {
+            return await this.chatHistoryManager.getChatContext();
+        }
+        return { summary: null, recentChats: null };
+    }
+    
+    // 更新聊天历史
+    async updateChatHistory(userMessage, npcResponse) {
+        if (this.isConnected && this.currentTarget) {
+            return await this.chatHistoryManager.addChat(userMessage, npcResponse);
+        }
+        return false;
+    }
+    
+    // 配置聊天历史管理器
+    setChatHistoryConfig(config) {
+        this.chatHistoryManager.setConfig(config);
     }
 }

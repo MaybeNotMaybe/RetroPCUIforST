@@ -49,6 +49,12 @@ class ConnectController {
                 return `错误: 无法加载"${cleanTarget}"的配置信息。请检查网络连接或联系系统管理员。`;
             }
             
+            // 初始化聊天历史管理器
+            const initialized = await this.model.chatHistoryManager.initialize(cleanTarget);
+            if (!initialized) {
+                console.warn(`警告: 无法初始化聊天历史管理，将不会保存聊天记录`);
+            }
+            
             // 设置连接状态
             this.model.isConnected = true;
             this.model.currentTarget = cleanTarget;
@@ -62,12 +68,23 @@ class ConnectController {
     }
     
     // 断开连接方法
-    disconnect() {
+    async disconnect() {
         if (!this.model.isActive()) {
             return "错误: 当前没有活跃的连接。";
         }
         
         const target = this.model.currentTarget;
+        
+        // 在断开连接前显示清理消息
+        if (this.model.chatHistoryManager.summarizeOnDisconnect && 
+            this.model.chatHistoryManager.roundsSinceLastSummary > 0) {
+            this.view.displayOutput("连接清理中...");
+            
+            // 执行断开连接时的清理
+            await this.model.chatHistoryManager.finalizeOnDisconnect();
+        }
+        
+        // 设置状态
         this.model.isConnected = false;
         this.model.currentTarget = null;
         this.model.isWaitingResponse = false;
@@ -141,29 +158,57 @@ class ConnectController {
             // 触发网络活动指示灯
             EventBus.emit('networkActivity');
             
+            // 获取聊天上下文
+            const chatContext = await this.model.getChatContext();
+            
             // 准备提示词
             const npcPromptContent = JSON.stringify(this.model.npcPrompt);
             const connectPromptContent = JSON.stringify(this.model.connectPrompt);
             
+            // 构建注入提示词数组
+            const injects = [
+                { 
+                    role: 'system', 
+                    content: connectPromptContent, 
+                    position: 'in_chat', 
+                    depth: 0, 
+                    should_scan: true 
+                },
+                { 
+                    role: 'system', 
+                    content: npcPromptContent, 
+                    position: 'in_chat', 
+                    depth: 1, 
+                    should_scan: true 
+                }
+            ];
+            
+            // 如果有聊天总结，添加到注入提示中
+            if (chatContext.summary) {
+                injects.push({
+                    role: 'system',
+                    content: `与${this.model.currentTarget}的对话总结: ${chatContext.summary}`,
+                    position: 'in_chat',
+                    depth: 2,
+                    should_scan: true
+                });
+            }
+            
+            // 如果有最近聊天记录，添加到注入提示中
+            if (chatContext.recentChats) {
+                injects.push({
+                    role: 'system',
+                    content: `最近的对话历史: ${chatContext.recentChats}`,
+                    position: 'in_chat',
+                    depth: 3,
+                    should_scan: true
+                });
+            }
+            
             // 请求AI生成响应
             const response = await generate({
                 user_input: messageToSend,
-                injects: [
-                    { 
-                        role: 'system', 
-                        content: connectPromptContent, 
-                        position: 'in_chat', 
-                        depth: 0, 
-                        should_scan: true 
-                    },
-                    { 
-                        role: 'system', 
-                        content: npcPromptContent, 
-                        position: 'in_chat', 
-                        depth: 1, 
-                        should_scan: true 
-                    }
-                ]
+                injects: injects
             });
             
             // 清除等待标志
@@ -175,8 +220,12 @@ class ConnectController {
             // 触发网络活动指示灯（表示收到响应）
             EventBus.emit('networkActivity');
             
-            // 显示响应
+            // 更新聊天记录
             if (parsedResponse) {
+                // 更新聊天历史
+                await this.model.updateChatHistory(messageToSend, parsedResponse);
+                
+                // 显示NPC回复
                 const npcResponse = this.view.displayNpcResponse(this.model.npcPrompt.name, parsedResponse);
                 this.gameModel.addToHistory(npcResponse);
             } else {

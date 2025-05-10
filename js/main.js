@@ -56,10 +56,17 @@ window.onload = function() {
         // 为了方便访问，也将mapController添加到window对象
         window.mapController = mapController;
 
-        // 创建Connect MVC架构
+        // 在创建Connect MVC架构后
         const connectModel = new ConnectModel();
         const connectView = new ConnectView(gameView);
         const connectController = new ConnectController(connectModel, connectView, gameModel);
+
+        // 配置聊天历史管理器
+        connectModel.setChatHistoryConfig({
+            recentChatRounds: 8,
+            summarizeOnDisconnect: true,
+            summarizeEveryRounds: 8
+        });
 
         // 将连接控制器引用附加到游戏控制器
         gameController.connectController = connectController;
