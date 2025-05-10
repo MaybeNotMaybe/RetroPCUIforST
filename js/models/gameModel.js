@@ -82,15 +82,9 @@ class GameModel {
         
         // 初始系统状态
         this.systemState = this.SystemState.POWERED_OFF;
-        
-        // AI连接相关属性
-        this.isConnected = false;        // 是否处于连接状态
-        this.currentTarget = null;       // 当前连接的目标
-        this.isWaitingResponse = false;  // 是否正在等待AI响应
-        this.messageToSend = null;      // 累积的用户输入
 
         // CDN基础URL配置
-        this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@964bff7/";
+        // this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@964bff7/";
     }
 
     // 添加输出到历史记录
@@ -176,24 +170,24 @@ class GameModel {
         if (command === "") return "";
         
         // 检查是否处于连接状态
-        if (this.isConnected) {
-            // 只保留disconnect命令的处理
-            if (command === "disconnect") {
-                return this.disconnect();
-            }
+        // if (this.isConnected) {
+        //     // 只保留disconnect命令的处理
+        //     if (command === "disconnect") {
+        //         return this.disconnect();
+        //     }
             
-            // 如果正在等待AI响应，提示用户等待
-            if (this.isWaitingResponse) {
-                return "系统正在处理上一条消息，请稍候...";
-            }
+        //     // 如果正在等待AI响应，提示用户等待
+        //     if (this.isWaitingResponse) {
+        //         return "系统正在处理上一条消息，请稍候...";
+        //     }
             
-            // 所有其他输入都视为要发送的消息
-            // 设置当前行为要发送的消息
-            this.messageToSend = command;
+        //     // 所有其他输入都视为要发送的消息
+        //     // 设置当前行为要发送的消息
+        //     this.messageToSend = command;
             
-            // 返回特殊标记，表示需要发送消息
-            return "SEND_MESSAGE";
-        }
+        //     // 返回特殊标记，表示需要发送消息
+        //     return "SEND_MESSAGE";
+        // }
         
         // 基本命令处理
         switch(command) {
@@ -222,9 +216,9 @@ class GameModel {
             return this.search(command.substring(7));
         }
         
-        if (command.startsWith("connect ")) {
-            return this.connect(command.substring(8));
-        }
+        // if (command.startsWith("connect ")) {
+        //     return this.connect(command.substring(8));
+        // }
         
         if (command.startsWith("dir ")) {
             return this.readDrive(command.substring(4));
@@ -274,83 +268,6 @@ RAM空间: 12.4MB/20MB
             `2. ${query}数据库记录 - 机密等级: 中\n` +
             `3. ${query}系统日志 - 记录项: 27\n\n` +
             `输入 "open [编号]" 打开对应结果`;
-    }
-    
-    async connect(target) {
-        // 模拟NPC连接功能
-        if (!target) return "请指定连接目标。使用格式: connect [目标ID]";
-        
-        // 如果已经连接到某个目标，先断开
-        if (this.isConnected) {
-            const disconnectMsg = this.disconnect();
-            return disconnectMsg + "\n\n请重新发起连接。";
-        }
-        
-        // 确保target没有包含.json扩展名
-        const cleanTarget = target.endsWith('.json') ? target.slice(0, -5) : target;
-        
-        // 检查目标NPC是否存在
-        const targetExists = await this.checkNpcExists(cleanTarget);
-        if (!targetExists) {
-            return `错误: 无法找到ID为"${cleanTarget}"的连接目标。`;
-        }
-        
-        return await this.connectToTarget(cleanTarget);
-    }
-
-    // 实际连接目标的方法
-    async connectToTarget(target) {
-        // 触发网络活动指示灯
-        EventBus.emit('networkActivity');
-        
-        try {
-            // 确保target没有包含.json扩展名
-            const cleanTarget = target.endsWith('.json') ? target.slice(0, -5) : target;
-            
-            // 加载NPC提示词和通用提示词
-            this.npcPrompt = await this.loadJsonFileWithRetry(`data/prompt/npc/${cleanTarget}.json`);
-            this.connectPrompt = await this.loadJsonFileWithRetry('data/prompt/connect.json');
-            
-            if (!this.npcPrompt || !this.connectPrompt) {
-                return `错误: 无法加载"${cleanTarget}"的配置信息。请检查网络连接或联系系统管理员。`;
-            }
-            
-            // 设置连接状态
-            this.isConnected = true;
-            this.currentTarget = cleanTarget;
-            this.messageToSend = null;
-            
-            return `尝试连接到 "${cleanTarget}"...\n\n` +
-                `建立加密通道...\n` +
-                `验证身份...\n` +
-                `连接成功!\n\n` +
-                `输入消息内容并按下Enter发送。\n` +
-                `输入 "disconnect" 断开连接。`;
-        } catch (error) {
-            console.error(`连接到目标"${target}"失败:`, error);
-            return `错误: 连接到"${target}"时发生问题。请稍后再试。`;
-        }
-    }
-
-
-    // 断开连接方法
-    disconnect() {
-        if (!this.isConnected) return "错误: 当前没有活跃的连接。";
-        
-        const target = this.currentTarget;
-        this.isConnected = false;
-        this.currentTarget = null;
-        this.isWaitingResponse = false;
-        this.accumulatedInput = "";
-        
-        return `已断开与 "${target}" 的连接。`;
-    }
-
-    // 辅助函数：提取<npc_reply>标签中的内容
-    extractNpcReply(text) {
-        const regex = /<npc_reply>([\s\S]*?)<\/npc_reply>/;
-        const match = text.match(regex);
-        return match ? match[1].trim() : null;
     }
 
     // 加载提示词文件
@@ -403,24 +320,6 @@ RAM空间: 12.4MB/20MB
         
         console.error(`所有重试都失败:`, lastError);
         return null;
-    }
-
-    // 检查NPC是否存在
-    async checkNpcExists(npcId) {
-        try {
-            // 确保npcId没有包含.json扩展名
-            const cleanId = npcId.endsWith('.json') ? npcId.slice(0, -5) : npcId;
-            
-            // 构建完整的CDN URL
-            const fullUrl = this.cdnBaseUrl + `data/prompt/npc/${cleanId}.json`;
-            console.log(`检查NPC文件是否存在: ${fullUrl}`);
-            
-            const response = await fetch(fullUrl);
-            return response.ok;
-        } catch (error) {
-            console.error(`检查NPC文件存在性失败: ${npcId}`, error);
-            return false;
-        }
     }
 
     // 读取驱动器内容

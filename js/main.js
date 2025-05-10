@@ -56,17 +56,13 @@ window.onload = function() {
         // 为了方便访问，也将mapController添加到window对象
         window.mapController = mapController;
 
-        // // 程序运行事件监听
-        // EventBus.on('runProgram', (data) => {
-        //     console.log(`正在运行程序: ${data.program}`);
-            
-        //     // 根据程序类型切换界面
-        //     if (data.program === 'map' && mapController) {
-        //         if (!mapController.model.isVisible) {
-        //             mapController.toggleMapView();
-        //         }
-        //     }
-        // });
+        // 创建Connect MVC架构
+        const connectModel = new ConnectModel();
+        const connectView = new ConnectView(gameView);
+        const connectController = new ConnectController(connectModel, connectView, gameModel);
+
+        // 将连接控制器引用附加到游戏控制器
+        gameController.connectController = connectController;
         
         // 订阅系统电源变化事件
         EventBus.on('systemPowerChange', (isOn) => {
