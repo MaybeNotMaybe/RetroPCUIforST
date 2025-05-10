@@ -313,27 +313,33 @@ RAM空间: 12.4MB/20MB
         // 触发网络活动指示灯
         EventBus.emit('networkActivity');
         
-        // 加载NPC提示词和通用提示词
-        this.npcPrompt = await this.loadJsonFile(`data/prompt/npc/${target}.json`);
-        this.connectPrompt = await this.loadJsonFile('data/prompt/connect.json');
-        
-        if (!this.npcPrompt || !this.connectPrompt) {
-            return `错误: 无法加载"${target}"的配置信息。请检查网络连接或联系系统管理员。`;
+        try {
+            // 加载NPC提示词和通用提示词
+            this.npcPrompt = await this.loadJsonFileWithRetry(`data/prompt/npc/${target}.json`);
+            this.connectPrompt = await this.loadJsonFileWithRetry('data/prompt/connect.json');
+            
+            if (!this.npcPrompt || !this.connectPrompt) {
+                return `错误: 无法加载"${target}"的配置信息。请检查网络连接或联系系统管理员。`;
+            }
+            
+            // 设置连接状态
+            this.isConnected = true;
+            this.currentTarget = target;
+            this.accumulatedInput = "";
+            
+            return `尝试连接到 "${target}"...\n\n` +
+                `建立加密通道...\n` +
+                `验证身份...\n` +
+                `连接成功!\n\n` +
+                `输入消息内容，然后输入 "send" 发送消息。\n` +
+                `输入 "disconnect" 断开连接。\n` +
+                `输入 "clear" 清除当前输入内容。`;
+        } catch (error) {
+            console.error(`连接到目标"${target}"失败:`, error);
+            return `错误: 连接到"${target}"时发生问题。请稍后再试。`;
         }
-        
-        // 设置连接状态
-        this.isConnected = true;
-        this.currentTarget = target;
-        this.accumulatedInput = "";
-        
-        return `尝试连接到 "${target}"...\n\n` +
-            `建立加密通道...\n` +
-            `验证身份...\n` +
-            `连接成功!\n\n` +
-            `输入消息内容，然后输入 "send" 发送消息。\n` +
-            `输入 "disconnect" 断开连接。\n` +
-            `输入 "clear" 清除当前输入内容。`;
     }
+
 
     // 断开连接方法
     disconnect() {
@@ -357,46 +363,28 @@ RAM空间: 12.4MB/20MB
         this.isWaitingResponse = true;
         
         try {
-            // 准备NPC系统提示词
-            const npcSystemPrompt = `你是${this.npcPrompt.name}，${this.npcPrompt.role}。
-    背景：${this.npcPrompt.background}
-    知识：${this.npcPrompt.knowledge}
-    风格：${this.npcPrompt.style}
-    性格：${this.npcPrompt.personality}`;
-
-            // 获取通用系统提示词
-            const systemPrompt = this.connectPrompt.system_prompt || "";
+            // 加载NPC提示词和通用提示词（注意：这些现在已经在connectToTarget中加载）
+            // 我们不再重构JSON内容，而是直接使用原始JSON字符串
             
-            // 获取格式指令
-            const formatInstructions = this.connectPrompt.format_instructions || 
-                "所有回复必须放在<npc_reply>和</npc_reply>标签之间。";
+            const npcPromptContent = JSON.stringify(this.npcPrompt);
+            const connectPromptContent = JSON.stringify(this.connectPrompt);
             
             // 请求AI生成响应
             const response = await generate({
                 user_input: this.accumulatedInput,
                 injects: [
-                    // 通用系统提示词
                     { 
                         role: 'system', 
-                        content: systemPrompt, 
+                        content: connectPromptContent, 
                         position: 'in_chat', 
                         depth: 0, 
                         should_scan: true 
                     },
-                    // 格式指令
                     { 
                         role: 'system', 
-                        content: formatInstructions, 
+                        content: npcPromptContent, 
                         position: 'in_chat', 
-                        depth: 0, 
-                        should_scan: true 
-                    },
-                    // NPC特定提示词
-                    { 
-                        role: 'system', 
-                        content: npcSystemPrompt, 
-                        position: 'in_chat', 
-                        depth: 0, 
+                        depth: 1, 
                         should_scan: true 
                     }
                 ]
