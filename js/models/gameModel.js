@@ -364,22 +364,34 @@ RAM空间: 12.4MB/20MB
     风格：${this.npcPrompt.style}
     性格：${this.npcPrompt.personality}`;
 
-            // 准备格式指令
-            const formatPrompt = this.connectPrompt.system_prompt + "\n" + 
-                this.connectPrompt.format_instructions + "\n" +
-                "记住：必须将所有回复内容放在<npc_reply>标签中。";
+            // 获取通用系统提示词
+            const systemPrompt = this.connectPrompt.system_prompt || "";
+            
+            // 获取格式指令
+            const formatInstructions = this.connectPrompt.format_instructions || 
+                "所有回复必须放在<npc_reply>和</npc_reply>标签之间。";
             
             // 请求AI生成响应
             const response = await generate({
                 user_input: this.accumulatedInput,
                 injects: [
+                    // 通用系统提示词
                     { 
                         role: 'system', 
-                        content: formatPrompt, 
-                        position: 'before_prompt', 
+                        content: systemPrompt, 
+                        position: 'in_chat', 
                         depth: 0, 
                         should_scan: true 
                     },
+                    // 格式指令
+                    { 
+                        role: 'system', 
+                        content: formatInstructions, 
+                        position: 'in_chat', 
+                        depth: 0, 
+                        should_scan: true 
+                    },
+                    // NPC特定提示词
                     { 
                         role: 'system', 
                         content: npcSystemPrompt, 
