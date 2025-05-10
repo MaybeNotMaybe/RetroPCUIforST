@@ -41,22 +41,16 @@ class ConnectController {
             // 确保target没有包含.json扩展名
             const cleanTarget = target.endsWith('.json') ? target.slice(0, -5) : target;
             
-            // 首先尝试从世界书加载NPC提示词和通用提示词
+            // 加载NPC提示词 - 优先从世界书中加载
             let npcPrompt = await this.model.getNpcPromptFromLorebook(cleanTarget);
-            let connectPrompt = await this.model.getConnectPromptFromLorebook();
             
-            // 如果世界书中未找到，则回退到从JSON文件加载（传统方式）
+            // 如果世界书中未找到，则从JSON文件加载（传统方式）
             if (!npcPrompt) {
                 console.log(`世界书中未找到NPC提示词，从JSON加载: ${cleanTarget}`);
                 npcPrompt = await this.model.loadJsonFileWithRetry(`data/prompt/npc/${cleanTarget}.json`);
             }
             
-            if (!connectPrompt) {
-                console.log("世界书中未找到通用连接提示词，从JSON加载");
-                connectPrompt = await this.model.loadJsonFileWithRetry('data/prompt/connect.json');
-            }
-            
-            if (!npcPrompt || !connectPrompt) {
+            if (!npcPrompt) {
                 return `错误: 无法加载"${cleanTarget}"的配置信息。请检查网络连接或联系系统管理员。`;
             }
             
@@ -70,7 +64,6 @@ class ConnectController {
             this.model.isConnected = true;
             this.model.currentTarget = cleanTarget;
             this.model.npcPrompt = npcPrompt;
-            this.model.connectPrompt = connectPrompt;
             
             // 显示连接成功消息
             return this.view.displayConnectionSuccess(cleanTarget);
@@ -174,19 +167,14 @@ class ConnectController {
             // 获取聊天上下文
             const chatContext = await this.model.getChatContext();
             
-            // 准备提示词
-            const npcPromptContent = JSON.stringify(this.model.npcPrompt);
-            const connectPromptContent = JSON.stringify(this.model.connectPrompt);
+            // 启用连接提示词条目
+            await this.model.toggleConnectPrompt(true);
             
-            // 构建注入提示词数组
+            // 准备NPC提示词
+            const npcPromptContent = JSON.stringify(this.model.npcPrompt);
+            
+            // 构建注入提示词数组 - 只注入NPC提示词，通用提示词通过世界书条目启用实现
             const injects = [
-                { 
-                    role: 'system', 
-                    content: connectPromptContent, 
-                    position: 'in_chat', 
-                    depth: 0, 
-                    should_scan: true 
-                },
                 { 
                     role: 'system', 
                     content: npcPromptContent, 
@@ -218,36 +206,44 @@ class ConnectController {
                 });
             }
             
-            // 请求AI生成响应
-            const response = await generate({
-                user_input: messageToSend,
-                injects: injects
-            });
-            
-            // 清除等待标志
-            this.model.isWaitingResponse = false;
-            
-            // 解析响应，提取<npc_reply>标签中的内容
-            let parsedResponse = this.model.extractNpcReply(response);
-            
-            // 触发网络活动指示灯（表示收到响应）
-            EventBus.emit('networkActivity');
-            
-            // 更新聊天记录
-            if (parsedResponse) {
-                // 更新聊天历史
-                await this.model.updateChatHistory(messageToSend, parsedResponse);
+            try {
+                // 请求AI生成响应
+                const response = await generate({
+                    user_input: messageToSend,
+                    injects: injects
+                });
                 
-                // 显示NPC回复
-                const npcResponse = this.view.displayNpcResponse(this.model.npcPrompt.name, parsedResponse);
-                this.gameModel.addToHistory(npcResponse);
-            } else {
-                const errorMsg = this.view.displayResponseError();
-                this.gameModel.addToHistory(errorMsg);
+                // 解析响应，提取<npc_reply>标签中的内容
+                let parsedResponse = this.model.extractNpcReply(response);
+                
+                // 触发网络活动指示灯（表示收到响应）
+                EventBus.emit('networkActivity');
+                
+                // 更新聊天记录
+                if (parsedResponse) {
+                    // 更新聊天历史
+                    await this.model.updateChatHistory(messageToSend, parsedResponse);
+                    
+                    // 显示NPC回复
+                    const npcResponse = this.view.displayNpcResponse(this.model.npcPrompt.name, parsedResponse);
+                    this.gameModel.addToHistory(npcResponse);
+                } else {
+                    const errorMsg = this.view.displayResponseError();
+                    this.gameModel.addToHistory(errorMsg);
+                }
+            } finally {
+                // 清除等待标志
+                this.model.isWaitingResponse = false;
+                
+                // 禁用连接提示词条目 - 确保即使发生错误也会执行
+                await this.model.toggleConnectPrompt(false);
             }
         } catch (error) {
             console.error("AI响应生成失败:", error);
             this.model.isWaitingResponse = false;
+            
+            // 确保在错误情况下也禁用连接提示词
+            await this.model.toggleConnectPrompt(false);
             
             const errorMsg = this.view.displayResponseError();
             this.gameModel.addToHistory(errorMsg);

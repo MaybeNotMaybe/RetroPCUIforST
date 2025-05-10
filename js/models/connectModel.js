@@ -295,4 +295,22 @@ class ConnectModel {
             return null;
         }
     }
+
+    // 控制连接提示词的开关
+    async toggleConnectPrompt(enable) {
+        try {
+            // 获取当前角色卡的主要世界书
+            const primaryLorebook = getCurrentCharPrimaryLorebook();
+            
+            if (!primaryLorebook) {
+                console.error("当前角色卡没有绑定主要世界书");
+                return false;
+            }
+            
+            return await LorebookUtils.toggleLorebookEntry(primaryLorebook, "connect_prompt", enable);
+        } catch (error) {
+            console.error(`${enable ? '启用' : '禁用'}连接提示词时出错`, error);
+            return false;
+        }
+    }
 }

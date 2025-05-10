@@ -217,51 +217,47 @@ class NpcChatHistoryManager {
             
             if (!summaryEntry || !recentChatsEntry) return;
             
-            // 2. 加载总结提示词
-            const summaryPrompt = await this.loadSummaryPrompt();
-            if (!summaryPrompt) {
-                console.error("无法加载总结提示词");
-                return;
-            }
+            // 2. 启用总结提示词条目
+            await this.toggleSummaryPrompt(true);
             
-            // 3. 构建提示词
-            const currentSummary = summaryEntry.content;
-            const recentChats = recentChatsEntry.content;
-            
-            // 将当前总结和最近聊天作为提示
-            const userInput = 
-                `请根据以下最近的对话和现有总结，生成一份新的300-400字的总结。` +
-                `总结应该捕捉对话的要点和关键信息。\n\n` +
-                `现有总结:\n${currentSummary}\n\n` +
-                `最近对话:\n${recentChats}`;
-            
-            // 4. 调用AI生成总结
-            const newSummary = await generate({
-                user_input: userInput,
-                injects: [
-                    { 
-                        role: 'system', 
-                        content: JSON.stringify(summaryPrompt), 
-                        position: 'in_chat', 
-                        depth: 0, 
-                        should_scan: true 
-                    }
-                ]
-            });
-            
-            // 5. 提取总结内容
-            const extractedSummary = this.extractSummary(newSummary);
-            if (extractedSummary) {
-                // 更新总结条目
-                summaryEntry.content = extractedSummary;
-                await setLorebookEntries(this.chatLorebook, [summaryEntry]);
-                console.log("聊天总结已更新");
+            try {
+                // 3. 构建提示词
+                const currentSummary = summaryEntry.content;
+                const recentChats = recentChatsEntry.content;
                 
-                // 重置轮数计数
-                this.roundsSinceLastSummary = 0;
+                // 将当前总结和最近聊天作为提示
+                const userInput = 
+                    `请根据以下最近的对话和现有总结，生成一份新的300-400字的总结。` +
+                    `总结应该捕捉对话的要点和关键信息。\n\n` +
+                    `现有总结:\n${currentSummary}\n\n` +
+                    `最近对话:\n${recentChats}`;
+                
+                // 4. 调用AI生成总结
+                const newSummary = await generate({
+                    user_input: userInput,
+                    should_stream: false
+                });
+                
+                // 5. 提取总结内容
+                const extractedSummary = this.extractSummary(newSummary);
+                if (extractedSummary) {
+                    // 更新总结条目
+                    summaryEntry.content = extractedSummary;
+                    await setLorebookEntries(this.chatLorebook, [summaryEntry]);
+                    console.log("聊天总结已更新");
+                    
+                    // 重置轮数计数
+                    this.roundsSinceLastSummary = 0;
+                }
+            } finally {
+                // 6. 禁用总结提示词条目 - 确保即使发生错误也会执行
+                await this.toggleSummaryPrompt(false);
             }
         } catch (error) {
             console.error("生成聊天总结失败:", error);
+            
+            // 确保在错误情况下也禁用总结提示词
+            await this.toggleSummaryPrompt(false);
         }
     }
     
@@ -414,6 +410,24 @@ class NpcChatHistoryManager {
         } catch (error) {
             console.error("从世界书获取总结提示词时出错", error);
             return null;
+        }
+    }
+
+    // 控制总结提示词的开关
+    async toggleSummaryPrompt(enable) {
+        try {
+            // 获取当前角色卡的主要世界书
+            const primaryLorebook = getCurrentCharPrimaryLorebook();
+            
+            if (!primaryLorebook) {
+                console.error("当前角色卡没有绑定主要世界书");
+                return false;
+            }
+            
+            return await LorebookUtils.toggleLorebookEntry()(primaryLorebook, "summary_prompt", enable);
+        } catch (error) {
+            console.error(`${enable ? '启用' : '禁用'}总结提示词时出错`, error);
+            return false;
         }
     }
 }
