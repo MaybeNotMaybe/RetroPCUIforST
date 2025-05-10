@@ -38,9 +38,83 @@ class ConnectModel {
     
     // 辅助函数：提取<npc_reply>标签中的内容
     extractNpcReply(text) {
-        const regex = /<npc_reply>([\s\S]*?)<\/npc_reply>/;
-        const match = text.match(regex);
-        return match ? match[1].trim() : null;
+        try {
+            // 克隆原始文本以便调试
+            const originalText = text;
+            let cleanedText = text;
+            
+            // 步骤1：移除所有可能的思维链块格式（不区分大小写）
+            const thinkingPatterns = [
+                /<thinking>[\s\S]*?<\/thinking>/gi,    // 标准格式
+                /<think>[\s\S]*?<\/think>/gi,          // 简写格式
+                /<cot>[\s\S]*?<\/cot>/gi,              // Chain of Thought格式
+                /<reasoning>[\s\S]*?<\/reasoning>/gi,  // 推理格式
+                /<thoughts>[\s\S]*?<\/thoughts>/gi,    // 复数形式
+                /<thought>[\s\S]*?<\/thought>/gi,      // 单数形式
+                /<reflection>[\s\S]*?<\/reflection>/gi // 反思格式
+            ];
+            
+            // 逐个应用清除模式
+            thinkingPatterns.forEach(pattern => {
+                cleanedText = cleanedText.replace(pattern, '');
+            });
+            
+            // 步骤2：移除所有 HTML 注释内容 <!-- -->
+            cleanedText = cleanedText.replace(/<!--[\s\S]*?-->/g, '');
+            
+            // 步骤3：移除其他可能干扰的标签块
+            const tagsToClean = [
+                'details', 'summary', 'status', 'abstract',
+                'description', 'context', 'background', 'notes'
+            ];
+            cleanedText = this.cleanTags(cleanedText, tagsToClean);
+            
+            // 记录清理进度
+            if (window.DEBUG_MODE) {
+                console.log("原始长度:", originalText.length);
+                console.log("清理后长度:", cleanedText.length);
+                console.log("移除了字符:", originalText.length - cleanedText.length);
+            }
+            
+            // 步骤4：严格匹配完整的 <npc_reply></npc_reply> 标签（不区分大小写）
+            const regex = /<npc_reply>([\s\S]*?)<\/npc_reply>/gi;
+            const matches = [...cleanedText.matchAll(regex)];
+            
+            // 找不到有效的 NPC 回复
+            if (!matches || matches.length === 0) {
+                console.error("无法从AI回复中提取有效的NPC回复");
+                if (window.DEBUG_MODE) {
+                    console.log("清理后的文本:", cleanedText);
+                }
+                return null;
+            }
+            
+            // 如果有多个匹配，取第一个匹配的内容
+            const replyContent = matches[0][1].trim();
+            
+            // 记录提取的回复内容以便调试
+            if (window.DEBUG_MODE) {
+                console.log("成功提取NPC回复:", replyContent);
+                if (matches.length > 1) {
+                    console.warn(`发现多个NPC回复(${matches.length}个)，仅使用第一个`);
+                }
+            }
+            
+            return replyContent;
+        } catch (error) {
+            console.error("提取NPC回复时出错:", error);
+            return null;
+        }
+    }
+
+    // 通用标签清理方法
+    cleanTags(text, tagsList) {
+        let result = text;
+        tagsList.forEach(tag => {
+            const pattern = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'gi');
+            result = result.replace(pattern, '');
+        });
+        return result;
     }
     
     // 带重试的加载JSON文件
