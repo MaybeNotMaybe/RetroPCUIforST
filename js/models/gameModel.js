@@ -87,7 +87,7 @@ class GameModel {
         this.isConnected = false;        // 是否处于连接状态
         this.currentTarget = null;       // 当前连接的目标
         this.isWaitingResponse = false;  // 是否正在等待AI响应
-        this.accumulatedInput = "";      // 累积的用户输入
+        this.messageToSend = null;      // 累积的用户输入
 
         // CDN基础URL配置
         this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@964bff7/";
@@ -174,38 +174,25 @@ class GameModel {
         command = command.toLowerCase().trim();
         
         if (command === "") return "";
-
+        
         // 检查是否处于连接状态
         if (this.isConnected) {
-            // 处理特殊命令
+            // 只保留disconnect命令的处理
             if (command === "disconnect") {
                 return this.disconnect();
             }
             
-            if (command === "send") {
-                // 如果已经在等待响应，返回错误信息
-                if (this.isWaitingResponse) {
-                    return "请等待当前响应完成...";
-                }
-                
-                // 如果没有累积的输入，返回错误信息
-                if (!this.accumulatedInput.trim()) {
-                    return "错误: 没有要发送的消息。请先输入消息内容。";
-                }
-                
-                // 返回等待消息，实际发送在Controller中处理
-                return "等待回复中...";
-            }
-
-            // 添加clear命令，清除当前累积的输入
-            if (command === "clear") {
-                this.accumulatedInput = "";
-                return "已清除当前输入内容。";
+            // 如果正在等待AI响应，提示用户等待
+            if (this.isWaitingResponse) {
+                return "系统正在处理上一条消息，请稍候...";
             }
             
-            // 如果不是特殊命令，累积输入
-            this.accumulatedInput += (this.accumulatedInput ? "\n" : "") + command;
-            return `信息已添加。继续输入更多内容，或输入"send"发送。`;
+            // 所有其他输入都视为要发送的消息
+            // 设置当前行为要发送的消息
+            this.messageToSend = command;
+            
+            // 返回特殊标记，表示需要发送消息
+            return "SEND_MESSAGE";
         }
         
         // 基本命令处理
@@ -331,15 +318,14 @@ RAM空间: 12.4MB/20MB
             // 设置连接状态
             this.isConnected = true;
             this.currentTarget = cleanTarget;
-            this.accumulatedInput = "";
+            this.messageToSend = null;
             
             return `尝试连接到 "${cleanTarget}"...\n\n` +
                 `建立加密通道...\n` +
                 `验证身份...\n` +
                 `连接成功!\n\n` +
-                `输入消息内容，然后输入 "send" 发送消息。\n` +
-                `输入 "disconnect" 断开连接。\n` +
-                `输入 "clear" 清除当前输入内容。`;
+                `输入消息内容并按下Enter发送。\n` +
+                `输入 "disconnect" 断开连接。`;
         } catch (error) {
             console.error(`连接到目标"${target}"失败:`, error);
             return `错误: 连接到"${target}"时发生问题。请稍后再试。`;
@@ -358,61 +344,6 @@ RAM空间: 12.4MB/20MB
         this.accumulatedInput = "";
         
         return `已断开与 "${target}" 的连接。`;
-    }
-
-    // 发送消息方法
-    async sendMessage() {
-        if (!this.isConnected) return "错误: 当前没有活跃的连接。";
-        if (!this.accumulatedInput.trim()) return "错误: 没有要发送的消息。";
-        
-        // 设置等待标志
-        this.isWaitingResponse = true;
-        
-        try {
-            // 加载NPC提示词和通用提示词（注意：这些现在已经在connectToTarget中加载）
-            // 我们不再重构JSON内容，而是直接使用原始JSON字符串
-            
-            const npcPromptContent = JSON.stringify(this.npcPrompt);
-            const connectPromptContent = JSON.stringify(this.connectPrompt);
-            
-            // 请求AI生成响应
-            const response = await generate({
-                user_input: this.accumulatedInput,
-                injects: [
-                    { 
-                        role: 'system', 
-                        content: connectPromptContent, 
-                        position: 'in_chat', 
-                        depth: 0, 
-                        should_scan: true 
-                    },
-                    { 
-                        role: 'system', 
-                        content: npcPromptContent, 
-                        position: 'in_chat', 
-                        depth: 1, 
-                        should_scan: true 
-                    }
-                ]
-            });
-            
-            // 清空累积的输入
-            this.accumulatedInput = "";
-            
-            // 清除等待标志
-            this.isWaitingResponse = false;
-            
-            // 解析响应，提取<npc_reply>标签中的内容
-            let parsedResponse = this.extractNpcReply(response);
-            
-            // 返回解析后的响应
-            return parsedResponse ? `${this.npcPrompt.name}: ${parsedResponse}` : 
-                "错误: 无法获取有效响应。";
-        } catch (error) {
-            console.error("AI响应生成失败:", error);
-            this.isWaitingResponse = false;
-            return "错误: 无法获取响应。连接可能已中断。";
-        }
     }
 
     // 辅助函数：提取<npc_reply>标签中的内容

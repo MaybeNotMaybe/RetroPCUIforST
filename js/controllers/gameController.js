@@ -506,19 +506,23 @@ class GameController {
                 
                 const response = this.model.processCommand(command);
                 
-                // 检查是否为清屏命令
-                if (response === "CLEAR_SCREEN") {
-                    // 现有代码...
-                } else if (command.toLowerCase() === "send" && this.model.isConnected && !this.model.isWaitingResponse) {
-                    // 处理发送命令
+                // 添加处理发送消息的特殊标记
+                if (response === "SEND_MESSAGE" && this.model.isConnected) {
+                    // 记录用户输入到历史
                     this.model.addToHistory(inputText);
-                    this.model.addToHistory(response);
                     
                     // 显示等待消息
-                    this.view.displayOutput(response);
+                    const waitingMsg = "等待回复中...";
+                    this.view.displayOutput(waitingMsg);
+                    this.model.addToHistory(waitingMsg);
                     
-                    // 异步发送消息并处理响应
-                    this.sendMessageAndHandleResponse();
+                    // 发送当前行消息
+                    await this.sendSingleLineMessage();
+                } else if (response === "CLEAR_SCREEN") {
+                    // 清屏处理
+                    this.view.displayOutput(response);
+                    this.model.clearHistory();
+                    this.model.addToHistory('');
                 } else {
                     // 处理普通命令
                     this.view.displayOutput(response);
@@ -538,32 +542,73 @@ class GameController {
         }
     }
 
-    // 发送消息和处理响应的方法
-    async sendMessageAndHandleResponse() {
+    async sendSingleLineMessage() {
+        if (!this.model.isConnected || !this.model.messageToSend) {
+            return;
+        }
+        
         try {
+            // 设置等待响应标志
+            this.model.isWaitingResponse = true;
+            
+            // 获取要发送的消息
+            const messageToSend = this.model.messageToSend;
+            this.model.messageToSend = null; // 清除消息
+            
             // 触发网络活动指示灯
             EventBus.emit('networkActivity');
             
-            // 调用模型的sendMessage方法获取AI响应
-            const response = await this.model.sendMessage();
+            // 准备提示词
+            const npcPromptContent = JSON.stringify(this.model.npcPrompt);
+            const connectPromptContent = JSON.stringify(this.model.connectPrompt);
+            
+            // 请求AI生成响应
+            const response = await generate({
+                user_input: messageToSend,
+                injects: [
+                    { 
+                        role: 'system', 
+                        content: connectPromptContent, 
+                        position: 'in_chat', 
+                        depth: 0, 
+                        should_scan: true 
+                    },
+                    { 
+                        role: 'system', 
+                        content: npcPromptContent, 
+                        position: 'in_chat', 
+                        depth: 1, 
+                        should_scan: true 
+                    }
+                ]
+            });
+            
+            // 清除等待标志
+            this.model.isWaitingResponse = false;
+            
+            // 解析响应，提取<npc_reply>标签中的内容
+            let parsedResponse = this.model.extractNpcReply(response);
             
             // 触发网络活动指示灯（表示收到响应）
             EventBus.emit('networkActivity');
             
             // 显示响应
-            this.view.displayOutput(response);
+            const npcResponse = parsedResponse ? 
+                `${this.model.npcPrompt.name}: ${parsedResponse}` : 
+                "错误: 无法获取有效响应。";
             
-            // 添加到历史记录
-            this.model.addToHistory(response);
+            this.view.displayOutput(npcResponse);
+            this.model.addToHistory(npcResponse);
             
             // 保存设置
             this.saveSettings();
         } catch (error) {
-            console.error("处理AI响应时出错:", error);
+            console.error("AI响应生成失败:", error);
+            this.model.isWaitingResponse = false;
             
-            const errorMessage = "错误: 处理响应时出现问题。";
-            this.view.displayOutput(errorMessage);
-            this.model.addToHistory(errorMessage);
+            const errorMsg = "错误: 无法获取响应。连接可能已中断。";
+            this.view.displayOutput(errorMsg);
+            this.model.addToHistory(errorMsg);
         }
     }
 
