@@ -333,6 +333,15 @@ class NpcChatHistoryManager {
     
     // 加载总结提示词
     async loadSummaryPrompt() {
+        // 首先尝试从世界书加载
+        const lorebookPrompt = await this.getSummaryPromptFromLorebook();
+        if (lorebookPrompt) {
+            console.log("从世界书成功加载总结提示词");
+            return lorebookPrompt;
+        }
+        
+        // 如果世界书中未找到，则从JSON文件加载（传统方式）
+        console.log("世界书中未找到总结提示词，从JSON加载");
         return await this.loadJsonFileWithRetry(this.summaryPromptPath);
     }
     
@@ -368,6 +377,43 @@ class NpcChatHistoryManager {
         }
         if (config.summarizeEveryRounds !== undefined) {
             this.summarizeEveryRounds = config.summarizeEveryRounds;
+        }
+    }
+
+    // 从世界书中获取总结提示词
+    async getSummaryPromptFromLorebook() {
+        try {
+            // 获取当前角色卡的主要世界书
+            const primaryLorebook = getCurrentCharPrimaryLorebook();
+            
+            if (!primaryLorebook) {
+                console.error("当前角色卡没有绑定主要世界书");
+                return null;
+            }
+            
+            // 获取世界书中的所有条目
+            const entries = await getLorebookEntries(primaryLorebook);
+            
+            // 查找comment为"summary_prompt"的条目
+            const summaryEntry = entries.find(entry => 
+                entry.comment.toLowerCase() === "summary_prompt" && entry.enabled);
+            
+            if (!summaryEntry) {
+                console.error("未找到总结提示词条目或条目未启用");
+                return null;
+            }
+            
+            // 解析内容为JSON
+            try {
+                const promptData = JSON.parse(summaryEntry.content);
+                return promptData;
+            } catch (jsonError) {
+                console.error("解析总结提示词JSON失败", jsonError);
+                return null;
+            }
+        } catch (error) {
+            console.error("从世界书获取总结提示词时出错", error);
+            return null;
         }
     }
 }

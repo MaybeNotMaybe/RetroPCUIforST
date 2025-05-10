@@ -41,11 +41,22 @@ class ConnectController {
             // 确保target没有包含.json扩展名
             const cleanTarget = target.endsWith('.json') ? target.slice(0, -5) : target;
             
-            // 加载NPC提示词和通用提示词
-            this.model.npcPrompt = await this.model.loadJsonFileWithRetry(`data/prompt/npc/${cleanTarget}.json`);
-            this.model.connectPrompt = await this.model.loadJsonFileWithRetry('data/prompt/connect.json');
+            // 首先尝试从世界书加载NPC提示词和通用提示词
+            let npcPrompt = await this.model.getNpcPromptFromLorebook(cleanTarget);
+            let connectPrompt = await this.model.getConnectPromptFromLorebook();
             
-            if (!this.model.npcPrompt || !this.model.connectPrompt) {
+            // 如果世界书中未找到，则回退到从JSON文件加载（传统方式）
+            if (!npcPrompt) {
+                console.log(`世界书中未找到NPC提示词，从JSON加载: ${cleanTarget}`);
+                npcPrompt = await this.model.loadJsonFileWithRetry(`data/prompt/npc/${cleanTarget}.json`);
+            }
+            
+            if (!connectPrompt) {
+                console.log("世界书中未找到通用连接提示词，从JSON加载");
+                connectPrompt = await this.model.loadJsonFileWithRetry('data/prompt/connect.json');
+            }
+            
+            if (!npcPrompt || !connectPrompt) {
                 return `错误: 无法加载"${cleanTarget}"的配置信息。请检查网络连接或联系系统管理员。`;
             }
             
@@ -58,6 +69,8 @@ class ConnectController {
             // 设置连接状态
             this.model.isConnected = true;
             this.model.currentTarget = cleanTarget;
+            this.model.npcPrompt = npcPrompt;
+            this.model.connectPrompt = connectPrompt;
             
             // 显示连接成功消息
             return this.view.displayConnectionSuccess(cleanTarget);

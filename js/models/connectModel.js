@@ -155,11 +155,18 @@ class ConnectModel {
     
     // 检查NPC是否存在
     async checkNpcExists(npcId) {
+        // 首先检查世界书中是否存在该NPC
+        const existsInLorebook = await this.checkNpcExistsInLorebook(npcId);
+        if (existsInLorebook) {
+            return true;
+        }
+        
+        // 如果世界书中未找到，则检查JSON文件（传统方式）
         try {
-            // 确保npcId没有包含.json扩展名
+            // 确保npcId没有.json扩展名
             const cleanId = npcId.endsWith('.json') ? npcId.slice(0, -5) : npcId;
             
-            // 构建完整的CDN URL，使用全局变量
+            // 构建完整的CDN URL
             const fullUrl = window.cdnBaseUrl + `data/prompt/npc/${cleanId}.json`;
             console.log(`检查NPC文件是否存在: ${fullUrl}`);
             
@@ -190,5 +197,102 @@ class ConnectModel {
     // 配置聊天历史管理器
     setChatHistoryConfig(config) {
         this.chatHistoryManager.setConfig(config);
+    }
+
+    // 检查世界书中是否存在NPC
+    async checkNpcExistsInLorebook(npcId) {
+        try {
+            // 获取当前角色卡的主要世界书
+            const primaryLorebook = getCurrentCharPrimaryLorebook();
+            
+            if (!primaryLorebook) {
+                console.error("当前角色卡没有绑定主要世界书");
+                return false;
+            }
+            
+            // 获取世界书中的所有条目
+            const entries = await getLorebookEntries(primaryLorebook);
+            
+            // 检查是否有comment为"npc_[npcId]"的条目
+            const npcEntry = entries.find(entry => entry.comment.toLowerCase() === `npc_${npcId.toLowerCase()}`);
+            
+            return !!npcEntry;
+        } catch (error) {
+            console.error(`检查世界书中NPC时出错: ${npcId}`, error);
+            return false;
+        }
+    }
+
+    // 从世界书中获取NPC提示词
+    async getNpcPromptFromLorebook(npcId) {
+        try {
+            // 获取当前角色卡的主要世界书
+            const primaryLorebook = getCurrentCharPrimaryLorebook();
+            
+            if (!primaryLorebook) {
+                console.error("当前角色卡没有绑定主要世界书");
+                return null;
+            }
+            
+            // 获取世界书中的所有条目
+            const entries = await getLorebookEntries(primaryLorebook);
+            
+            // 查找comment为"npc_[npcId]"的条目
+            const npcEntry = entries.find(entry => entry.comment.toLowerCase() === `npc_${npcId.toLowerCase()}`);
+            
+            if (!npcEntry) {
+                console.error(`未找到NPC条目: ${npcId}`);
+                return null;
+            }
+            
+            // 解析内容为JSON
+            try {
+                const promptData = JSON.parse(npcEntry.content);
+                return promptData;
+            } catch (jsonError) {
+                console.error(`解析NPC提示词JSON失败: ${npcId}`, jsonError);
+                return null;
+            }
+        } catch (error) {
+            console.error(`从世界书获取NPC提示词时出错: ${npcId}`, error);
+            return null;
+        }
+    }
+
+    // 从世界书中获取通用连接提示词
+    async getConnectPromptFromLorebook() {
+        try {
+            // 获取当前角色卡的主要世界书
+            const primaryLorebook = getCurrentCharPrimaryLorebook();
+            
+            if (!primaryLorebook) {
+                console.error("当前角色卡没有绑定主要世界书");
+                return null;
+            }
+            
+            // 获取世界书中的所有条目
+            const entries = await getLorebookEntries(primaryLorebook);
+            
+            // 查找comment为"connect_prompt"的条目
+            const connectEntry = entries.find(entry => 
+                entry.comment.toLowerCase() === "connect_prompt" && entry.enabled);
+            
+            if (!connectEntry) {
+                console.error("未找到通用连接提示词条目或条目未启用");
+                return null;
+            }
+            
+            // 解析内容为JSON
+            try {
+                const promptData = JSON.parse(connectEntry.content);
+                return promptData;
+            } catch (jsonError) {
+                console.error("解析通用连接提示词JSON失败", jsonError);
+                return null;
+            }
+        } catch (error) {
+            console.error("从世界书获取通用连接提示词时出错", error);
+            return null;
+        }
     }
 }
