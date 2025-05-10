@@ -9,7 +9,6 @@ class ConnectModel {
         
         // 提示词对象
         this.npcPrompt = null;
-        this.connectPrompt = null;
         
         // CDN基础URL配置
         // this.cdnBaseUrl = "https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@964bff7/";
@@ -17,6 +16,18 @@ class ConnectModel {
         // 添加聊天历史管理器
         this.chatHistoryManager = new NpcChatHistoryManager();
 
+    }
+
+    // 获取当前角色卡的主要世界书
+    async getPrimaryLorebook() {
+        const primaryLorebook = getCurrentCharPrimaryLorebook();
+        
+        if (!primaryLorebook) {
+            console.error("当前角色卡没有绑定主要世界书");
+            return null;
+        }
+        
+        return primaryLorebook;
     }
     
     // 检查是否当前已连接
@@ -203,12 +214,8 @@ class ConnectModel {
     async checkNpcExistsInLorebook(npcId) {
         try {
             // 获取当前角色卡的主要世界书
-            const primaryLorebook = getCurrentCharPrimaryLorebook();
-            
-            if (!primaryLorebook) {
-                console.error("当前角色卡没有绑定主要世界书");
-                return false;
-            }
+            const primaryLorebook = await this.getPrimaryLorebook();
+            if (!primaryLorebook) return false;
             
             // 获取世界书中的所有条目
             const entries = await getLorebookEntries(primaryLorebook);
@@ -227,12 +234,8 @@ class ConnectModel {
     async getNpcPromptFromLorebook(npcId) {
         try {
             // 获取当前角色卡的主要世界书
-            const primaryLorebook = getCurrentCharPrimaryLorebook();
-            
-            if (!primaryLorebook) {
-                console.error("当前角色卡没有绑定主要世界书");
-                return null;
-            }
+            const primaryLorebook = await this.getPrimaryLorebook();
+            if (!primaryLorebook) return false;
             
             // 获取世界书中的所有条目
             const entries = await getLorebookEntries(primaryLorebook);
@@ -259,53 +262,11 @@ class ConnectModel {
         }
     }
 
-    // 从世界书中获取通用连接提示词
-    async getConnectPromptFromLorebook() {
-        try {
-            // 获取当前角色卡的主要世界书
-            const primaryLorebook = getCurrentCharPrimaryLorebook();
-            
-            if (!primaryLorebook) {
-                console.error("当前角色卡没有绑定主要世界书");
-                return null;
-            }
-            
-            // 获取世界书中的所有条目
-            const entries = await getLorebookEntries(primaryLorebook);
-            
-            // 查找comment为"connect_prompt"的条目
-            const connectEntry = entries.find(entry => 
-                entry.comment.toLowerCase() === "connect_prompt" && entry.enabled);
-            
-            if (!connectEntry) {
-                console.error("未找到通用连接提示词条目或条目未启用");
-                return null;
-            }
-            
-            // 解析内容为JSON
-            try {
-                const promptData = JSON.parse(connectEntry.content);
-                return promptData;
-            } catch (jsonError) {
-                console.error("解析通用连接提示词JSON失败", jsonError);
-                return null;
-            }
-        } catch (error) {
-            console.error("从世界书获取通用连接提示词时出错", error);
-            return null;
-        }
-    }
-
     // 控制连接提示词的开关
     async toggleConnectPrompt(enable) {
         try {
-            // 获取当前角色卡的主要世界书
-            const primaryLorebook = getCurrentCharPrimaryLorebook();
-            
-            if (!primaryLorebook) {
-                console.error("当前角色卡没有绑定主要世界书");
-                return false;
-            }
+            const primaryLorebook = await this.getPrimaryLorebook();
+            if (!primaryLorebook) return false;
             
             return await LorebookUtils.toggleLorebookEntry(primaryLorebook, "connect_prompt", enable);
         } catch (error) {

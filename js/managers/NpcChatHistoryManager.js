@@ -221,11 +221,10 @@ class NpcChatHistoryManager {
             await this.toggleSummaryPrompt(true);
             
             try {
-                // 3. 构建提示词
+                // 3. 构建提示词并生成总结
                 const currentSummary = summaryEntry.content;
                 const recentChats = recentChatsEntry.content;
                 
-                // 将当前总结和最近聊天作为提示
                 const userInput = 
                     `请根据以下最近的对话和现有总结，生成一份新的300-400字的总结。` +
                     `总结应该捕捉对话的要点和关键信息。\n\n` +
@@ -255,9 +254,6 @@ class NpcChatHistoryManager {
             }
         } catch (error) {
             console.error("生成聊天总结失败:", error);
-            
-            // 确保在错误情况下也禁用总结提示词
-            await this.toggleSummaryPrompt(false);
         }
     }
     
@@ -288,57 +284,6 @@ class NpcChatHistoryManager {
             recentChats: null,
             summary: null
         };
-    }
-    
-    // 加载总结提示词
-    async loadJsonFileWithRetry(path, maxRetries = 3, delay = 1000) {
-        let lastError;
-        // 删除本地硬编码的CDN URL
-        
-        // 确保path不会有双重扩展名问题
-        const cleanPath = path.replace(/\.json\.json$/, '.json');
-        
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                // 使用全局CDN URL
-                const fullUrl = window.cdnBaseUrl + cleanPath;
-                console.log(`尝试加载 (${attempt}/${maxRetries}): ${fullUrl}`);
-                
-                const response = await fetch(fullUrl);
-                if (!response.ok) {
-                    throw new Error(`HTTP错误: ${response.status}`);
-                }
-                
-                return await response.json();
-            } catch (error) {
-                console.error(`加载失败 (尝试 ${attempt}/${maxRetries}):`, error);
-                lastError = error;
-                
-                if (attempt < maxRetries) {
-                    // 等待一段时间后重试
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    // 每次重试增加延迟时间
-                    delay *= 1.5;
-                }
-            }
-        }
-        
-        console.error(`所有重试都失败:`, lastError);
-        return null;
-    }
-    
-    // 加载总结提示词
-    async loadSummaryPrompt() {
-        // 首先尝试从世界书加载
-        const lorebookPrompt = await this.getSummaryPromptFromLorebook();
-        if (lorebookPrompt) {
-            console.log("从世界书成功加载总结提示词");
-            return lorebookPrompt;
-        }
-        
-        // 如果世界书中未找到，则从JSON文件加载（传统方式）
-        console.log("世界书中未找到总结提示词，从JSON加载");
-        return await this.loadJsonFileWithRetry(this.summaryPromptPath);
     }
     
     // 获取聊天总结和最近聊天内容（用于注入到AI提示中）
@@ -376,43 +321,6 @@ class NpcChatHistoryManager {
         }
     }
 
-    // 从世界书中获取总结提示词
-    async getSummaryPromptFromLorebook() {
-        try {
-            // 获取当前角色卡的主要世界书
-            const primaryLorebook = getCurrentCharPrimaryLorebook();
-            
-            if (!primaryLorebook) {
-                console.error("当前角色卡没有绑定主要世界书");
-                return null;
-            }
-            
-            // 获取世界书中的所有条目
-            const entries = await getLorebookEntries(primaryLorebook);
-            
-            // 查找comment为"summary_prompt"的条目
-            const summaryEntry = entries.find(entry => 
-                entry.comment.toLowerCase() === "summary_prompt" && entry.enabled);
-            
-            if (!summaryEntry) {
-                console.error("未找到总结提示词条目或条目未启用");
-                return null;
-            }
-            
-            // 解析内容为JSON
-            try {
-                const promptData = JSON.parse(summaryEntry.content);
-                return promptData;
-            } catch (jsonError) {
-                console.error("解析总结提示词JSON失败", jsonError);
-                return null;
-            }
-        } catch (error) {
-            console.error("从世界书获取总结提示词时出错", error);
-            return null;
-        }
-    }
-
     // 控制总结提示词的开关
     async toggleSummaryPrompt(enable) {
         try {
@@ -424,7 +332,7 @@ class NpcChatHistoryManager {
                 return false;
             }
             
-            return await LorebookUtils.toggleLorebookEntry()(primaryLorebook, "summary_prompt", enable);
+            return await LorebookUtils.toggleLorebookEntry(primaryLorebook, "summary_prompt", enable);
         } catch (error) {
             console.error(`${enable ? '启用' : '禁用'}总结提示词时出错`, error);
             return false;
