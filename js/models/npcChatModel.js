@@ -17,6 +17,22 @@ class NpcChatModel {
         this.PROMPT_MESSAGE_KEY = "prompt_message";
     }
 
+    // 初始化方法 - 保持API兼容性
+    async initialize() {
+        try {
+            // 检查是否可以获取聊天世界书
+            const chatLorebook = await this.getChatLorebook();
+            console.log("NPC聊天系统初始化完成，使用世界书:", chatLorebook);
+            
+            // 发布初始化完成事件
+            EventBus.emit('npcChatInitialized', true);
+            return true;
+        } catch (error) {
+            console.error("NPC聊天系统初始化失败:", error);
+            return false;
+        }
+    }
+
     // 获取当前聊天的世界书，每次调用时重新检查
     async getChatLorebook() {
         try {
