@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>复古 PC 终端冒险</title>
+    <style>
+        body {
+            background-color: #111;
+            height: 700px !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #33ff33;
+            overflow: hidden;
+        }
+    </style>
     <!-- 引入CSS -->
     <!-- base.css: 基础样式，包含全局设置、字体、计算机外壳和主要结构 -->
     <link rel="stylesheet" href="css/base.css">
@@ -258,7 +269,7 @@
     </div>
 
 <script>
-    // 游戏数据字符串 - 将由插件自动填充
+    // 游戏数据字符串 - 将由正则自动填充
     window.gameDataString = `
 <gametext>
 
@@ -369,16 +380,22 @@
     <script src="js/models/gameModel.js"></script>
     <script src="js/models/floppyModel.js"></script>
     <script src="js/models/mapModel.js"></script>
+    <script src="js/models/npcChatModel.js"></script>
 
     <!-- 视图层 -->
     <script src="js/views/gameView.js"></script>
     <script src="js/views/floppyView.js"></script>
     <script src="js/views/mapView.js"></script>
+    <script src="js/views/npcChatView.js"></script>
 
     <!-- 控制器层 -->
     <script src="js/controllers/gameController.js"></script>
     <script src="js/controllers/floppyController.js"></script>
     <script src="js/controllers/mapController.js"></script>
+    <script src="js/controllers/npcChatController.js"></script>
+
+    <!-- 子系统主入口文件 -->
+    <script src="js/npcChatSystem.js"></script>
 
     <!-- 主入口文件 -->
     <script src="js/main.js"></script>

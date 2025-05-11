@@ -444,6 +444,24 @@ class GameController {
             // 显示用户输入
             const inputText = `> ${command}`;
             this.view.displayOutput(inputText);
+
+            // 命令预处理
+            let commandHandled = false;
+            if (window.commandPreprocessors) {
+                for (const processor of window.commandPreprocessors) {
+                    if (processor(command)) {
+                        commandHandled = true;
+                        break;
+                    }
+                }
+            }
+
+            // 如果命令已被预处理器处理，则不再继续处理
+            if (commandHandled) {
+                this.model.addToHistory(inputText);
+                this.saveSettings();
+                return;
+            }
             
             // 检查是否正在等待软盘读取响应
             if (this.awaitingDiskReadResponse) {
