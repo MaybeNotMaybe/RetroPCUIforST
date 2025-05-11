@@ -15,6 +15,7 @@ class NpcChatModel {
         this.CHAT_SUMMARY_PREFIX = "chat_summary_";
         
         this.PROMPT_MESSAGE_KEY = "prompt_message";
+        this.PROMPT_SUMMARY_KEY = "prompt_summary";
     }
 
     // 初始化方法 - 保持API兼容性
@@ -252,41 +253,136 @@ class NpcChatModel {
         }
     }
 
+    // 获取总结提示词条目
+    async getSummaryPromptEntry() {
+        try {
+            // 获取当前角色卡的主要世界书
+            const charLorebooks = getCharLorebooks();
+            const primaryLorebook = charLorebooks.primary;
+            
+            if (!primaryLorebook) {
+                throw new Error("角色卡未绑定主要世界书");
+            }
+            
+            // 获取所有条目
+            const entries = await getLorebookEntries(primaryLorebook);
+            
+            // 查找总结提示词条目
+            const promptEntry = entries.find(e => e.comment === this.PROMPT_SUMMARY_KEY);
+            
+            if (!promptEntry) {
+                throw new Error("未找到总结提示词条目");
+            }
+            
+            return { promptEntry, primaryLorebook };
+        } catch (error) {
+            console.error("获取总结提示词失败:", error);
+            throw error;
+        }
+    }
+
+    //从AI回复中提取摘要内容
+    extractSummary(aiResponse) {
+        // 移除思维链
+        let processedResponse = aiResponse;
+        const thinkingPatterns = [
+            /<thinking>[\s\S]*?<\/thinking>/gi,
+            /<think>[\s\S]*?<\/think>/gi,
+            /<reasoning>[\s\S]*?<\/reasoning>/gi
+        ];
+        
+        // 移除所有思维链内容
+        thinkingPatterns.forEach(pattern => {
+            processedResponse = processedResponse.replace(pattern, '');
+        });
+        
+        // 提取摘要内容
+        const summaryMatch = processedResponse.match(/<summary>([\s\S]*?)<\/summary>/i);
+        
+        if (summaryMatch && summaryMatch[1]) {
+            return summaryMatch[1].trim();
+        }
+        
+        // 如果没有找到标签，返回处理后的整个回复
+        return processedResponse.trim();
+    }
+
     // 生成聊天摘要
     async generateChatSummary(npcId, chatLorebook, recentEntry, summaryEntry) {
         try {
-            // 构建摘要生成提示词
-            const prompt = `我需要你总结以下对话内容，生成一份300-400字的简洁摘要。
-摘要应该捕捉对话的关键点、重要信息和情感基调。
-请直接开始总结，无需额外说明。
-
+            // 获取总结提示词条目
+            const { promptEntry, primaryLorebook } = await this.getSummaryPromptEntry();
+            
+            // 启用总结提示词条目
+            await setLorebookEntries(primaryLorebook, [{
+                uid: promptEntry.uid,
+                enabled: true
+            }]);
+            
+            console.log(`已启用总结提示词条目`);
+            
+            // 准备总结所需的上下文内容
+            const existingSummary = summaryEntry.content.replace(/^# 与.*?的聊天摘要\n\n/g, '');
+            const recentConversation = recentEntry.content.replace(/<!-- conversation_count: \d+ -->\n/g, '');
+            
+            // 构建提示词
+            const userPrompt = `请根据以下信息为与${npcId}的对话生成一个摘要：
+            
 # 现有摘要
-${summaryEntry.content}
+${existingSummary}
 
 # 最近对话
-${recentEntry.content.replace(/<!-- conversation_count: \d+ -->\n/g, '')}
+${recentConversation}
 
-请生成更新后的摘要:`;
+请将最终摘要放在<summary></summary>标签内。`;
 
             // 生成摘要
-            const summary = await generate({
-                user_input: prompt,
+            const aiResponse = await generate({
+                user_input: userPrompt,
                 should_stream: false
             });
 
+            // 提取<summary>标签中的内容
+            const summaryContent = this.extractSummary(aiResponse);
+            
+            // 如果提取结果为空，记录警告并使用原始回复
+            if (!summaryContent) {
+                console.warn('未能从AI回复中提取摘要标签，将使用原始回复');
+            }
+            
             // 准备更新摘要条目
             const updatedSummaryEntry = {
                 uid: summaryEntry.uid,
-                content: `# 与${npcId}的聊天摘要\n\n${summary.trim()}`
+                content: `# 与${npcId}的聊天摘要\n\n${summaryContent || aiResponse.trim()}`
             };
 
             // 保存更新后的摘要
             await setLorebookEntries(chatLorebook, [updatedSummaryEntry]);
-            console.log(`已更新与NPC ${npcId}的聊天摘要`);
+            
+            // 关闭总结提示词条目
+            await setLorebookEntries(primaryLorebook, [{
+                uid: promptEntry.uid,
+                enabled: false
+            }]);
+            
+            console.log(`已关闭总结提示词条目，已更新与NPC ${npcId}的聊天摘要`);
             
             return true;
         } catch (error) {
             console.error(`生成NPC ${npcId}聊天摘要失败:`, error);
+            
+            // 确保关闭总结提示词条目，即使生成失败
+            try {
+                const { promptEntry, primaryLorebook } = await this.getSummaryPromptEntry();
+                await setLorebookEntries(primaryLorebook, [{
+                    uid: promptEntry.uid,
+                    enabled: false
+                }]);
+                console.log(`已关闭总结提示词条目（错误恢复）`);
+            } catch (closeError) {
+                console.error(`关闭总结提示词条目失败:`, closeError);
+            }
+            
             return false;
         }
     }
