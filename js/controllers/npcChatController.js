@@ -11,11 +11,10 @@ class NpcChatController {
         EventBus.on('terminalCommand', this.handleCommand.bind(this));
     }
 
-    /**
-     * 初始化NPC聊天系统
-     */
+    // 初始化NPC聊天系统
     async initialize() {
         try {
+            // 检查系统可用性
             await this.model.initialize();
             console.log("NPC聊天控制器初始化完成");
         } catch (error) {
@@ -23,10 +22,7 @@ class NpcChatController {
         }
     }
 
-    /**
-     * 处理终端命令
-     * @param {object} commandData - 命令数据
-     */
+    // 处理终端命令
     async handleCommand(commandData) {
         const { command } = commandData;
         
@@ -49,18 +45,9 @@ class NpcChatController {
         }
     }
 
-    /**
-     * 向NPC发送消息
-     * @param {string} npcId - NPC的ID
-     * @param {string} message - 用户消息
-     */
+    // 向NPC发送消息
     async sendMessageToNpc(npcId, message) {
-        try {
-            // 检查系统是否已初始化
-            if (!this.model.lorebookReady) {
-                await this.model.initialize();
-            }
-            
+        try {      
             // 显示正在生成状态
             this.view.showGeneratingState(npcId);
             
@@ -78,21 +65,14 @@ class NpcChatController {
         }
     }
 
-    /**
-     * 显示错误消息
-     * @param {string} message - 错误消息
-     */
+    // 显示错误消息
     showErrorMessage(message) {
         const errorMessage = `错误: ${message}`;
         window.gameController.view.displayOutput(errorMessage);
         window.gameController.model.addToHistory(errorMessage);
     }
 
-    /**
-     * 检查NPC是否存在
-     * @param {string} npcId - NPC的ID
-     * @returns {Promise<boolean>} - NPC是否存在
-     */
+    // 检查NPC是否存在
     async checkNpcExists(npcId) {
         try {
             await this.model.getNpcInfo(npcId);
