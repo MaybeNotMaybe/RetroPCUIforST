@@ -256,7 +256,6 @@ class NpcChatModel {
     // 获取总结提示词条目
     async getSummaryPromptEntry() {
         try {
-            // 获取当前角色卡的主要世界书
             const charLorebooks = getCharLorebooks();
             const primaryLorebook = charLorebooks.primary;
             
@@ -264,10 +263,7 @@ class NpcChatModel {
                 throw new Error("角色卡未绑定主要世界书");
             }
             
-            // 获取所有条目
             const entries = await getLorebookEntries(primaryLorebook);
-            
-            // 查找总结提示词条目
             const promptEntry = entries.find(e => e.comment === this.PROMPT_SUMMARY_KEY);
             
             if (!promptEntry) {
@@ -310,16 +306,11 @@ class NpcChatModel {
     // 生成聊天摘要
     async generateChatSummary(npcId, chatLorebook, recentEntry, summaryEntry) {
         try {
-            // 获取总结提示词条目
+            // 获取总结提示词条目但不启用它
             const { promptEntry, primaryLorebook } = await this.getSummaryPromptEntry();
+            const summaryPromptContent = promptEntry.content; // 直接使用内容
             
-            // 启用总结提示词条目
-            await setLorebookEntries(primaryLorebook, [{
-                uid: promptEntry.uid,
-                enabled: true
-            }]);
-            
-            console.log(`已启用总结提示词条目`);
+            console.log(`已获取摘要提示词内容`);
             
             // 准备总结所需的上下文内容
             const existingSummary = summaryEntry.content.replace(/^# 与.*?的聊天摘要\n\n/g, '');
@@ -328,18 +319,30 @@ class NpcChatModel {
             // 构建提示词
             const userPrompt = `请根据以下信息为与${npcId}的对话生成一个摘要：
             
-# 现有摘要
-${existingSummary}
+    # 现有摘要
+    ${existingSummary}
 
-# 最近对话
-${recentConversation}
+    # 最近对话
+    ${recentConversation}
 
-请将最终摘要放在<summary></summary>标签内。`;
+    请将最终摘要放在<summary></summary>标签内。`;
+
+            // 构建提示词注入
+            const injects = [
+                {
+                    role: 'system',
+                    content: summaryPromptContent, 
+                    position: 'in_chat',
+                    depth: 0,
+                    should_scan: true
+                }
+            ];
 
             // 生成摘要
             const aiResponse = await generate({
                 user_input: userPrompt,
-                should_stream: false
+                should_stream: false,
+                injects: injects
             });
 
             // 提取<summary>标签中的内容
@@ -359,30 +362,11 @@ ${recentConversation}
             // 保存更新后的摘要
             await setLorebookEntries(chatLorebook, [updatedSummaryEntry]);
             
-            // 关闭总结提示词条目
-            await setLorebookEntries(primaryLorebook, [{
-                uid: promptEntry.uid,
-                enabled: false
-            }]);
-            
-            console.log(`已关闭总结提示词条目，已更新与NPC ${npcId}的聊天摘要`);
+            console.log(`已更新与NPC ${npcId}的聊天摘要`);
             
             return true;
         } catch (error) {
             console.error(`生成NPC ${npcId}聊天摘要失败:`, error);
-            
-            // 确保关闭总结提示词条目，即使生成失败
-            try {
-                const { promptEntry, primaryLorebook } = await this.getSummaryPromptEntry();
-                await setLorebookEntries(primaryLorebook, [{
-                    uid: promptEntry.uid,
-                    enabled: false
-                }]);
-                console.log(`已关闭总结提示词条目（错误恢复）`);
-            } catch (closeError) {
-                console.error(`关闭总结提示词条目失败:`, closeError);
-            }
-            
             return false;
         }
     }
@@ -397,10 +381,7 @@ ${recentConversation}
                 throw new Error("角色卡未绑定主要世界书");
             }
             
-            // 获取所有条目（即时查询）
             const entries = await getLorebookEntries(primaryLorebook);
-            
-            // 查找通用提示词条目
             const promptEntry = entries.find(e => e.comment === this.PROMPT_MESSAGE_KEY);
             
             if (!promptEntry) {
@@ -429,12 +410,9 @@ ${recentConversation}
             // 2. 获取NPC信息（即时）
             const { infoA, infoB, primaryLorebook } = await this.getNpcInfo(npcId);
             
-            // 3. 获取提示词条目并启用（即时）
+            // 3. 获取提示词条目但不启用它 - 只获取内容
             const { promptEntry } = await this.getPromptMessageEntry();
-            await setLorebookEntries(primaryLorebook, [{
-                uid: promptEntry.uid,
-                enabled: true
-            }]);
+            const promptContent = promptEntry.content; // 直接使用内容
             
             // 4. 获取聊天记录条目（已在步骤1中获取）
             const recentComment = this.CHAT_RECENT_PREFIX + npcId;
@@ -449,6 +427,13 @@ ${recentConversation}
             
             // 构建提示词注入
             const injects = [
+                {
+                    role: 'system',
+                    content: promptContent, 
+                    position: 'in_chat',
+                    depth: 0,
+                    should_scan: true
+                },
                 {
                     role: 'system',
                     content: `你正在扮演NPC "${npcId}"。以下是你的角色信息:\n\n${infoB.content}`,
