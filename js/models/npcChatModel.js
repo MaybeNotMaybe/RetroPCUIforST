@@ -3,29 +3,29 @@ class NpcChatModel {
     constructor() {
         // 最小化存储的状态，不预加载任何内容
         this.isGenerating = false;
-        this.conversationCounts = {};
         
         // 常量定义
         this.NPC_INFO_PREFIX = "npc_";
         this.NPC_INFO_SUFFIX_A = "_A";
         this.NPC_INFO_SUFFIX_B = "_B";
         
-        this.CHAT_HISTORY_PREFIX = "chat_history_"; // 聊天记录
-        this.CHAT_RECENT_PREFIX = "chat_recent_"; // 最近聊天记录
-        this.CHAT_SUMMARY_PREFIX = "chat_summary_"; // 聊天总结
-        this.CHAT_SUMMARY_BACKUP_PREFIX = "chat_summary_backup_"; // 聊天总结备份
+        // 新的聊天记录存储格式
+        this.CHAT_DATA_PREFIX = "chat_data_"; // 单一JSON格式聊天记录
+        this.CHAT_SUMMARY_BACKUP_PREFIX = "chat_summary_backup_"; // 总结备份
         
         this.PROMPT_MESSAGE_KEY = "prompt_message";
         this.PROMPT_SUMMARY_KEY = "prompt_summary";
+        
+        // 总结设置
+        this.SUMMARY_INTERVAL = 8; // 每8轮对话进行一次总结
 
         // 跟踪最后一次交互
         this.lastInteraction = {
             npcId: null,
             userMessage: null,
             npcReply: null,
-            wasGeneratingSummary: false
+            lastDialogueId: null
         };
-        
     }
 
     // 初始化方法 - 保持API兼容性
@@ -85,69 +85,49 @@ class NpcChatModel {
         }
     }
 
-    // 确保NPC的聊天记录条目存在，每次调用时重新验证
-    async ensureChatRecords(npcId) {
+    // 确保NPC的聊天记录条目存在，JSON格式
+    async ensureChatData(npcId) {
         try {
-            // 获取当前聊天世界书（即时）
+            // 获取当前聊天世界书
             const chatLorebook = await this.getChatLorebook();
             
             // 获取最新条目列表
             const entries = await getLorebookEntries(chatLorebook);
             
-            const historyComment = this.CHAT_HISTORY_PREFIX + npcId;
-            const recentComment = this.CHAT_RECENT_PREFIX + npcId;
-            const summaryComment = this.CHAT_SUMMARY_PREFIX + npcId;
+            const chatDataComment = this.CHAT_DATA_PREFIX + npcId;
+            const chatDataEntry = entries.find(e => e.comment === chatDataComment);
             
-            const historyEntry = entries.find(e => e.comment === historyComment);
-            const recentEntry = entries.find(e => e.comment === recentComment);
-            const summaryEntry = entries.find(e => e.comment === summaryComment);
-            
-            const entriesToCreate = [];
-            
-            // 检查并准备创建缺失的条目
-            if (!historyEntry) {
-                entriesToCreate.push({
-                    comment: historyComment,
-                    enabled: false,
-                    type: 'selective',
-                    position: 'before_character_definition',
-                    keys: [],
-                    content: `# 与${npcId}的全部聊天历史\n\n`
-                });
-            }
-            
-            if (!recentEntry) {
-                entriesToCreate.push({
-                    comment: recentComment,
-                    enabled: false,
-                    type: 'selective',
-                    position: 'before_character_definition',
-                    keys: [],
-                    content: `# 与${npcId}的最近5轮聊天\n<!-- conversation_count: 0 -->\n\n`
-                });
-            }
-            
-            if (!summaryEntry) {
-                entriesToCreate.push({
-                    comment: summaryComment,
+            if (!chatDataEntry) {
+                // 创建新的JSON格式聊天记录条目
+                const chatDataContent = JSON.stringify({
+                    chat_history: [],
+                    last_summary_id: 0
+                }, null, 2);
+                
+                const result = await createLorebookEntries(chatLorebook, [{
+                    comment: chatDataComment,
                     enabled: true,
                     type: 'constant',
                     position: 'after_author_note',
                     keys: [],
-                    content: `# 与${npcId}的聊天摘要\n\n尚无聊天记录。`
-                });
+                    content: chatDataContent
+                }]);
+                
+                console.log(`为NPC ${npcId}创建了JSON格式聊天记录条目`);
+                
+                // 重新获取包含新创建条目的完整列表
+                const updatedEntries = await getLorebookEntries(chatLorebook);
+                return {
+                    chatLorebook,
+                    entries: updatedEntries,
+                    chatDataEntry: updatedEntries.find(e => e.comment === chatDataComment)
+                };
             }
             
-            // 创建缺失的条目
-            if (entriesToCreate.length > 0) {
-                await createLorebookEntries(chatLorebook, entriesToCreate);
-                console.log(`为NPC ${npcId}创建了${entriesToCreate.length}个聊天记录条目`);
-            }
-            
-            // 返回聊天世界书和所有最新条目
             return {
                 chatLorebook,
-                entries: await getLorebookEntries(chatLorebook) // 重新获取包含新创建条目的完整列表
+                entries,
+                chatDataEntry
             };
         } catch (error) {
             console.error(`确保NPC ${npcId}聊天记录失败:`, error);
@@ -155,111 +135,176 @@ class NpcChatModel {
         }
     }
 
-    // 更新NPC的聊天记录
-    async updateChatRecords(npcId, userMessage, npcReply) {
+    // 获取聊天历史记录，从JSON解析
+    async getChatHistory(npcId) {
+        const { chatDataEntry } = await this.ensureChatData(npcId);
+        
         try {
-            // 获取所有最新条目
-            const { chatLorebook, entries } = await this.ensureChatRecords(npcId);
+            const chatData = JSON.parse(chatDataEntry.content);
+            return {
+                chat_history: chatData.chat_history || [],
+                last_summary_id: chatData.last_summary_id || 0
+            };
+        } catch (error) {
+            console.error(`解析NPC ${npcId}的聊天记录JSON失败:`, error);
+            return { chat_history: [], last_summary_id: 0 };
+        }
+    }
+
+    // 添加新对话到聊天历史
+    async addDialogue(npcId, userMessage, npcReply) {
+        try {
+            const { chatLorebook, chatDataEntry } = await this.ensureChatData(npcId);
+            const { chat_history, last_summary_id } = await this.getChatHistory(npcId);
             
-            // 查找聊天记录条目
-            const historyComment = this.CHAT_HISTORY_PREFIX + npcId;
-            const recentComment = this.CHAT_RECENT_PREFIX + npcId;
-            const summaryComment = this.CHAT_SUMMARY_PREFIX + npcId;
-            
-            const historyEntry = entries.find(e => e.comment === historyComment);
-            const recentEntry = entries.find(e => e.comment === recentComment);
-            const summaryEntry = entries.find(e => e.comment === summaryComment);
-            
-            // 安全检查：如果条目不存在，抛出明确错误
-            if (!historyEntry || !recentEntry || !summaryEntry) {
-                throw new Error(`NPC ${npcId}的聊天记录条目不完整，请检查世界书`);
-            }
-            
+            // 创建新对话记录
             const now = new Date();
-            const timestamp = now.toISOString().replace('T', ' ').substring(0, 19);
+            const timestamp = now.toISOString();
             
-            // 构建新的对话记录
-            const newConversation = `## ${timestamp}\n\n**玩家:** ${userMessage}\n\n**${npcId}:** ${npcReply}\n\n`;
+            // 确定新对话的ID
+            const newId = chat_history.length > 0 ? Math.max(...chat_history.map(item => item.id)) + 1 : 1;
             
-            // 更新全部历史记录
-            const updatedHistoryContent = historyEntry.content + newConversation;
+            // 创建新对话对象
+            const newDialogue = {
+                id: newId,
+                user_id: "{{user}}",
+                user_content: userMessage,
+                npc_id: npcId,
+                npc_content: npcReply,
+                timestamp: timestamp,
+                is_summary: false
+            };
             
-            // 从最近聊天记录中提取当前计数器值
-            let conversationCount = 0;
-            const countMatch = recentEntry.content.match(/<!-- conversation_count: (\d+) -->/);
-            if (countMatch && countMatch[1]) {
-                conversationCount = parseInt(countMatch[1], 10);
-            }
+            // 添加新对话到历史记录
+            chat_history.push(newDialogue);
             
-            // 增加计数器
-            conversationCount += 1;
-            
-            // 更新最近5轮对话内容
-            let recentContent = recentEntry.content;
-            
-            // 如果没有计数器标记，添加一个
-            if (!countMatch) {
-                recentContent = `# 与${npcId}的最近5轮聊天\n<!-- conversation_count: 1 -->\n\n${newConversation}`;
-            } else {
-                // 移除标题和计数器行，处理内容
-                let recentLines = recentContent.split('\n\n');
-                
-                // 保留标题行（可能包含计数器）
-                const titleLines = recentLines[0].split('\n');
-                
-                // 如果对话超过5轮，移除最旧的一轮
-                if (recentLines.length > 11) { // 标题 + 5轮对话(每轮2段) = 11行
-                    recentLines = recentLines.slice(0, 1).concat(recentLines.slice(3)); // 保留标题，移除最旧的一轮
-                }
-                
-                // 添加新对话
-                recentLines.push(newConversation);
-                
-                // 更新标题中的计数器
-                titleLines[1] = `<!-- conversation_count: ${conversationCount} -->`;
-                recentLines[0] = titleLines.join('\n');
-                
-                recentContent = recentLines.join('\n\n');
-            }
-            
-            // 准备更新条目
-            const updatedEntries = [
-                {
-                    uid: historyEntry.uid,
-                    content: updatedHistoryContent
-                },
-                {
-                    uid: recentEntry.uid,
-                    content: recentContent
-                }
-            ];
-            
-            // 检查是否需要更新摘要(每5次对话)
-            let summaryUpdated = false;
-            if (conversationCount >= 5) {
-                // 更新摘要
-                await this.generateChatSummary(npcId, chatLorebook, recentEntry, summaryEntry);
-                
-                // 重置计数器为0（摘要已更新）
-                const titleLines = recentContent.split('\n');
-                titleLines[1] = `<!-- conversation_count: 0 -->`;
-                recentContent = titleLines.join('\n');
-                
-                // 更新条目以反映重置的计数器
-                updatedEntries[1].content = recentContent;
-                
-                summaryUpdated = true;
-            }
+            // 检查是否需要生成总结
+            const needSummary = newId - last_summary_id >= this.SUMMARY_INTERVAL;
             
             // 保存更新后的聊天记录
-            await setLorebookEntries(chatLorebook, updatedEntries);
+            const updatedContent = JSON.stringify({
+                chat_history: chat_history,
+                last_summary_id: last_summary_id
+            }, null, 2);
             
-            console.log(`已更新NPC ${npcId}的聊天记录，当前对话计数: ${conversationCount}${summaryUpdated ? '，并已更新聊天摘要' : ''}`);
+            await setLorebookEntries(chatLorebook, [{
+                uid: chatDataEntry.uid,
+                content: updatedContent
+            }]);
+            
+            console.log(`已添加NPC ${npcId}的新对话记录，ID: ${newId}`);
+            
+            // 记录最后交互的对话ID
+            this.lastInteraction.lastDialogueId = newId;
+            
+            // 如果需要生成总结，进行总结
+            if (needSummary) {
+                await this.generateChatSummary(npcId, newId);
+            }
+            
+            return newId;
+        } catch (error) {
+            console.error(`添加NPC ${npcId}对话失败:`, error);
+            throw error;
+        }
+    }
+
+    // 格式化聊天记录为发送给AI的格式
+    formatChatHistoryForAI(chatHistory, maxRounds = 10) {
+        // 只取最近的maxRounds轮对话
+        const recentHistory = chatHistory
+            .filter(item => !item.is_summary)
+            .slice(-maxRounds);
+        
+        // 最近一次总结
+        const lastSummary = chatHistory
+            .filter(item => item.is_summary)
+            .slice(-1)[0];
+        
+        let formattedHistory = "";
+        
+        // 先添加总结（如果有）
+        if (lastSummary) {
+            formattedHistory += "# 对话总结\n";
+            formattedHistory += lastSummary.npc_content + "\n\n";
+        }
+        
+        // 添加最近对话历史
+        formattedHistory += "# 最近对话\n";
+        
+        recentHistory.forEach(item => {
+            formattedHistory += `第${item.id}轮对话\n`;
+            formattedHistory += `${item.user_id}: ${item.user_content}\n`;
+            formattedHistory += `${item.npc_id}: ${item.npc_content}\n\n`;
+        });
+        
+        return formattedHistory.trim();
+    }
+
+    // 备份聊天数据
+    async backupChatData(npcId) {
+        try {
+            const { chatLorebook, entries, chatDataEntry } = await this.ensureChatData(npcId);
+            const backupComment = this.CHAT_SUMMARY_BACKUP_PREFIX + npcId;
+            
+            // 查找或创建备份条目
+            let backupEntry = entries.find(e => e.comment === backupComment);
+            
+            if (backupEntry) {
+                // 更新现有备份
+                await setLorebookEntries(chatLorebook, [{
+                    uid: backupEntry.uid,
+                    content: chatDataEntry.content
+                }]);
+                console.log(`已更新NPC ${npcId}的聊天数据备份`);
+            } else {
+                // 创建新备份
+                await createLorebookEntries(chatLorebook, [{
+                    comment: backupComment,
+                    enabled: false,
+                    type: 'constant',
+                    position: 'before_character_definition',
+                    keys: [],
+                    content: chatDataEntry.content
+                }]);
+                console.log(`已创建NPC ${npcId}的聊天数据备份`);
+            }
             
             return true;
         } catch (error) {
-            console.error(`更新NPC ${npcId}聊天记录失败:`, error);
-            throw error;
+            console.error(`备份NPC ${npcId}聊天数据失败:`, error);
+            return false;
+        }
+    }
+
+    // 从上一次的聊天备份中恢复
+    async restoreChatDataFromBackup(npcId) {
+        try {
+            const chatLorebook = await this.getChatLorebook();
+            const entries = await getLorebookEntries(chatLorebook);
+            
+            const chatDataComment = this.CHAT_DATA_PREFIX + npcId;
+            const backupComment = this.CHAT_SUMMARY_BACKUP_PREFIX + npcId;
+            
+            const chatDataEntry = entries.find(e => e.comment === chatDataComment);
+            const backupEntry = entries.find(e => e.comment === backupComment);
+            
+            if (!chatDataEntry || !backupEntry) {
+                console.warn(`未找到NPC ${npcId}的聊天数据或备份，无法恢复`);
+                return false;
+            }
+            
+            // 从备份恢复
+            await setLorebookEntries(chatLorebook, [{
+                uid: chatDataEntry.uid,
+                content: backupEntry.content
+            }]);
+            
+            console.log(`已从备份恢复NPC ${npcId}的聊天数据`);
+            return true;
+        } catch (error) {
+            console.error(`恢复NPC ${npcId}聊天数据失败:`, error);
+            return false;
         }
     }
 
@@ -287,6 +332,102 @@ class NpcChatModel {
         }
     }
 
+    // 生成聊天总结
+    async generateChatSummary(npcId, currentDialogueId) {
+        try {
+            // 备份当前聊天数据
+            await this.backupChatData(npcId);
+            
+            // 获取总结提示词
+            const { promptEntry } = await this.getSummaryPromptEntry();
+            const summaryPromptContent = promptEntry.content;
+            
+            // 获取聊天历史
+            const { chat_history, last_summary_id } = await this.getChatHistory(npcId);
+            
+            // 计算需要总结的对话范围
+            const dialoguesToSummarize = chat_history.filter(
+                item => !item.is_summary && item.id > last_summary_id && item.id <= currentDialogueId
+            );
+            
+            // 获取之前的总结内容
+            const previousSummary = chat_history.find(item => item.is_summary && item.id === last_summary_id);
+            const previousSummaryContent = previousSummary ? previousSummary.npc_content : "尚无对话总结";
+            
+            // 格式化需要总结的对话
+            let dialoguesText = "";
+            dialoguesToSummarize.forEach(item => {
+                dialoguesText += `第${item.id}轮对话\n`;
+                dialoguesText += `用户: ${item.user_content}\n`;
+                dialoguesText += `${npcId}: ${item.npc_content}\n\n`;
+            });
+            
+            // 构建提示词
+            const userPrompt = `请根据以下信息为与${npcId}的对话生成一个摘要：
+            
+# 现有摘要
+${previousSummaryContent}
+
+# 需要总结的新对话
+${dialoguesText}
+
+请将最终摘要放在<summary></summary>标签内。摘要应该简洁明了地概括所有重要信息，包括新的发展和关键点。`;
+
+            // 构建提示词注入
+            const injects = [{
+                role: 'system',
+                content: summaryPromptContent, 
+                position: 'in_chat',
+                depth: 0,
+                should_scan: true
+            }];
+
+            // 生成总结
+            const aiResponse = await generate({
+                user_input: userPrompt,
+                should_stream: false,
+                injects: injects
+            });
+
+            // 提取<summary>标签中的内容
+            const summaryContent = this.extractSummary(aiResponse);
+            
+            // 添加总结到聊天历史
+            const { chatLorebook, chatDataEntry } = await this.ensureChatData(npcId);
+            const updatedChatHistory = JSON.parse(chatDataEntry.content);
+            
+            // 创建总结对话条目
+            const now = new Date();
+            const timestamp = now.toISOString();
+            
+            const summaryDialogue = {
+                id: currentDialogueId + 1,  // 总结ID是当前对话ID+1
+                user_id: "{{user}}",
+                user_content: "请总结我们的对话",
+                npc_id: npcId,
+                npc_content: summaryContent || aiResponse.trim(),
+                timestamp: timestamp,
+                is_summary: true  // 标记为总结
+            };
+            
+            // 更新聊天历史和最后总结ID
+            updatedChatHistory.chat_history.push(summaryDialogue);
+            updatedChatHistory.last_summary_id = summaryDialogue.id;
+            
+            // 保存更新后的聊天记录
+            await setLorebookEntries(chatLorebook, [{
+                uid: chatDataEntry.uid,
+                content: JSON.stringify(updatedChatHistory, null, 2)
+            }]);
+            
+            console.log(`已为NPC ${npcId}生成总结，总结ID: ${summaryDialogue.id}`);
+            return true;
+        } catch (error) {
+            console.error(`生成NPC ${npcId}聊天总结失败:`, error);
+            return false;
+        }
+    }
+
     //从AI回复中提取摘要内容
     extractSummary(aiResponse) {
         // 移除思维链
@@ -311,125 +452,6 @@ class NpcChatModel {
         
         // 如果没有找到标签，返回处理后的整个回复
         return processedResponse.trim();
-    }
-
-    // 生成聊天摘要
-    async generateChatSummary(npcId, chatLorebook, recentEntry, summaryEntry) {
-        try {
-            // 先备份当前摘要
-            await this.backupSummary(npcId, chatLorebook);
-            
-            // 设置最后一次交互的摘要生成标志
-            this.lastInteraction.wasGeneratingSummary = true;
-
-            // 获取总结提示词条目但不启用它
-            const { promptEntry, primaryLorebook } = await this.getSummaryPromptEntry();
-            const summaryPromptContent = promptEntry.content; // 直接使用内容
-            
-            console.log(`已获取摘要提示词内容`);
-            
-            // 准备总结所需的上下文内容
-            const existingSummary = summaryEntry.content.replace(/^# 与.*?的聊天摘要\n\n/g, '');
-            const recentConversation = recentEntry.content.replace(/<!-- conversation_count: \d+ -->\n/g, '');
-            
-            // 构建提示词
-            const userPrompt = `请根据以下信息为与${npcId}的对话生成一个摘要：
-            
-    # 现有摘要
-    ${existingSummary}
-
-    # 最近对话
-    ${recentConversation}
-
-    请将最终摘要放在<summary></summary>标签内。`;
-
-            // 构建提示词注入
-            const injects = [
-                {
-                    role: 'system',
-                    content: summaryPromptContent, 
-                    position: 'in_chat',
-                    depth: 0,
-                    should_scan: true
-                }
-            ];
-
-            // 生成摘要
-            const aiResponse = await generate({
-                user_input: userPrompt,
-                should_stream: false,
-                injects: injects
-            });
-
-            // 提取<summary>标签中的内容
-            const summaryContent = this.extractSummary(aiResponse);
-            
-            // 如果提取结果为空，记录警告并使用原始回复
-            if (!summaryContent) {
-                console.warn('未能从AI回复中提取摘要标签，将使用原始回复');
-            }
-            
-            // 准备更新摘要条目
-            const updatedSummaryEntry = {
-                uid: summaryEntry.uid,
-                content: `# 与${npcId}的聊天摘要\n\n${summaryContent || aiResponse.trim()}`
-            };
-
-            // 保存更新后的摘要
-            await setLorebookEntries(chatLorebook, [updatedSummaryEntry]);
-            
-            console.log(`已更新与NPC ${npcId}的聊天摘要`);
-            
-            return true;
-        } catch (error) {
-            console.error(`生成NPC ${npcId}聊天摘要失败:`, error);
-            return false;
-        }
-    }
-
-    // 备份摘要
-    async backupSummary(npcId, chatLorebook) {
-        try {
-            // 获取当前摘要
-            const entries = await getLorebookEntries(chatLorebook);
-            const summaryComment = this.CHAT_SUMMARY_PREFIX + npcId;
-            const backupComment = this.CHAT_SUMMARY_BACKUP_PREFIX + npcId;
-            
-            // 查找当前摘要条目
-            const summaryEntry = entries.find(e => e.comment === summaryComment);
-            if (!summaryEntry) {
-                console.warn(`未找到NPC ${npcId}的摘要条目，无法备份`);
-                return false;
-            }
-            
-            // 查找或创建备份条目
-            let backupEntry = entries.find(e => e.comment === backupComment);
-            
-            if (backupEntry) {
-                // 更新现有备份
-                await setLorebookEntries(chatLorebook, [{
-                    uid: backupEntry.uid,
-                    content: summaryEntry.content
-                }]);
-                console.log(`已更新NPC ${npcId}的摘要备份`);
-            } else {
-                // 创建新备份
-                await createLorebookEntries(chatLorebook, [{
-                    comment: backupComment,
-                    enabled: false,
-                    type: 'constant',
-                    position: 'before_character_definition',
-                    keys: [],
-                    content: summaryEntry.content
-                }]);
-                console.log(`已创建NPC ${npcId}的摘要备份`);
-            }
-            
-            return true;
-        } catch (error) {
-            console.error(`备份NPC ${npcId}摘要失败:`, error);
-            return false;
-        }
     }
 
     // 获取通用消息提示词条目
@@ -465,26 +487,21 @@ class NpcChatModel {
         this.isGenerating = true;
         
         try {
-            // 1. 确保聊天记录条目存在（重新验证）
-            const { chatLorebook, entries } = await this.ensureChatRecords(npcId);
+            // 1. 确保JSON聊天记录条目存在
+            await this.ensureChatData(npcId);
             
-            // 2. 获取NPC信息（即时）
+            // 2. 获取NPC信息
             const { infoA, infoB, primaryLorebook } = await this.getNpcInfo(npcId);
             
-            // 3. 获取提示词条目但不启用它 - 只获取内容
+            // 3. 获取提示词条目内容
             const { promptEntry } = await this.getPromptMessageEntry();
-            const promptContent = promptEntry.content; // 直接使用内容
+            const promptContent = promptEntry.content;
             
-            // 4. 获取聊天记录条目（已在步骤1中获取）
-            const recentComment = this.CHAT_RECENT_PREFIX + npcId;
-            const summaryComment = this.CHAT_SUMMARY_PREFIX + npcId;
+            // 4. 获取聊天历史
+            const { chat_history } = await this.getChatHistory(npcId);
             
-            const recentEntry = entries.find(e => e.comment === recentComment);
-            const summaryEntry = entries.find(e => e.comment === summaryComment);
-            
-            if (!recentEntry || !summaryEntry) {
-                throw new Error(`NPC ${npcId}的聊天记录条目不完整`);
-            }
+            // 5. 格式化聊天历史为AI可理解的格式
+            const formattedHistory = this.formatChatHistoryForAI(chat_history);
             
             // 构建提示词注入
             const injects = [
@@ -504,16 +521,9 @@ class NpcChatModel {
                 },
                 {
                     role: 'system',
-                    content: summaryEntry.content,
+                    content: formattedHistory,
                     position: 'in_chat',
-                    depth: 3,
-                    should_scan: true
-                },
-                {
-                    role: 'system',
-                    content: recentEntry.content,
-                    position: 'in_chat',
-                    depth: 3,
+                    depth: 2,
                     should_scan: true
                 }
             ];
@@ -525,24 +535,18 @@ class NpcChatModel {
                 injects: injects
             });
             
-            // 关闭提示词条目
-            await setLorebookEntries(primaryLorebook, [{
-                uid: promptEntry.uid,
-                enabled: false
-            }]);
-            
             // 处理回复
             const npcReply = this.extractNpcReply(response);
             
-            // 更新聊天记录
-            await this.updateChatRecords(npcId, message, npcReply);
+            // 添加对话到JSON聊天记录
+            const dialogueId = await this.addDialogue(npcId, message, npcReply);
             
             // 记录最后一次交互
             this.lastInteraction = {
                 npcId: npcId,
                 userMessage: message,
                 npcReply: npcReply,
-                wasGeneratingSummary: false  // 在生成摘要时会设置为true
+                lastDialogueId: dialogueId
             };
 
             this.isGenerating = false;
@@ -562,101 +566,47 @@ class NpcChatModel {
         }
     }
 
+    // 重新生成最后一条回复
     async rerun() {
         if (!this.lastInteraction.npcId || !this.lastInteraction.userMessage) {
             return "错误：没有找到上一次的交互记录，无法重新生成。";
         }
         
-        const { npcId, userMessage, wasGeneratingSummary } = this.lastInteraction;
-        
         try {
-            // 获取聊天记录
-            const { chatLorebook, entries } = await this.ensureChatRecords(npcId);
+            // 回滚到备份（如果有）
+            await this.restoreChatDataFromBackup(this.lastInteraction.npcId);
             
-            // 获取历史记录条目
-            const historyComment = this.CHAT_HISTORY_PREFIX + npcId;
-            const recentComment = this.CHAT_RECENT_PREFIX + npcId;
-            const summaryComment = this.CHAT_SUMMARY_PREFIX + npcId;
-            const backupComment = this.CHAT_SUMMARY_BACKUP_PREFIX + npcId;
+            // 获取聊天历史
+            const { chat_history } = await this.getChatHistory(this.lastInteraction.npcId);
             
-            const historyEntry = entries.find(e => e.comment === historyComment);
-            const recentEntry = entries.find(e => e.comment === recentComment);
-            const summaryEntry = entries.find(e => e.comment === summaryComment);
-            
-            if (!historyEntry || !recentEntry || !summaryEntry) {
-                throw new Error(`NPC ${npcId}的聊天记录条目不完整`);
+            // 如果最后一条是总结，则也需要删除
+            if (chat_history.length > 0 && chat_history[chat_history.length - 1].is_summary) {
+                const { chatLorebook, chatDataEntry } = await this.ensureChatData(this.lastInteraction.npcId);
+                const chatData = JSON.parse(chatDataEntry.content);
+                
+                // 移除最后一条总结
+                chatData.chat_history.pop();
+                
+                // 更新last_summary_id到前一个总结
+                const previousSummary = chatData.chat_history
+                    .filter(item => item.is_summary)
+                    .slice(-1)[0];
+                    
+                chatData.last_summary_id = previousSummary ? previousSummary.id : 0;
+                
+                // 保存更新
+                await setLorebookEntries(chatLorebook, [{
+                    uid: chatDataEntry.uid,
+                    content: JSON.stringify(chatData, null, 2)
+                }]);
             }
-            
-            // 清除最后一条消息
-            let updatedHistoryContent = historyEntry.content;
-            let updatedRecentContent = recentEntry.content;
-            
-            // 从历史记录中删除最后一条对话
-            const lastConversationPattern = new RegExp(`## .*?\n\n\\*\\*玩家:\\*\\* ${_.escapeRegExp(userMessage)}\n\n\\*\\*${_.escapeRegExp(npcId)}:\\*\\* .*?\n\n`, "s");
-            updatedHistoryContent = updatedHistoryContent.replace(lastConversationPattern, "");
-            
-            // 从最近对话中删除最后一条
-            updatedRecentContent = this.removeLastConversationFromRecent(recentEntry.content, userMessage, npcId);
-            
-            // 如果上次操作涉及总结更新，则恢复备份的总结
-            if (wasGeneratingSummary) {
-                // 恢复备份的总结
-                const backupEntry = entries.find(e => e.comment === backupComment);
-                if (backupEntry) {
-                    await setLorebookEntries(chatLorebook, [{
-                        uid: summaryEntry.uid,
-                        content: backupEntry.content
-                    }]);
-                    console.log(`已恢复NPC ${npcId}的摘要备份`);
-                }
-            }
-            
-            // 保存更新后的聊天记录
-            await setLorebookEntries(chatLorebook, [
-                {
-                    uid: historyEntry.uid,
-                    content: updatedHistoryContent
-                },
-                {
-                    uid: recentEntry.uid,
-                    content: updatedRecentContent
-                }
-            ]);
-            
-            console.log(`已清除NPC ${npcId}的最后一条对话记录`);
             
             // 重新生成回复
-            return await this.processMessage(npcId, userMessage);
+            return await this.processMessage(this.lastInteraction.npcId, this.lastInteraction.userMessage);
         } catch (error) {
-            console.error(`重新生成NPC ${npcId}回复失败:`, error);
+            console.error(`重新生成NPC回复失败:`, error);
             return `系统错误：重新生成回复失败 - ${error.message}`;
         }
-    }
-
-    // 从最近对话中删除最后一条
-    removeLastConversationFromRecent(recentContent, userMessage, npcId) {
-        // 提取标题和计数器
-        const lines = recentContent.split('\n\n');
-        const header = lines[0];
-        
-        // 提取计数器，并减少1（如果大于0）
-        let countMatch = header.match(/<!-- conversation_count: (\d+) -->/);
-        let count = 0;
-        if (countMatch && countMatch[1]) {
-            count = Math.max(0, parseInt(countMatch[1], 10) - 1);
-        }
-        
-        // 删除最后一轮对话（最后的两个部分：用户+NPC）
-        let newContent;
-        if (lines.length > 3) {  // 至少有一轮对话可以删除
-            newContent = [header].concat(lines.slice(1, lines.length - 2)).join('\n\n');
-        } else {
-            // 如果没有足够的对话，只保留标题
-            newContent = header;
-        }
-        
-        // 更新计数器
-        return newContent.replace(/<!-- conversation_count: \d+ -->/, `<!-- conversation_count: ${count} -->`);
     }
 
     // 从AI回复中提取NPC回复内容
