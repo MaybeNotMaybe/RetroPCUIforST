@@ -32,8 +32,8 @@ function initializeNpcChatSystem() {
 function setupCommandListener() {
     // 创建命令处理器
     const commandHandler = function(input) {
-        // 只处理message开头的命令
-        if (input.startsWith('message ') || input.startsWith('msg ')) {
+        // 处理message命令和rerun命令
+        if (input.startsWith('message ') || input.startsWith('msg ') || input === 'rerun') {
             // 发布命令事件
             EventBus.emit('terminalCommand', { command: input });
             
