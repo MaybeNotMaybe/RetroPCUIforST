@@ -452,22 +452,22 @@ ${recentConversation}
                 {
                     role: 'system',
                     content: `你正在扮演NPC "${npcId}"。以下是你的角色信息:\n\n${infoB.content}`,
-                    position: 'before_prompt',
-                    depth: 0,
+                    position: 'in_chat',
+                    depth: 1,
                     should_scan: true
                 },
                 {
                     role: 'system',
                     content: summaryEntry.content,
                     position: 'in_chat',
-                    depth: 0,
+                    depth: 3,
                     should_scan: true
                 },
                 {
                     role: 'system',
                     content: recentEntry.content,
                     position: 'in_chat',
-                    depth: 0,
+                    depth: 3,
                     should_scan: true
                 }
             ];
