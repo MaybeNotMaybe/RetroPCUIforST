@@ -42,6 +42,8 @@ class NpcChatController {
             
             // 处理消息
             await this.sendMessageToNpc(npcId, message);
+        } else if (command === 'rerun') {
+            await this.rerunLastMessage();
         }
     }
 
@@ -61,6 +63,32 @@ class NpcChatController {
         } catch (error) {
             console.error(`向NPC ${npcId}发送消息失败:`, error);
             this.showErrorMessage(`向${npcId}发送消息失败: ${error.message}`);
+            return false;
+        }
+    }
+
+    // 重新生成上一条消息
+    async rerunLastMessage() {
+        try {
+            // 显示正在重新生成的状态
+            this.view.showGeneratingState(this.model.lastInteraction.npcId || "NPC");
+            
+            // 调用模型的rerun方法
+            const npcReply = await this.model.rerun();
+            
+            // 将回复添加到显示队列
+            if (this.model.lastInteraction.npcId) {
+                this.view.queueMessage(this.model.lastInteraction.npcId, npcReply);
+            } else {
+                // 如果没有NPC ID，直接显示错误信息
+                window.gameController.view.displayOutput(npcReply);
+                window.gameController.model.addToHistory(npcReply);
+            }
+            
+            return true;
+        } catch (error) {
+            console.error(`重新生成消息失败:`, error);
+            this.showErrorMessage(`重新生成失败: ${error.message}`);
             return false;
         }
     }
