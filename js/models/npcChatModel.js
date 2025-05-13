@@ -100,13 +100,14 @@ class NpcChatModel {
             if (!chatDataEntry) {
                 // 创建新的JSON格式聊天记录条目
                 const chatDataContent = JSON.stringify({
-                    chat_history: [],
-                    last_summary_id: 0
+                    chat_history: [],      // 仅存储实际对话
+                    summary: "",           // 存储最新总结内容
+                    last_summary_id: 0     // 上次进行总结的对话ID
                 }, null, 2);
                 
                 const result = await createLorebookEntries(chatLorebook, [{
                     comment: chatDataComment,
-                    enabled: true,
+                    enabled: false,        // 设置为关闭状态
                     type: 'constant',
                     position: 'after_author_note',
                     keys: [],
@@ -155,7 +156,9 @@ class NpcChatModel {
     async addDialogue(npcId, userMessage, npcReply) {
         try {
             const { chatLorebook, chatDataEntry } = await this.ensureChatData(npcId);
-            const { chat_history, last_summary_id } = await this.getChatHistory(npcId);
+            const chatData = JSON.parse(chatDataEntry.content);
+            const chat_history = chatData.chat_history || [];
+            const last_summary_id = chatData.last_summary_id || 0;
             
             // 创建新对话记录
             const now = new Date();
@@ -171,8 +174,7 @@ class NpcChatModel {
                 user_content: userMessage,
                 npc_id: npcId,
                 npc_content: npcReply,
-                timestamp: timestamp,
-                is_summary: false
+                timestamp: timestamp
             };
             
             // 添加新对话到历史记录
@@ -182,14 +184,11 @@ class NpcChatModel {
             const needSummary = newId - last_summary_id >= this.SUMMARY_INTERVAL;
             
             // 保存更新后的聊天记录
-            const updatedContent = JSON.stringify({
-                chat_history: chat_history,
-                last_summary_id: last_summary_id
-            }, null, 2);
+            chatData.chat_history = chat_history;
             
             await setLorebookEntries(chatLorebook, [{
                 uid: chatDataEntry.uid,
-                content: updatedContent
+                content: JSON.stringify(chatData, null, 2)
             }]);
             
             console.log(`已添加NPC ${npcId}的新对话记录，ID: ${newId}`);
@@ -197,12 +196,11 @@ class NpcChatModel {
             // 记录最后交互的对话ID
             this.lastInteraction.lastDialogueId = newId;
             
-            // 如果需要生成总结，进行总结
-            if (needSummary) {
-                await this.generateChatSummary(npcId, newId);
-            }
-            
-            return newId;
+            // 返回新对话ID和是否需要总结
+            return {
+                dialogueId: newId,
+                needSummary: needSummary
+            };
         } catch (error) {
             console.error(`添加NPC ${npcId}对话失败:`, error);
             throw error;
@@ -210,23 +208,19 @@ class NpcChatModel {
     }
 
     // 格式化聊天记录为发送给AI的格式
-    formatChatHistoryForAI(chatHistory, maxRounds = 10) {
-        // 只取最近的maxRounds轮对话
-        const recentHistory = chatHistory
-            .filter(item => !item.is_summary)
-            .slice(-maxRounds);
+    formatChatHistoryForAI(chatData, maxRounds = 10) {
+        // 解构数据
+        const { chat_history = [], summary = "" } = chatData;
         
-        // 最近一次总结
-        const lastSummary = chatHistory
-            .filter(item => item.is_summary)
-            .slice(-1)[0];
+        // 只取最近的maxRounds轮对话
+        const recentHistory = chat_history.slice(-maxRounds);
         
         let formattedHistory = "";
         
         // 先添加总结（如果有）
-        if (lastSummary) {
+        if (summary) {
             formattedHistory += "# 对话总结\n";
-            formattedHistory += lastSummary.npc_content + "\n\n";
+            formattedHistory += summary + "\n\n";
         }
         
         // 添加最近对话历史
@@ -343,16 +337,16 @@ class NpcChatModel {
             const summaryPromptContent = promptEntry.content;
             
             // 获取聊天历史
-            const { chat_history, last_summary_id } = await this.getChatHistory(npcId);
+            const { chatLorebook, chatDataEntry } = await this.ensureChatData(npcId);
+            const chatData = JSON.parse(chatDataEntry.content);
+            const chat_history = chatData.chat_history || [];
+            const last_summary_id = chatData.last_summary_id || 0;
+            const currentSummary = chatData.summary || "尚无对话总结";
             
             // 计算需要总结的对话范围
             const dialoguesToSummarize = chat_history.filter(
-                item => !item.is_summary && item.id > last_summary_id && item.id <= currentDialogueId
+                item => item.id > last_summary_id && item.id <= currentDialogueId
             );
-            
-            // 获取之前的总结内容
-            const previousSummary = chat_history.find(item => item.is_summary && item.id === last_summary_id);
-            const previousSummaryContent = previousSummary ? previousSummary.npc_content : "尚无对话总结";
             
             // 格式化需要总结的对话
             let dialoguesText = "";
@@ -366,7 +360,7 @@ class NpcChatModel {
             const userPrompt = `请根据以下信息为与${npcId}的对话生成一个摘要：
             
 # 现有摘要
-${previousSummaryContent}
+${currentSummary}
 
 # 需要总结的新对话
 ${dialoguesText}
@@ -392,35 +386,17 @@ ${dialoguesText}
             // 提取<summary>标签中的内容
             const summaryContent = this.extractSummary(aiResponse);
             
-            // 添加总结到聊天历史
-            const { chatLorebook, chatDataEntry } = await this.ensureChatData(npcId);
-            const updatedChatHistory = JSON.parse(chatDataEntry.content);
-            
-            // 创建总结对话条目
-            const now = new Date();
-            const timestamp = now.toISOString();
-            
-            const summaryDialogue = {
-                id: currentDialogueId + 1,  // 总结ID是当前对话ID+1
-                user_id: "{{user}}",
-                user_content: "请总结我们的对话",
-                npc_id: npcId,
-                npc_content: summaryContent || aiResponse.trim(),
-                timestamp: timestamp,
-                is_summary: true  // 标记为总结
-            };
-            
-            // 更新聊天历史和最后总结ID
-            updatedChatHistory.chat_history.push(summaryDialogue);
-            updatedChatHistory.last_summary_id = summaryDialogue.id;
+            // 更新聊天数据中的总结内容和最后总结ID
+            chatData.summary = summaryContent || aiResponse.trim();
+            chatData.last_summary_id = currentDialogueId;
             
             // 保存更新后的聊天记录
             await setLorebookEntries(chatLorebook, [{
                 uid: chatDataEntry.uid,
-                content: JSON.stringify(updatedChatHistory, null, 2)
+                content: JSON.stringify(chatData, null, 2)
             }]);
             
-            console.log(`已为NPC ${npcId}生成总结，总结ID: ${summaryDialogue.id}`);
+            console.log(`已为NPC ${npcId}生成新的总结，最后总结ID: ${currentDialogueId}`);
             return true;
         } catch (error) {
             console.error(`生成NPC ${npcId}聊天总结失败:`, error);
@@ -488,7 +464,8 @@ ${dialoguesText}
         
         try {
             // 1. 确保JSON聊天记录条目存在
-            await this.ensureChatData(npcId);
+            const { chatDataEntry } = await this.ensureChatData(npcId);
+            const chatData = JSON.parse(chatDataEntry.content);
             
             // 2. 获取NPC信息
             const { infoA, infoB, primaryLorebook } = await this.getNpcInfo(npcId);
@@ -497,11 +474,8 @@ ${dialoguesText}
             const { promptEntry } = await this.getPromptMessageEntry();
             const promptContent = promptEntry.content;
             
-            // 4. 获取聊天历史
-            const { chat_history } = await this.getChatHistory(npcId);
-            
-            // 5. 格式化聊天历史为AI可理解的格式
-            const formattedHistory = this.formatChatHistoryForAI(chat_history);
+            // 4. 格式化聊天历史为AI可理解的格式
+            const formattedHistory = this.formatChatHistoryForAI(chatData);
             
             // 构建提示词注入
             const injects = [
@@ -538,8 +512,8 @@ ${dialoguesText}
             // 处理回复
             const npcReply = this.extractNpcReply(response);
             
-            // 添加对话到JSON聊天记录
-            const dialogueId = await this.addDialogue(npcId, message, npcReply);
+            // 添加对话到JSON聊天记录，并检查是否需要总结
+            const { dialogueId, needSummary } = await this.addDialogue(npcId, message, npcReply);
             
             // 记录最后一次交互
             this.lastInteraction = {
@@ -548,6 +522,18 @@ ${dialoguesText}
                 npcReply: npcReply,
                 lastDialogueId: dialogueId
             };
+            
+            // 如果需要总结，发出独立的总结请求
+            if (needSummary) {
+                // 异步执行总结，不阻塞主回复
+                this.generateChatSummary(npcId, dialogueId).then(success => {
+                    if (success) {
+                        console.log(`成功为对话ID ${dialogueId}生成了总结`);
+                    } else {
+                        console.error(`为对话ID ${dialogueId}生成总结失败`);
+                    }
+                });
+            }
 
             this.isGenerating = false;
             return npcReply;
