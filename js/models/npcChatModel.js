@@ -637,16 +637,23 @@ ${dialoguesText}
             const npcId = this.lastInteraction.npcId;
             const lastDialogueId = this.lastInteraction.lastDialogueId;
             
-            // 1. 获取聊天历史，记录目前的最后总结ID
+            // 1. 获取聊天历史数据
             const { chatLorebook, chatHistoryEntry } = await this.ensureChatHistory(npcId);
             const chatData = JSON.parse(chatHistoryEntry.content);
-            const currentLastSummaryId = chatData.last_summary_id;
+            const currentLastSummaryId = chatData.last_summary_id || 0;
             
-            // 2. 恢复总结备份
-            await this.restoreSummaryFromBackup(npcId);
+            // 2. 判断是否是总结轮次
+            const isSummaryTriggeringRound = (lastDialogueId - currentLastSummaryId) >= this.SUMMARY_INTERVAL;
             
-            // 3. 检查最后一条对话是否应该触发总结
-            const shouldTriggerSummary = (lastDialogueId - currentLastSummaryId) >= this.SUMMARY_INTERVAL;
+            console.log(`当前对话ID: ${lastDialogueId}, 最后总结ID: ${currentLastSummaryId}, 是否触发总结: ${isSummaryTriggeringRound}`);
+            
+            // 3. 只在会触发总结的轮次恢复总结备份
+            if (isSummaryTriggeringRound) {
+                console.log(`检测到本轮次会触发总结，正在恢复总结备份...`);
+                await this.restoreSummaryFromBackup(npcId);
+            } else {
+                console.log(`本轮次不会触发总结，保留当前总结内容`);
+            }
             
             // 4. 删除最后一条对话
             if (chatData.chat_history.length > 0 && 
@@ -667,8 +674,8 @@ ${dialoguesText}
             // 5. 重新生成回复
             const npcReply = await this.processMessage(npcId, this.lastInteraction.userMessage);
             
-            // 6. 如果原来应该触发总结，确保总结也被重新生成
-            if (shouldTriggerSummary) {
+            // 6. 如果原来是触发总结的轮次，确保总结也被重新生成
+            if (isSummaryTriggeringRound) {
                 // 获取最新的对话ID
                 const updatedChatData = JSON.parse((await getLorebookEntries(chatLorebook))
                     .find(e => e.comment === this.CHAT_HISTORY_PREFIX + npcId).content);
@@ -676,7 +683,7 @@ ${dialoguesText}
                     ? updatedChatData.chat_history[updatedChatData.chat_history.length - 1].id 
                     : 0;
                     
-                // 强制生成总结，即使可能不满足总结条件
+                // 强制生成总结
                 console.log(`重新生成时检测到原对话需要总结，正在重新生成总结...`);
                 await this.generateChatSummary(npcId, newLastDialogueId);
             }
