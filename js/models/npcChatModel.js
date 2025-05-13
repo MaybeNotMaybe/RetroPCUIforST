@@ -634,16 +634,23 @@ ${dialoguesText}
         }
         
         try {
-            // 首先尝试从备份恢复总结
-            await this.restoreSummaryFromBackup(this.lastInteraction.npcId);
+            const npcId = this.lastInteraction.npcId;
+            const lastDialogueId = this.lastInteraction.lastDialogueId;
             
-            // 获取聊天历史
-            const { chatLorebook, chatHistoryEntry } = await this.ensureChatHistory(this.lastInteraction.npcId);
+            // 1. 获取聊天历史，记录目前的最后总结ID
+            const { chatLorebook, chatHistoryEntry } = await this.ensureChatHistory(npcId);
             const chatData = JSON.parse(chatHistoryEntry.content);
+            const currentLastSummaryId = chatData.last_summary_id;
             
-            // 如果有最后一条对话记录，删除它
+            // 2. 恢复总结备份
+            await this.restoreSummaryFromBackup(npcId);
+            
+            // 3. 检查最后一条对话是否应该触发总结
+            const shouldTriggerSummary = (lastDialogueId - currentLastSummaryId) >= this.SUMMARY_INTERVAL;
+            
+            // 4. 删除最后一条对话
             if (chatData.chat_history.length > 0 && 
-                chatData.chat_history[chatData.chat_history.length - 1].id === this.lastInteraction.lastDialogueId) {
+                chatData.chat_history[chatData.chat_history.length - 1].id === lastDialogueId) {
                 
                 // 删除最后一条对话
                 chatData.chat_history.pop();
@@ -654,11 +661,27 @@ ${dialoguesText}
                     content: JSON.stringify(chatData, null, 2)
                 }]);
                 
-                console.log(`已删除NPC ${this.lastInteraction.npcId}的最后一条对话记录`);
+                console.log(`已删除NPC ${npcId}的最后一条对话记录`);
             }
             
-            // 重新生成回复
-            return await this.processMessage(this.lastInteraction.npcId, this.lastInteraction.userMessage);
+            // 5. 重新生成回复
+            const npcReply = await this.processMessage(npcId, this.lastInteraction.userMessage);
+            
+            // 6. 如果原来应该触发总结，确保总结也被重新生成
+            if (shouldTriggerSummary) {
+                // 获取最新的对话ID
+                const updatedChatData = JSON.parse((await getLorebookEntries(chatLorebook))
+                    .find(e => e.comment === this.CHAT_HISTORY_PREFIX + npcId).content);
+                const newLastDialogueId = updatedChatData.chat_history.length > 0 
+                    ? updatedChatData.chat_history[updatedChatData.chat_history.length - 1].id 
+                    : 0;
+                    
+                // 强制生成总结，即使可能不满足总结条件
+                console.log(`重新生成时检测到原对话需要总结，正在重新生成总结...`);
+                await this.generateChatSummary(npcId, newLastDialogueId);
+            }
+            
+            return npcReply;
         } catch (error) {
             console.error(`重新生成NPC回复失败:`, error);
             return `系统错误：重新生成回复失败 - ${error.message}`;
