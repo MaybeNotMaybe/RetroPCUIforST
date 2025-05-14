@@ -182,6 +182,9 @@ class MapView {
             if (centerOn) {
                 this.zoomAndCenterOn(centerOn.x, centerOn.y);
             }
+            
+            // 缩小非选中地点的字体
+            this.adjustLocationLabelFonts();
         } else {
             // 移除缩放类
             mapContent.classList.remove('zoomed');
@@ -191,6 +194,9 @@ class MapView {
             if (mapBackground) {
                 mapBackground.style.transform = '';
             }
+            
+            // 恢复所有地点的字体大小
+            this.resetLocationLabelFonts();
         }
     }
 
@@ -230,6 +236,8 @@ class MapView {
         }
         
         console.log(`缩放到: (${x}%,${y}%), 比例: ${zoomScale}, 平移: (${translateX}%, ${translateY}%)`);
+        // 调整字体大小
+        this.adjustLocationLabelFonts();
     }
 
     // 更新地图背景
@@ -308,17 +316,17 @@ class MapView {
         // 更新图片区域
         locationImage.innerHTML = `<div class="map-location-placeholder">${location.displayName}</div>`;
         
-        // 初始只显示表面信息
+        // 初始显示表面信息
         let infoHTML = `
-            <div class="tui-frame location-info-frame" id="locationInfoFrame">
+            <div class="tui-frame location-info-frame" id="locationInfoFrame" data-showing-hidden="false">
                 <div class="tui-title">${location.displayName}</div>
                 <p class="location-description">${location.description}</p>
             </div>
         `;
-        
+
         locationInfo.innerHTML = infoHTML;
         
-        // 添加点击事件处理 - 保持原来的逻辑
+        // 添加点击事件处理
         const infoFrame = document.getElementById('locationInfoFrame');
         if (infoFrame) {
             infoFrame.addEventListener('click', () => {
@@ -326,54 +334,83 @@ class MapView {
                 if ((location.knowsHidden || location.disguiseRevealed) && 
                     (location.hiddenDescription || location.isDisguised)) {
                     
+                    // 获取当前显示状态
+                    const isShowingHidden = infoFrame.dataset.showingHidden === 'true';
+                    
+                    // 切换显示状态
+                    infoFrame.dataset.showingHidden = isShowingHidden ? 'false' : 'true';
+                    
                     // 更新标题 - 如果伪装已识破，显示真实名称
                     const titleElement = infoFrame.querySelector('.tui-title');
-                    if (titleElement && location.isDisguised && location.disguiseRevealed) {
+                    if (titleElement && location.isDisguised && location.disguiseRevealed && !isShowingHidden) {
                         titleElement.textContent = location.realName;
                         
                         // 同时更新图片区域的标题
                         locationImage.innerHTML = `<div class="map-location-placeholder">${location.realName}</div>`;
+                    } else if (titleElement && isShowingHidden) {
+                        // 切换回表面信息
+                        titleElement.textContent = location.displayName;
+                        locationImage.innerHTML = `<div class="map-location-placeholder">${location.displayName}</div>`;
                     }
                     
                     // 更新描述 - 如果知道隐藏信息，显示隐藏描述
                     const descElement = infoFrame.querySelector('.location-description');
-                    if (descElement && location.knowsHidden && location.hiddenDescription) {
-                        descElement.textContent = location.hiddenDescription;
-                        
-                        // 添加视觉反馈，表明信息已切换
-                        descElement.classList.add('revealed');
-                        
-                        // 播放信息切换音效
-                        if (window.audioManager) {
-                            window.audioManager.play('dataReveal');
+                    if (descElement && location.knowsHidden) {
+                        if (!isShowingHidden && location.hiddenDescription) {
+                            descElement.textContent = location.hiddenDescription;
+                            descElement.classList.add('revealed');
+                            
+                            // 播放信息切换音效
+                            if (window.audioManager) {
+                                window.audioManager.play('dataReveal');
+                            }
+                        } else {
+                            descElement.textContent = location.description;
+                            descElement.classList.remove('revealed');
                         }
                     }
+                    
+                    // 更新访问状态
+                    this.updateAccessStatus(location, !isShowingHidden);
                 }
             });
         }
         
-        // 更新底部区域，显示双重访问状态
+        // 初始只显示公开访问状态
+        this.updateAccessStatus(location, false);
+        
+        locationFooter.innerHTML = `
+            <div class="tui-frame">
+                ${accessStatusHTML}
+            </div>
+        `;
+    }
+
+    // 更新当前的访问许可情况
+    updateAccessStatus(location, isShowingHidden) {
+        const locationFooter = document.getElementById('locationFooter');
+        if (!locationFooter) return;
+        
         let accessStatusHTML = '';
         
-        // 明面身份访问状态
-        if (location.publicAccess) {
-            accessStatusHTML += '<p class="access-info positive">公开身份：可进入</p>';
-        } else {
-            accessStatusHTML += '<p class="access-info negative">公开身份：禁止进入</p>';
-        }
-        
-        // 如果已识破伪装或知道隐藏信息，才显示秘密身份访问状态
-        if ((location.isDisguised && location.disguiseRevealed) || location.knowsHidden) {
+        if (isShowingHidden) {
+            // 显示秘密身份访问状态，不显示"秘密身份:"前缀
             if (location.covertAccess) {
-                accessStatusHTML += '<p class="access-info covert positive">秘密身份：已获准入</p>';
+                accessStatusHTML = '<p class="access-info covert positive">已获准入</p>';
             } else {
-                accessStatusHTML += '<p class="access-info covert negative">秘密身份：未获准入</p>';
+                accessStatusHTML = '<p class="access-info covert negative">未获准入</p>';
+            }
+        } else {
+            // 显示公开身份访问状态，不显示"公开身份:"前缀
+            if (location.publicAccess) {
+                accessStatusHTML = '<p class="access-info positive">可进入</p>';
+            } else {
+                accessStatusHTML = '<p class="access-info negative">禁止进入</p>';
             }
         }
         
         locationFooter.innerHTML = `
             <div class="tui-frame">
-                <p>坐标: [${location.coordinates[0]}, ${location.coordinates[1]}]</p>
                 ${accessStatusHTML}
             </div>
         `;
@@ -462,5 +499,35 @@ class MapView {
             // 执行回调函数，继续切换流程
             if (callback) callback();
         }, 35);
+    }
+
+    // 调整地点标签字体大小
+    adjustLocationLabelFonts() {
+        const highlightedMarker = document.querySelector('.location-marker.highlighted');
+        if (!highlightedMarker) return;
+        
+        const selectedLocationName = highlightedMarker.dataset.location;
+        const allMarkers = document.querySelectorAll('.location-marker');
+        
+        allMarkers.forEach(marker => {
+            const label = marker.querySelector('.location-label');
+            if (label) {
+                if (marker.dataset.location !== selectedLocationName) {
+                    // 缩小非选中地点的字体到50%
+                    label.style.fontSize = '6px'; // 原来是12px的50%
+                } else {
+                    // 确保选中地点的字体保持正常大小
+                    label.style.fontSize = '12px';
+                }
+            }
+        });
+    }
+
+    // 重置地点标签字体大小
+    resetLocationLabelFonts() {
+        const allLabels = document.querySelectorAll('.location-label');
+        allLabels.forEach(label => {
+            label.style.fontSize = '12px'; // 恢复原始大小
+        });
     }
 }
