@@ -63,7 +63,6 @@ class MapView {
     
     // 渲染完整地图
     renderMap(locations, currentLocation, onLocationClick = null) {
-        // 确保地图容器元素存在
         const locationsContainer = document.getElementById('mapLocationsContainer');
         if (!locationsContainer) {
             console.error("找不到地图位置容器元素");
@@ -72,10 +71,6 @@ class MapView {
         
         // 清空现有内容
         locationsContainer.innerHTML = '';
-        
-        // 获取地图容器的尺寸，用于坐标计算
-        const containerWidth = 1814; // 与背景图片宽度相匹配
-        const containerHeight = 1729; // 与背景图片高度相匹配
         
         // 添加位置标记
         for (const [name, data] of Object.entries(locations)) {
@@ -86,10 +81,9 @@ class MapView {
             locationMarker.className = 'location-marker';
             locationMarker.dataset.location = name;
             
-            // 使用data.coordinates直接作为像素坐标
-            // 注意：位置坐标现在应该是像素坐标而不是网格索引
-            locationMarker.style.left = `${x}px`;
-            locationMarker.style.top = `${y}px`;
+            // 使用百分比坐标而不是像素坐标
+            locationMarker.style.left = `${x}%`;
+            locationMarker.style.top = `${y}%`;
             
             // 创建标签元素
             const label = document.createElement('span');
@@ -104,13 +98,9 @@ class MapView {
             
             // 为每个位置添加点击事件监听器
             locationMarker.addEventListener('click', (e) => {
-                // 阻止事件冒泡，防止触发背景点击取消选择
                 e.stopPropagation();
-                
-                // 发布位置选择事件
                 EventBus.emit('locationSelected', name);
                 
-                // 如果提供了点击回调，则调用并传递位置信息
                 if (onLocationClick) {
                     onLocationClick(name, x, y);
                 }
@@ -158,7 +148,7 @@ class MapView {
             // 移除缩放类
             mapContent.classList.remove('zoomed');
             
-            // 重置变换 - 同时应用到背景和位置容器
+            // 重置变换
             locationsContainer.style.transform = '';
             if (mapBackground) {
                 mapBackground.style.transform = '';
@@ -174,36 +164,32 @@ class MapView {
         
         if (!locationsContainer || !mapContent) return;
         
-        // 缩放比例
-        const zoomScale = 1.5;
-        
-        // 获取地图内容区域的尺寸
+        // 动态计算缩放比例，使地图背景宽度与界面等宽
         const contentRect = mapContent.getBoundingClientRect();
-        const contentWidth = contentRect.width;
-        const contentHeight = contentRect.height;
+        const backgroundRect = mapBackground.getBoundingClientRect();
         
-        // 计算目标中心点 - 垂直居中
-        const targetCenterX = contentWidth * 0.5;
-        const targetCenterY = contentHeight / 2;
+        // 计算需要的缩放比例使图片填满宽度
+        // 考虑到图片是按contain缩放的，我们需要计算实际宽度与容器宽度的比例
+        const currentScale = backgroundRect.width / contentRect.width;
+        const zoomScale = 1 / currentScale; // 逆转当前缩放比例，使图片宽度与容器等宽
         
-        // 计算缩放后，位置点到原点的距离
-        const scaledPointX = x * zoomScale;
-        const scaledPointY = y * zoomScale;
+        // 确保缩放比例在合理范围内
+        const finalZoomScale = Math.min(Math.max(zoomScale, 1), 2.5);
         
-        // 计算需要的平移量，使位置点位于目标中心点
-        const translateX = targetCenterX - scaledPointX;
-        const translateY = targetCenterY - scaledPointY;
+        // 计算居中位置（基于百分比坐标）
+        const translateX = 50 - x;
+        const translateY = 50 - y;
         
         // 构建变换字符串
-        const transform = `scale(${zoomScale}) translate(${translateX/zoomScale}px, ${translateY/zoomScale}px)`;
+        const transform = `scale(${finalZoomScale}) translate(${translateX/finalZoomScale}%, ${translateY/finalZoomScale}%)`;
         
-        // 同时应用变换到位置容器和背景 - 确保同步
+        // 应用变换
         locationsContainer.style.transform = transform;
         if (mapBackground) {
             mapBackground.style.transform = transform;
         }
         
-        console.log(`缩放到: (${x},${y}), 平移: (${translateX}px, ${translateY}px)`);
+        console.log(`缩放到: (${x}%,${y}%), 比例: ${finalZoomScale}, 平移: (${translateX}%, ${translateY}%)`);
     }
 
     // 更新地图背景
@@ -221,15 +207,14 @@ class MapView {
     updateCursorPosition(position) {
         if (!this.cursorElement) return;
         
-        // 直接使用像素坐标
-        this.cursorElement.style.left = `${position.x}px`;
-        this.cursorElement.style.top = `${position.y}px`;
+        // 使用百分比坐标
+        this.cursorElement.style.left = `${position.x}%`;
+        this.cursorElement.style.top = `${position.y}%`;
         
         // 高亮当前位置点
         const locationsContainer = document.getElementById('mapLocationsContainer');
         const markers = locationsContainer.querySelectorAll('.location-marker');
         
-        // 移除所有cursor-highlight类
         markers.forEach(marker => marker.classList.remove('cursor-highlight'));
         
         // 添加到当前位置点 - 通过找出最接近光标位置的标记
@@ -237,8 +222,8 @@ class MapView {
         let minDistance = Infinity;
         
         markers.forEach(marker => {
-            const markerX = parseInt(marker.style.left);
-            const markerY = parseInt(marker.style.top);
+            const markerX = parseFloat(marker.style.left);
+            const markerY = parseFloat(marker.style.top);
             const distance = Math.sqrt(
                 Math.pow(markerX - position.x, 2) + 
                 Math.pow(markerY - position.y, 2)
@@ -251,7 +236,7 @@ class MapView {
         });
         
         // 如果找到最接近的标记，并且距离足够近，高亮它
-        if (closestMarker && minDistance < 30) {
+        if (closestMarker && minDistance < 5) { // 百分比单位下的阈值
             closestMarker.classList.add('cursor-highlight');
         }
     }
