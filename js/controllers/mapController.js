@@ -141,12 +141,6 @@ class MapController {
     handleLocationSelection(locationName) {
         console.log(`处理位置选择: ${locationName}`);
         
-        // 防止重复选择同一位置触发UI重置
-        if (this.model.selectedLocation === locationName) {
-            console.log("相同位置重复选择，忽略");
-            return true;
-        }
-        
         // 选择位置并显示详情
         if (this.model.selectLocation(locationName)) {
             const location = this.model.getSelectedLocation();

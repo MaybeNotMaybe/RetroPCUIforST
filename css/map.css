@@ -117,8 +117,9 @@
     transform: translateX(-50%);
     white-space: nowrap;
     font-size: 12px;
+    font-weight: bold;
     text-shadow: 0 0 3px #000, 0 0 3px #000;
-    opacity: 0.8;
+    opacity: 1;
 }
 
 /* 当前位置样式 */
