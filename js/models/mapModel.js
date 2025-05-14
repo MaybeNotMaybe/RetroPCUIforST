@@ -6,37 +6,37 @@ class MapModel {
         this.locations = {
             "办公室": {
                 description: "情报分析人员所在的办公区，这里有多台计算机设备和打印机。",
-                coordinates: [200, 100], // 像素坐标
+                coordinates: [50, 50], // 中心点，百分比坐标
                 connections: ["走廊", "资料室"]
             },
             "走廊": {
                 description: "连接办公区和其他房间的走廊，墙壁上挂着一些安全提醒。",
-                coordinates: [288, 364], // 像素坐标
+                coordinates: [60, 50], // 百分比坐标
                 connections: ["办公室", "档案室", "实验室"]
             },
             "资料室": {
                 description: "存放各种纸质文档和资料的房间，有许多书架和文件柜。",
-                coordinates: [207, 200], // 像素坐标
+                coordinates: [50, 58], // 百分比坐标
                 connections: ["办公室", "储藏室"]
             },
             "档案室": {
                 description: "存放重要档案的房间，需要特殊权限才能进入。",
-                coordinates: [388, 200], // 像素坐标
+                coordinates: [60, 58], // 百分比坐标
                 connections: ["走廊"]
             },
             "实验室": {
                 description: "进行各种实验和测试的地方，有许多精密仪器。",
-                coordinates: [569, 264], // 像素坐标
+                coordinates: [70, 50], // 百分比坐标
                 connections: ["走廊", "服务器室"]
             },
             "储藏室": {
                 description: "存放办公用品和设备的小房间。",
-                coordinates: [607, 236], // 像素坐标
+                coordinates: [50, 66], // 百分比坐标
                 connections: ["资料室"]
             },
             "服务器室": {
                 description: "放置服务器和网络设备的房间，温度较低，有嗡嗡的噪音。",
-                coordinates: [869, 200], // 像素坐标
+                coordinates: [70, 58], // 百分比坐标
                 connections: ["实验室"]
             }
         };

@@ -62,7 +62,7 @@
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    opacity: 0.4; /* 调整透明度使位置标记能清晰显示 */
+    opacity: 0.6; /* 调整透明度使位置标记能清晰显示 */
     z-index: 1; /* 确保在位置标记下方 */
     pointer-events: none; /* 确保点击事件穿透到位置标记 */
     transition: transform 0.3s ease-out;
@@ -76,14 +76,14 @@
     width: 100%;
     height: 100%;
     z-index: 2;
-    transition: transform 0.3s ease-out; /* 与地图背景同步的动画时间 */
+    transition: transform 0.3s ease-out;
 }
 
-/* 位置标记样式 */
+/* 位置标记样式 - 减小到原来的50% */
 .location-marker {
     position: absolute;
-    width: 20px;
-    height: 20px;
+    width: 10px; /* 从20px减至10px */
+    height: 10px; /* 从20px减至10px */
     border-radius: 50%;
     background-color: currentColor;
     display: flex;
@@ -92,33 +92,34 @@
     cursor: pointer;
     z-index: 3;
     transform: translate(-50%, -50%); /* 确保中心点对齐 */
-    transition: all 0.3s ease-out; /* 与其他元素一致的过渡 */
+    transition: all 0.3s ease-out;
     box-shadow: 0 0 5px currentColor;
 }
 
 .location-marker::before {
     content: '';
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 5px; /* 从10px减至5px */
+    height: 5px; /* 从10px减至5px */
     border-radius: 50%;
     background-color: rgba(0, 0, 0, 0.5);
 }
 
 .location-label {
     position: absolute;
-    bottom: -20px;
+    bottom: -16px; /* 调整位置 */
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
-    font-size: 14px;
-    text-shadow: 0 0 3px #000, 0 0 3px #000; /* 确保文字在任何背景上都清晰可见 */
+    font-size: 12px; /* 减小字体 */
+    text-shadow: 0 0 3px #000, 0 0 3px #000;
+    opacity: 0.8; /* 稍微降低透明度 */
 }
 
 /* 当前位置样式 */
 .location-marker.current {
-    width: 25px;
-    height: 25px;
+    width: 12px; /* 从25px减至12px */
+    height: 12px; /* 从25px减至12px */
     box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
     z-index: 10;
 }
@@ -132,8 +133,8 @@
 /* 光标样式 */
 .map-cursor {
     position: absolute;
-    width: 30px;
-    height: 30px;
+    width: 15px; /* 从30px减至15px */
+    height: 15px; /* 从30px减至15px */
     border: 2px dashed currentColor;
     border-radius: 50%;
     pointer-events: none;
@@ -141,63 +142,60 @@
     z-index: 11;
 }
 
-/* 地图详情面板 - 缩放时显示在右侧 */
+/* 地图详情面板 - 缩小并增加透明度 */
 .location-details {
-    margin-top: 20px;
-    padding: 10px;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 25%; /* 减小宽度 */
+    max-height: 30%; /* 减小高度 */
+    padding: 8px;
     border: 1px solid #444;
-    background-color: rgba(0, 0, 0, 0.5);
-    transition: all 0.4s ease-out;
-    position: relative;
+    background-color: rgba(0, 0, 0, 0.7); /* 增加透明度 */
+    transition: all 0.3s ease-out;
+    overflow-y: auto;
+    font-size: 0.9em; /* 减小字体 */
+    z-index: 4;
 }
 
 /* 缩放状态下的详情面板 */
 .map-content.zoomed .location-details {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 30%;
-    max-height: 80%;
-    overflow-y: auto;
-    background-color: rgba(0, 0, 0, 0.7);
+    width: 25%;
+    max-height: 30%;
+    background-color: rgba(0, 0, 0, 0.8);
     border: 1px solid currentColor;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-/* 图例在缩放状态下隐藏 */
-.map-content.zoomed .map-legend {
-    opacity: 0;
-    visibility: hidden;
-}
-
-/* 调整缩放时的背景行为 */
-.map-content.zoomed .map-background {
-    opacity: 0.2; /* 缩放时降低不透明度 */
-}
-
-/* 确保缩放内容的CSS过渡属性一致 */
-.map-content.zoomed .map-background,
-.map-content.zoomed .map-locations-container {
-    transition: transform 0.3s ease-out;
-}
-
+/* 图例 - 缩小并移至左下角 */
 .map-legend {
-    margin-top: 20px;
-    padding: 10px;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: auto;
+    padding: 8px;
     border: 1px solid #444;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.7); /* 增加透明度 */
+    font-size: 0.9em; /* 减小字体 */
+    z-index: 4;
+}
+
+/* 图例在缩放状态下保持可见但更透明 */
+.map-content.zoomed .map-legend {
+    opacity: 0.5;
+    visibility: visible;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    margin: 5px 0;
+    margin: 3px 0; /* 减小间距 */
 }
 
 .legend-icon {
-    width: 15px;
-    height: 15px;
-    margin-right: 10px;
+    width: 10px; /* 减小图标 */
+    height: 10px; /* 减小图标 */
+    margin-right: 8px;
     border: 1px solid #444;
 }
 
@@ -223,19 +221,33 @@
     border-color: #ffb000;
 }
 
-/* 地图文本样式与终端保持一致 */
+/* 调整缩放时的背景行为 */
+.map-content.zoomed .map-background {
+    opacity: 0.3; /* 缩放时降低不透明度 */
+}
+
+/* 确保缩放内容的CSS过渡属性一致 */
+.map-content.zoomed .map-background,
+.map-content.zoomed .map-locations-container {
+    transition: transform 0.3s ease-out;
+}
+
+/* 地图文本样式与终端保持一致，但缩小 */
 .map-content h3, .map-content h4 {
-    margin: 5px 0;
+    margin: 3px 0;
+    font-size: 1em;
 }
 
 .map-content p {
-    margin-bottom: 8px;
-    line-height: 1.3;
+    margin-bottom: 6px;
+    line-height: 1.2;
+    font-size: 0.9em;
 }
 
 .map-content ul {
-    padding-left: 20px;
-    margin: 5px 0;
+    padding-left: 15px;
+    margin: 3px 0;
+    font-size: 0.9em;
 }
 
 /* 动画效果 */
