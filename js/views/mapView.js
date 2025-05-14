@@ -17,6 +17,15 @@ class MapView {
 
         // 当前光标元素引用
         this.cursorElement = null;
+
+        // 添加测试模式标志
+        this.isTestMode = false;
+        
+        // 订阅测试模式变化事件
+        EventBus.on('testModeChanged', (isEnabled) => {
+            this.isTestMode = isEnabled;
+            console.log(`地图视图测试模式: ${isEnabled ? '已启用' : '已禁用'}`);
+        });
     }
     
     // 初始化地图UI
@@ -434,25 +443,39 @@ class MapView {
     
     // 显示地图界面
     show() {
-        // 先添加闪烁效果
-        this.flickerScreen(() => {
-            // 闪烁结束后，显示地图界面
+        if (this.isTestMode) {
+            // 测试模式：直接切换，无闪屏效果
             this.terminal.style.display = 'none';
             this.mapInterface.style.display = 'flex';
             
             // 确保地图界面继承当前屏幕的颜色模式
             this.updateColorMode(this.screen.classList.contains('amber-mode'));
-        });
+        } else {
+            // 正常模式：使用闪烁效果
+            this.flickerScreen(() => {
+                this.terminal.style.display = 'none';
+                this.mapInterface.style.display = 'flex';
+                
+                // 确保地图界面继承当前屏幕的颜色模式
+                this.updateColorMode(this.screen.classList.contains('amber-mode'));
+            });
+        }
     }
+
     
     // 隐藏地图界面
     hide() {
-        // 先添加闪烁效果
-        this.flickerScreen(() => {
-            // 闪烁结束后，显示终端界面
+        if (this.isTestMode) {
+            // 测试模式：直接切换，无闪屏效果
             this.terminal.style.display = 'flex';
             this.mapInterface.style.display = 'none';
-        });
+        } else {
+            // 正常模式：使用闪烁效果
+            this.flickerScreen(() => {
+                this.terminal.style.display = 'flex';
+                this.mapInterface.style.display = 'none';
+            });
+        }
     }
     
     // 更新颜色模式

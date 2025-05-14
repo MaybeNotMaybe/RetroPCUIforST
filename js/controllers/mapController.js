@@ -16,6 +16,11 @@ class MapController {
         
         // 绑定事件
         this.bindEvents();
+
+        // 订阅测试模式变化事件
+        EventBus.on('testModeChanged', (isEnabled) => {
+            console.log(`地图控制器测试模式: ${isEnabled ? '已启用' : '已禁用'}`);
+        });
         
         console.log("地图控制器已初始化");
     }
