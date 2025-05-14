@@ -50,6 +50,13 @@
     overflow: hidden;
 }
 
+/* 详情容器使用垂直flex */
+.map-location-details {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 /* 地图背景 */
 .map-background {
     position: absolute;
@@ -168,7 +175,7 @@
     border-bottom: 1px solid #444;
     padding: 10px;
     overflow-y: auto;
-    scrollbar-width: none;  /* Firefox */
+    scrollbar-width: none;
 }
 
 .map-location-info::-webkit-scrollbar {

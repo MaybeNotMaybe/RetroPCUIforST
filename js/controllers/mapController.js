@@ -31,10 +31,27 @@ class MapController {
         document.addEventListener('click', (e) => {
             if (!this.model.isVisible) return;
             
-            // 检查点击的是否是地图单元格，如果不是或是空白单元格则取消选择
+            // 检查点击的是否是地图单元格
             const clickedElement = e.target;
-            if (!clickedElement.classList.contains('location') && 
-                this.model.isVisible && this.model.selectedLocation) {
+            
+            // 忽略列表项和详情区域的点击
+            if (clickedElement.closest('.map-location-item') || 
+                clickedElement.closest('.map-details-area') ||
+                clickedElement.closest('.map-location-details')) {
+                console.log("忽略列表或详情区域的点击");
+                return;
+            }
+            
+            // 忽略位置标记的点击
+            if (clickedElement.classList.contains('location-marker') ||
+                clickedElement.closest('.location-marker')) {
+                console.log("忽略位置标记的点击");
+                return;
+            }
+            
+            // 如果点击的是空白区域，并且有选中位置，才清除选择
+            if (this.model.isVisible && this.model.selectedLocation) {
+                console.log("点击空白区域，清除选择");
                 this.clearSelection();
             }
         });
@@ -122,11 +139,28 @@ class MapController {
     
     // 处理位置选择
     handleLocationSelection(locationName) {
+        console.log(`处理位置选择: ${locationName}`);
+        
+        // 防止重复选择同一位置触发UI重置
+        if (this.model.selectedLocation === locationName) {
+            console.log("相同位置重复选择，忽略");
+            return true;
+        }
+        
         // 选择位置并显示详情
         if (this.model.selectLocation(locationName)) {
             const location = this.model.getSelectedLocation();
-            this.view.showLocationDetails(location);
+            
+            // 先设置高亮
             this.view.highlightLocation(locationName);
+            
+            // 显示详情
+            this.view.showLocationDetails(location);
+            
+            // 更新光标位置
+            const [x, y] = location.coordinates;
+            this.cursorPosition = { x, y };
+            this.view.updateCursorPosition(this.cursorPosition);
             
             // 如果尚未缩放，启用缩放
             if (!this.view.isZoomed) {
@@ -134,8 +168,15 @@ class MapController {
                     x: location.coordinates[0],
                     y: location.coordinates[1]
                 });
+            } else {
+                // 已经缩放，则重新缩放到新位置
+                this.view.zoomAndCenterOn(location.coordinates[0], location.coordinates[1]);
             }
+            
+            return true;
         }
+        
+        return false;
     }
     
     // 切换地图视图
@@ -164,8 +205,8 @@ class MapController {
             // 渲染地图
             this.renderMap();
             
-            // 默认显示位置列表，不选中任何位置
-            this.showLocationDetails(null);
+            // 修改这一行，使用 this.view 引用
+            this.view.showLocationDetails(null);
         } else {
             // 隐藏地图
             this.view.hide();
@@ -372,5 +413,7 @@ class MapController {
         
         // 3. 选中该地点
         this.handleLocationSelection(name);
+        
+        console.log(`位置点击: ${name}, 坐标: (${x}, ${y})`);
     }
 }
