@@ -2,12 +2,12 @@
 class MapModel {
     constructor() {
         // 地图初始化
-        this.currentLocation = "拉法耶特公园";
+        this.currentLocation = "富兰克林公园";
         this.locations = {
-            "拉法耶特公园": {
-                description: "位于白宫北侧的著名公园，经常有游客和当地居民在此休憩。公园中央有喷泉，树木繁茂。",
+            "富兰克林公园": {
+                description: "位于白宫东北侧的著名公园，经常有游客和当地居民在此休憩。公园中央有喷泉，树木繁茂。",
                 hiddenDescription: "这个公园是情报人员最常用的非正式会面地点，尤其是靠近白宫的长椅和西北角的棋桌。每周二和周五下午4点是最繁忙的交接时间。",
-                coordinates: [50, 50], // 中心点，百分比坐标
+                coordinates: [50, 28], // 中心点，百分比坐标
                 publicAccess: true,    // 公开身份可进入
                 covertAccess: true,    // 秘密身份可进入
                 isVisible: true,
@@ -15,9 +15,9 @@ class MapModel {
                 disguisedAs: null,
                 disguiseRevealed: null
             },
-            "CIA总部": {
-                description: "位于弗吉尼亚兰利的中央情报局总部大楼，高度戒备，游客无法靠近。外围有森严的安保措施。",
-                hiddenDescription: "除了官方设施外，总部还包含多个未在建筑平面图上标注的地下楼层，用于特殊行动和审讯。东翼设有专门的量子计算机实验室。",
+            "CIA DC分部": {
+                description: "一座看起来毫不起眼的现代化办公楼。员工西装革履，行事低调。",
+                hiddenDescription: "CIA在首都地区执行秘密行动、招募和管理本地线人、进行反情报调查的核心部门之一。内部设有审讯室、安全屋、技术支持实验室等。掌握着大量关于外国使馆和可疑人员的监控数据。",
                 coordinates: [60, 45], // 百分比坐标
                 publicAccess: false,   // 普通人不可进入
                 covertAccess: false,   // 特工身份未解锁
@@ -26,10 +26,10 @@ class MapModel {
                 disguisedAs: null,
                 disguiseRevealed: null
             },
-            "NSA华盛顿办事处": {
+            "NSA DC办公室": {
                 description: "国家安全局在华盛顿的联络办公室，位于一栋普通写字楼内。大楼外表平淡无奇，只有小小的标识。",
                 hiddenDescription: "办公室内部有专用加密通信设备，连接至马里兰州米德堡的NSA总部，用于传输高度机密数据。地下有秘密服务器群组。",
-                coordinates: [45, 55], // 百分比坐标
+                coordinates: [85, 10], // 百分比坐标
                 publicAccess: false,   // 普通人不可进入
                 covertAccess: false,   // 特工身份未解锁
                 isVisible: true,
@@ -40,7 +40,7 @@ class MapModel {
             "苏联大使馆": {
                 description: "位于威斯康星大道上的苏联外交机构，红色国旗明显可见。建筑风格严肃庄重，有高大的围墙。",
                 hiddenDescription: "大使馆内部是KGB在美国的重要据点，多名外交官身份的情报人员在此工作。使馆内部布满了监听设备，每周定期排查美方安装的窃听器。三楼西侧是密码通讯室，由专人24小时值守。",
-                coordinates: [60, 58], // 百分比坐标
+                coordinates: [12, 18], // 百分比坐标
                 publicAccess: false,   // 普通人不可进入
                 covertAccess: false,   // 特工身份未解锁
                 isVisible: true,
@@ -51,7 +51,7 @@ class MapModel {
             "英国大使馆": {
                 description: "英国在华盛顿的外交代表处，建筑风格典雅庄重。花园中有精心修剪的草坪和传统的英式园艺。",
                 hiddenDescription: "MI6在此设有秘密办公室，与CIA保持着特殊的情报共享关系。大使馆东翼三楼是情报人员专用区域，普通使馆工作人员无法进入。地下室有通往其他建筑的隐蔽通道。",
-                coordinates: [70, 50], // 百分比坐标
+                coordinates: [19, 25], // 百分比坐标
                 publicAccess: false,   // 普通人不可进入
                 covertAccess: false,   // 特工身份未解锁
                 isVisible: true,
@@ -62,10 +62,10 @@ class MapModel {
             "地下交易点": {
                 description: "位于城市边缘的一个废弃仓库区，看起来杂乱无人。铁丝网围栏上挂着'禁止入内'的标志。",
                 hiddenDescription: "这里是情报和武器交易的秘密场所，只有知道'北极熊'暗号的人才能进入。每周五午夜换岗后是最安全的交易时间。仓库内的特定集装箱可以通向地下空间。",
-                coordinates: [50, 66], // 百分比坐标
+                coordinates: [37, 83], // 百分比坐标
                 publicAccess: false,   // 普通人不可进入
                 covertAccess: false,   // 特工身份未解锁
-                isVisible: false,      // 默认对玩家不可见
+                isVisible: true,      // 默认对玩家不可见
                 knowsHidden: false,
                 disguisedAs: null,
                 disguiseRevealed: null
@@ -94,10 +94,10 @@ class MapModel {
                 disguiseRevealed: true,
                 realName: "CIA情报收发站"
             },
-            "国会山庄": {
+            "国会山": {
                 description: "美国国会大厦所在地，美国立法机构办公场所。宏伟的圆顶建筑是华盛顿最著名的地标之一。",
                 hiddenDescription: "国会地下有秘密会议室，用于紧急状态下的国家安全讨论。某些议员办公室是各国情报机构关注的重点渗透目标。存在多条隐蔽通道连接至附近建筑，以便紧急疏散。",
-                coordinates: [40, 40], // 百分比坐标
+                coordinates: [88.5, 58.2], // 百分比坐标
                 publicAccess: true,    // 游客可参观
                 covertAccess: false,   // 秘密区域未解锁
                 isVisible: true,
@@ -118,8 +118,8 @@ class MapModel {
             },
             "华盛顿纪念碑": {
                 description: "为纪念美国首任总统华盛顿而建的高耸方尖碑，是华盛顿市中心的标志性建筑。",
-                hiddenDescription: "纪念碑内部安装了多种监控设备，国家安全局利用其高度优势监测整个国家广场区域的无线电通讯。顶部设有特殊天线，可拦截半径3英里内的无加密通讯。",
-                coordinates: [45, 60], // 百分比坐标
+                hiddenDescription: "",
+                coordinates: [42, 58.5], // 百分比坐标
                 publicAccess: true,    // 开放参观
                 covertAccess: false,   // 监控设施未解锁
                 isVisible: true,
@@ -141,7 +141,7 @@ class MapModel {
             "林肯纪念堂": {
                 description: "为纪念美国第16任总统林肯而建的希腊神庙式建筑，内有林肯巨型坐像。",
                 hiddenDescription: "纪念堂是特定情报小组定期换班的标记地点。每周三日落后，东北角的长椅是重要的死信箱位置，特工们会在这里交换加密信息。",
-                coordinates: [35, 55], // 百分比坐标
+                coordinates: [15.5, 59.5], // 百分比坐标
                 publicAccess: true,    // 开放参观
                 covertAccess: true,    // 情报人员可使用
                 isVisible: true,
@@ -164,7 +164,7 @@ class MapModel {
             "白宫": {
                 description: "美国总统官邸和办公场所，白色新古典主义建筑，有严格的安保措施。",
                 hiddenDescription: "白宫地下设有总统紧急行动中心，可在核战争等极端情况下充当指挥所。内部通讯系统采用多重加密，定期更换频率以防窃听。",
-                coordinates: [48, 45], // 百分比坐标
+                coordinates: [39.8, 40], // 百分比坐标
                 publicAccess: false,   // 需预约参观
                 covertAccess: false,   // 机密区域未解锁
                 isVisible: true,
