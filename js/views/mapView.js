@@ -21,32 +21,35 @@ class MapView {
     
     // 初始化地图UI
     initializeUI() {
-        // 创建基本地图结构
+        // 创建新的布局结构
         this.mapContent.innerHTML = `
-            <div class="map-fade-in">
+            <div class="map-area">
                 <!-- 地图背景 -->
                 <div class="map-background" id="mapBackground"></div>
-                <!-- 替换网格为自由布局容器 -->
+                <!-- 位置标记容器 -->
                 <div class="map-locations-container" id="mapLocationsContainer"></div>
-                <div class="map-legend">
-                    <h3>图例</h3>
-                    <div class="legend-item">
-                        <div class="legend-icon legend-current"></div>
-                        <div>当前位置</div>
+            </div>
+            <div class="map-details-area" id="mapDetailsArea">
+                <!-- 详情区域在选择位置时显示 -->
+                <div class="map-location-details" id="locationDetails" style="display: none;">
+                    <div class="map-location-image" id="locationImage">
+                        <div class="map-location-placeholder">地点图片</div>
                     </div>
-                    <div class="legend-item">
-                        <div class="legend-icon legend-location"></div>
-                        <div>已知位置</div>
+                    <div class="map-location-info" id="locationInfo">
+                        <div class="tui-frame">
+                            <div class="tui-title">位置详情</div>
+                            <p>选择一个位置以查看详情</p>
+                        </div>
                     </div>
+                    <div class="map-location-footer" id="locationFooter"></div>
                 </div>
-                <div class="location-details" id="locationDetails">
-                    <h3>位置详情</h3>
-                    <p>选择一个位置以查看详情</p>
-                </div>
+                
+                <!-- 位置列表在未选择位置时显示 -->
+                <div class="map-location-list" id="locationList"></div>
             </div>
         `;
 
-        // 添加光标元素，但现在放在locations容器中
+        // 添加光标元素
         const locationsContainer = document.getElementById('mapLocationsContainer');
         if (locationsContainer) {
             this.cursorElement = document.createElement('div');
@@ -81,7 +84,6 @@ class MapView {
             locationMarker.className = 'location-marker';
             locationMarker.dataset.location = name;
             
-            // 使用百分比坐标而不是像素坐标
             locationMarker.style.left = `${x}%`;
             locationMarker.style.top = `${y}%`;
             
@@ -96,7 +98,7 @@ class MapView {
                 locationMarker.classList.add('current');
             }
             
-            // 为每个位置添加点击事件监听器
+            // 为每个位置添加点击事件
             locationMarker.addEventListener('click', (e) => {
                 e.stopPropagation();
                 EventBus.emit('locationSelected', name);
@@ -123,6 +125,34 @@ class MapView {
             this.cursorElement.className = 'map-cursor';
             locationsContainer.appendChild(this.cursorElement);
         }
+        
+        // 渲染位置列表到右侧
+        this.renderLocationList(locations, currentLocation);
+    }
+
+    // 渲染位置列表
+    renderLocationList(locations, currentLocation) {
+        const locationList = document.getElementById('locationList');
+        if (!locationList) return;
+        
+        let listHTML = '<div class="tui-frame"><div class="tui-title">可用位置</div>';
+        
+        for (const [name, data] of Object.entries(locations)) {
+            const currentClass = name === currentLocation ? 'current' : '';
+            listHTML += `<div class="map-location-item ${currentClass}" data-location="${name}">${name}</div>`;
+        }
+        
+        listHTML += '</div>';
+        locationList.innerHTML = listHTML;
+        
+        // 为每个位置项添加点击事件
+        const items = locationList.querySelectorAll('.map-location-item');
+        items.forEach(item => {
+            item.addEventListener('click', () => {
+                const locationName = item.dataset.location;
+                EventBus.emit('locationSelected', locationName);
+            });
+        });
     }
 
     // 切换缩放效果
@@ -160,28 +190,31 @@ class MapView {
     zoomAndCenterOn(x, y) {
         const locationsContainer = document.getElementById('mapLocationsContainer');
         const mapBackground = document.getElementById('mapBackground');
-        const mapContent = document.querySelector('.map-content');
+        const mapArea = document.querySelector('.map-area');
         
-        if (!locationsContainer || !mapContent) return;
+        if (!locationsContainer || !mapArea) return;
         
-        // 动态计算缩放比例，使地图背景宽度与界面等宽
-        const contentRect = mapContent.getBoundingClientRect();
-        const backgroundRect = mapBackground.getBoundingClientRect();
+        // 使用固定缩放比例，不再动态计算
+        const zoomScale = 1.8;
         
-        // 计算需要的缩放比例使图片填满宽度
-        // 考虑到图片是按contain缩放的，我们需要计算实际宽度与容器宽度的比例
-        const currentScale = backgroundRect.width / contentRect.width;
-        const zoomScale = 1 / currentScale; // 逆转当前缩放比例，使图片宽度与容器等宽
+        // 边界限制参数（百分比）
+        const boundaryLimits = {
+            left: 20,   // 左边界限制
+            right: 20,  // 右边界限制
+            top: 20,    // 上边界限制
+            bottom: 20  // 下边界限制
+        };
         
-        // 确保缩放比例在合理范围内
-        const finalZoomScale = Math.min(Math.max(zoomScale, 1), 2.5);
+        // 计算要平移的距离，同时考虑边界限制
+        let translateX = 50 - x;
+        let translateY = 50 - y;
         
-        // 计算居中位置（基于百分比坐标）
-        const translateX = 50 - x;
-        const translateY = 50 - y;
+        // 应用边界限制
+        translateX = Math.max(Math.min(translateX, boundaryLimits.right), -boundaryLimits.left);
+        translateY = Math.max(Math.min(translateY, boundaryLimits.bottom), -boundaryLimits.top);
         
         // 构建变换字符串
-        const transform = `scale(${finalZoomScale}) translate(${translateX/finalZoomScale}%, ${translateY/finalZoomScale}%)`;
+        const transform = `scale(${zoomScale}) translate(${translateX/zoomScale}%, ${translateY/zoomScale}%)`;
         
         // 应用变换
         locationsContainer.style.transform = transform;
@@ -189,7 +222,7 @@ class MapView {
             mapBackground.style.transform = transform;
         }
         
-        console.log(`缩放到: (${x}%,${y}%), 比例: ${finalZoomScale}, 平移: (${translateX}%, ${translateY}%)`);
+        console.log(`缩放到: (${x}%,${y}%), 比例: ${zoomScale}, 平移: (${translateX}%, ${translateY}%)`);
     }
 
     // 更新地图背景
@@ -243,39 +276,56 @@ class MapView {
     
     // 显示位置详情
     showLocationDetails(location) {
-        const detailsElement = document.getElementById('locationDetails');
-        if (!detailsElement) return;
+        const detailsContainer = document.getElementById('locationDetails');
+        const locationList = document.getElementById('locationList');
+        const locationInfo = document.getElementById('locationInfo');
+        const locationImage = document.getElementById('locationImage');
+        const locationFooter = document.getElementById('locationFooter');
         
-        // 原有的位置详情代码保持不变
+        if (!detailsContainer || !locationList || !locationInfo) return;
+        
         if (!location) {
-            detailsElement.innerHTML = `
-                <h3>位置详情</h3>
-                <p>选择一个位置以查看详情</p>
-            `;
+            // 没有选择位置，显示列表
+            detailsContainer.style.display = 'none';
+            locationList.style.display = 'block';
             return;
         }
         
-        // 生成连接列表
+        // 选择了位置，显示详情
+        detailsContainer.style.display = 'flex';
+        locationList.style.display = 'none';
+        
+        // 更新图片区域
+        locationImage.innerHTML = `<div class="map-location-placeholder">${location.name}</div>`;
+        
+        // 更新信息区域
         let connectionsHTML = '';
         if (location.connections && location.connections.length > 0) {
             connectionsHTML = `
-                <h4>通往:</h4>
+                <p>连接位置:</p>
                 <ul>
                     ${location.connections.map(loc => `<li>${loc}</li>`).join('')}
                 </ul>
             `;
         }
         
-        detailsElement.innerHTML = `
-            <h3>${location.name}</h3>
-            <p>${location.description}</p>
-            <p>坐标: [${location.coordinates[0]}, ${location.coordinates[1]}]</p>
-            ${connectionsHTML}
+        locationInfo.innerHTML = `
+            <div class="tui-frame">
+                <div class="tui-title">${location.name}</div>
+                <p>${location.description}</p>
+                ${connectionsHTML}
+            </div>
         `;
         
-        // 如果处于缩放状态且位置改变，重新缩放和居中
+        // 更新底部区域
+        locationFooter.innerHTML = `
+            <div class="tui-frame">
+                <p>坐标: [${location.coordinates[0]}, ${location.coordinates[1]}]</p>
+            </div>
+        `;
+        
+        // 如果处于缩放状态，重新缩放到位置中心
         if (this.isZoomed && location) {
-            // 使用短延迟确保DOM已更新
             setTimeout(() => {
                 this.zoomAndCenterOn(location.coordinates[0], location.coordinates[1]);
             }, 50);
