@@ -378,12 +378,6 @@ class MapView {
         
         // 初始只显示公开访问状态
         this.updateAccessStatus(location, false);
-        
-        locationFooter.innerHTML = `
-            <div class="tui-frame">
-                ${accessStatusHTML}
-            </div>
-        `;
     }
 
     // 更新当前的访问许可情况
