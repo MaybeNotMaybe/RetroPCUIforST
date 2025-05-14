@@ -21,8 +21,8 @@ class MapView {
     
     // 初始化地图UI
     initializeUI() {
-        // 创建新的布局结构
-        this.mapContent.innerHTML = `
+    // 创建新的布局结构
+    this.mapContent.innerHTML = `
             <div class="map-area">
                 <!-- 地图背景 -->
                 <div class="map-background" id="mapBackground"></div>
@@ -31,7 +31,7 @@ class MapView {
             </div>
             <div class="map-details-area" id="mapDetailsArea">
                 <!-- 详情区域在选择位置时显示 -->
-                <div class="map-location-details" id="locationDetails" style="display: none;">
+                <div class="map-location-details" id="locationDetails" style="display: none; flex-direction: column;">
                     <div class="map-location-image" id="locationImage">
                         <div class="map-location-placeholder">地点图片</div>
                     </div>
@@ -150,7 +150,15 @@ class MapView {
         items.forEach(item => {
             item.addEventListener('click', () => {
                 const locationName = item.dataset.location;
-                EventBus.emit('locationSelected', locationName);
+                console.log(`列表项点击: ${locationName}`);
+                
+                // 直接调用控制器的方法
+                if (window.mapController) {
+                    window.mapController.handleLocationSelection(locationName);
+                } else {
+                    // 退路 - 使用事件总线
+                    EventBus.emit('locationSelected', locationName);
+                }
             });
         });
     }
@@ -190,11 +198,10 @@ class MapView {
     zoomAndCenterOn(x, y) {
         const locationsContainer = document.getElementById('mapLocationsContainer');
         const mapBackground = document.getElementById('mapBackground');
-        const mapArea = document.querySelector('.map-area');
         
-        if (!locationsContainer || !mapArea) return;
+        if (!locationsContainer) return;
         
-        // 使用固定缩放比例，不再动态计算
+        // 使用固定缩放比例
         const zoomScale = 1.8;
         
         // 边界限制参数（百分比）
@@ -282,7 +289,12 @@ class MapView {
         const locationImage = document.getElementById('locationImage');
         const locationFooter = document.getElementById('locationFooter');
         
-        if (!detailsContainer || !locationList || !locationInfo) return;
+        if (!detailsContainer || !locationList) {
+            console.error('找不到地图详情容器');
+            return;
+        }
+        
+        console.log(`显示位置详情: ${location ? location.name : '无'}`);
         
         if (!location) {
             // 没有选择位置，显示列表
@@ -295,6 +307,7 @@ class MapView {
         detailsContainer.style.display = 'flex';
         locationList.style.display = 'none';
         
+        // 其余更新详情的代码保持不变...
         // 更新图片区域
         locationImage.innerHTML = `<div class="map-location-placeholder">${location.name}</div>`;
         
@@ -323,13 +336,6 @@ class MapView {
                 <p>坐标: [${location.coordinates[0]}, ${location.coordinates[1]}]</p>
             </div>
         `;
-        
-        // 如果处于缩放状态，重新缩放到位置中心
-        if (this.isZoomed && location) {
-            setTimeout(() => {
-                this.zoomAndCenterOn(location.coordinates[0], location.coordinates[1]);
-            }, 50);
-        }
     }
 
     // 更新当前位置显示
