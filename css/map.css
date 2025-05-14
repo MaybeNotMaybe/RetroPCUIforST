@@ -304,3 +304,36 @@
 .amber-mode .map-current-location span {
     color: #ffb000;
 }
+
+/* 地图背景样式 */
+.map-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.6; /* 调整透明度使网格和位置能清晰显示 */
+    z-index: 1; /* 确保在网格下方 */
+    pointer-events: none; /* 确保点击事件穿透到网格 */
+}
+
+/* 确保地图网格在背景上方 */
+.map-grid {
+    position: relative;
+    z-index: 2; /* 高于背景 */
+}
+
+/* 调整缩放时的背景行为 */
+.map-content.zoomed .map-background {
+    opacity: 0.2; /* 缩放时降低不透明度 */
+}
+
+/* 在缩放状态下，确保背景跟随网格缩放 */
+.map-content.zoomed .map-background {
+    transform: scale(1.5);
+    transform-origin: center center;
+    transition: transform 0.2s ease-out;
+}

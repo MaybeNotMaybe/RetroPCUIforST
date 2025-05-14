@@ -24,6 +24,8 @@ class MapView {
         // 创建基本地图结构
         this.mapContent.innerHTML = `
             <div class="map-fade-in">
+                <!-- 添加地图背景元素 -->
+                <div class="map-background" id="mapBackground"></div>
                 <div class="map-grid" id="mapGrid"></div>
                 <div class="map-legend">
                     <h3>图例</h3>
@@ -50,6 +52,9 @@ class MapView {
             this.cursorElement.className = 'map-cursor';
             mapGrid.appendChild(this.cursorElement);
         }
+
+        // 加载初始背景图片
+        this.updateMapBackground(this.screen.classList.contains('amber-mode'));
 
         // 添加缩放状态标记
         this.isZoomed = false;
@@ -125,6 +130,7 @@ class MapView {
     toggleZoom(centerOn = null) {
         const mapContent = document.querySelector('.map-content');
         const mapGrid = document.getElementById('mapGrid');
+        const mapBackground = document.getElementById('mapBackground');
         
         if (!mapContent || !mapGrid) return;
         
@@ -138,6 +144,11 @@ class MapView {
             // 如果提供了中心点，应用缩放和居中
             if (centerOn) {
                 this.zoomAndCenterOn(centerOn.x, centerOn.y);
+                
+                // 更新背景位置以匹配网格
+                if (mapBackground && mapGrid.style.transform) {
+                    mapBackground.style.transform = mapGrid.style.transform;
+                }
             }
         } else {
             // 移除缩放类
@@ -145,12 +156,16 @@ class MapView {
             
             // 重置变换
             mapGrid.style.transform = '';
+            if (mapBackground) {
+                mapBackground.style.transform = '';
+            }
         }
     }
 
     // 缩放并居中到特定单元格
     zoomAndCenterOn(x, y) {
         const mapGrid = document.getElementById('mapGrid');
+        const mapBackground = document.getElementById('mapBackground');
         const mapContent = document.querySelector('.map-content');
         
         if (!mapGrid || !mapContent) return;
@@ -188,10 +203,27 @@ class MapView {
         const translateY = targetCenterY - scaledCellY;
         
         // 应用变换 - 同时缩放和平移
-        mapGrid.style.transform = `scale(${zoomScale}) translate(${translateX/zoomScale}px, ${translateY/zoomScale}px)`;
+        const transform = `scale(${zoomScale}) translate(${translateX/zoomScale}px, ${translateY/zoomScale}px)`;
+        mapGrid.style.transform = transform;
+        
+        // 同步应用到背景
+        if (mapBackground) {
+            mapBackground.style.transform = transform;
+        }
         
         console.log(`缩放到: (${x},${y}), 平移: (${translateX}px, ${translateY}px)`);
     }
+
+    // 更新地图背景
+    updateMapBackground(isAmber) {
+        const mapBackground = document.getElementById('mapBackground');
+        if (mapBackground) {
+            mapBackground.style.backgroundImage = isAmber ? 
+                'url("assets/images/map_amber.png")' : 
+                'url("assets/images/map_green.png")';
+        }
+    }
+
 
     // 更新光标位置
     updateCursorPosition(position) {
@@ -312,6 +344,9 @@ class MapView {
         } else {
             this.mapInterface.classList.add('green-mode');
         }
+        
+        // 更新地图背景
+        this.updateMapBackground(isAmber);
     }
 
     // 屏幕闪烁效果
