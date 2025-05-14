@@ -213,7 +213,12 @@ class MapController {
                 }
             }, 100);
         }
-        
+
+        // 保存当前状态，确保记住地图可见性
+        if (window.gameController) {
+            window.gameController.saveSettings();
+        }
+
         return true;
     }
 

@@ -106,10 +106,15 @@ class GameController {
         // 获取软盘状态（如果软盘控制器存在）
         const floppyDriveState = this.floppyController ? this.floppyController.getFloppyState() : null;
         
+
+        // 获取当前地图状态（如果地图控制器存在）
+        const mapVisible = window.mapController ? window.mapController.model.isVisible : false;
+
         const settings = {
             isPowerOn: this.model.isOn,
             colorMode: document.getElementById('colorToggle').classList.contains('amber') ? 'amber' : 'green',
-            floppyDriveState: floppyDriveState
+            floppyDriveState: floppyDriveState,
+            mapVisible: mapVisible
         };
         
         // 只有开机状态才保存历史记录
@@ -216,10 +221,19 @@ class GameController {
                     
                     setTimeout(() => {
                         this.view.input.focus();
-                    }, 100);
+                    }, 50);
                     
                     // 发布系统电源状态事件
                     EventBus.emit('systemPowerChange', true);
+
+                    // 恢复地图可见性状态
+                    setTimeout(() => {
+                        // 确保地图控制器已初始化
+                        if (window.mapController && settings.mapVisible) {
+                            // 如果地图应该可见，切换到地图视图
+                            window.mapController.toggleMapView();
+                        }
+                    }, 50);  // 延迟，确保系统完全加载
                 } else {
                     // 确保关机状态
                     this.model.isOn = false;
