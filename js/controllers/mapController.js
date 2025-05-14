@@ -208,6 +208,11 @@ class MapController {
         const currentX = this.cursorPosition.x;
         const currentY = this.cursorPosition.y;
         
+        // 定义移动速度（像素单位）
+        const moveSpeed = 50;
+        deltaX *= moveSpeed;
+        deltaY *= moveSpeed;
+        
         // 确定移动方向
         let direction = '';
         if (deltaX > 0) direction = 'right';
@@ -226,15 +231,6 @@ class MapController {
                 (direction === 'down' && location.y <= currentY) ||
                 (direction === 'up' && location.y >= currentY)) {
                 continue; // 忽略不在目标方向的地点
-            }
-            
-            // 确保水平或垂直方向上足够接近
-            if (direction === 'right' || direction === 'left') {
-                // 垂直偏差不应太大
-                if (Math.abs(location.y - currentY) > 2) continue;
-            } else {
-                // 水平偏差不应太大
-                if (Math.abs(location.x - currentX) > 2) continue;
             }
             
             // 计算距离
@@ -262,39 +258,6 @@ class MapController {
 
             // 自动选中新位置
             this.handleLocationSelection(closestLocation.name);
-        } else {
-            // 如果没有找到，尝试当前方向上的任何地点（放宽约束）
-            for (const location of this.locationPositions) {
-                if ((direction === 'right' && location.x > currentX) ||
-                    (direction === 'left' && location.x < currentX) ||
-                    (direction === 'down' && location.y > currentY) ||
-                    (direction === 'up' && location.y < currentY)) {
-                    
-                    const distance = Math.sqrt(
-                        Math.pow(location.x - currentX, 2) + 
-                        Math.pow(location.y - currentY, 2)
-                    );
-                    
-                    if (distance < closestDistance) {
-                        closestDistance = distance;
-                        closestLocation = location;
-                    }
-                }
-            }
-            
-            // 如果找到了，移动光标
-            if (closestLocation) {
-                this.cursorPosition = { x: closestLocation.x, y: closestLocation.y };
-                this.view.updateCursorPosition(this.cursorPosition);
-                
-                // 更新当前索引
-                this.currentLocationIndex = this.locationPositions.findIndex(
-                    pos => pos.x === closestLocation.x && pos.y === closestLocation.y
-                );
-
-                // 自动选中新位置
-                this.handleLocationSelection(closestLocation.name);
-            }
         }
     }
     

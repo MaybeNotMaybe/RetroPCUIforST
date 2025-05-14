@@ -24,9 +24,10 @@ class MapView {
         // 创建基本地图结构
         this.mapContent.innerHTML = `
             <div class="map-fade-in">
-                <!-- 添加地图背景元素 -->
+                <!-- 地图背景 -->
                 <div class="map-background" id="mapBackground"></div>
-                <div class="map-grid" id="mapGrid"></div>
+                <!-- 替换网格为自由布局容器 -->
+                <div class="map-locations-container" id="mapLocationsContainer"></div>
                 <div class="map-legend">
                     <h3>图例</h3>
                     <div class="legend-item">
@@ -45,12 +46,12 @@ class MapView {
             </div>
         `;
 
-        // 添加光标元素
-        const mapGrid = document.getElementById('mapGrid');
-        if (mapGrid) {
+        // 添加光标元素，但现在放在locations容器中
+        const locationsContainer = document.getElementById('mapLocationsContainer');
+        if (locationsContainer) {
             this.cursorElement = document.createElement('div');
             this.cursorElement.className = 'map-cursor';
-            mapGrid.appendChild(this.cursorElement);
+            locationsContainer.appendChild(this.cursorElement);
         }
 
         // 加载初始背景图片
@@ -62,44 +63,47 @@ class MapView {
     
     // 渲染完整地图
     renderMap(locations, currentLocation, onLocationClick = null) {
-        // 确保mapGrid元素存在
-        const mapGrid = document.getElementById('mapGrid');
-        if (!mapGrid) {
-            console.error("找不到地图网格元素");
+        // 确保地图容器元素存在
+        const locationsContainer = document.getElementById('mapLocationsContainer');
+        if (!locationsContainer) {
+            console.error("找不到地图位置容器元素");
             return;
         }
         
         // 清空现有内容
-        mapGrid.innerHTML = '';
+        locationsContainer.innerHTML = '';
         
-        // 创建20x14的网格
-        for (let y = 0; y < 14; y++) {
-            for (let x = 0; x < 20; x++) {
-                const cell = document.createElement('div');
-                cell.className = 'map-cell';
-                cell.dataset.x = x;
-                cell.dataset.y = y;
-                mapGrid.appendChild(cell);
-            }
-        }
+        // 获取地图容器的尺寸，用于坐标计算
+        const containerWidth = 1814; // 与背景图片宽度相匹配
+        const containerHeight = 1729; // 与背景图片高度相匹配
         
         // 添加位置标记
         for (const [name, data] of Object.entries(locations)) {
             const [x, y] = data.coordinates;
-            const cell = mapGrid.children[y * 20 + x];
             
-            // 添加位置类
-            cell.classList.add('location');
-            cell.dataset.location = name;
-            cell.textContent = name.charAt(0); // 显示首字母
+            // 创建位置标记元素
+            const locationMarker = document.createElement('div');
+            locationMarker.className = 'location-marker';
+            locationMarker.dataset.location = name;
+            
+            // 使用data.coordinates直接作为像素坐标
+            // 注意：位置坐标现在应该是像素坐标而不是网格索引
+            locationMarker.style.left = `${x}px`;
+            locationMarker.style.top = `${y}px`;
+            
+            // 创建标签元素
+            const label = document.createElement('span');
+            label.className = 'location-label';
+            label.textContent = name;
+            locationMarker.appendChild(label);
             
             // 标记当前位置
             if (name === currentLocation) {
-                cell.classList.add('current');
+                locationMarker.classList.add('current');
             }
             
             // 为每个位置添加点击事件监听器
-            cell.addEventListener('click', (e) => {
+            locationMarker.addEventListener('click', (e) => {
                 // 阻止事件冒泡，防止触发背景点击取消选择
                 e.stopPropagation();
                 
@@ -111,6 +115,9 @@ class MapView {
                     onLocationClick(name, x, y);
                 }
             });
+            
+            // 添加到容器
+            locationsContainer.appendChild(locationMarker);
         }
         
         // 更新当前位置显示
@@ -121,18 +128,20 @@ class MapView {
         }
         
         // 重新添加光标元素
-        this.cursorElement = document.createElement('div');
-        this.cursorElement.className = 'map-cursor';
-        mapGrid.appendChild(this.cursorElement);
+        if (this.cursorElement && !locationsContainer.contains(this.cursorElement)) {
+            this.cursorElement = document.createElement('div');
+            this.cursorElement.className = 'map-cursor';
+            locationsContainer.appendChild(this.cursorElement);
+        }
     }
 
     // 切换缩放效果
     toggleZoom(centerOn = null) {
         const mapContent = document.querySelector('.map-content');
-        const mapGrid = document.getElementById('mapGrid');
+        const locationsContainer = document.getElementById('mapLocationsContainer');
         const mapBackground = document.getElementById('mapBackground');
         
-        if (!mapContent || !mapGrid) return;
+        if (!mapContent || !locationsContainer) return;
         
         // 切换缩放状态
         this.isZoomed = !this.isZoomed;
@@ -144,18 +153,13 @@ class MapView {
             // 如果提供了中心点，应用缩放和居中
             if (centerOn) {
                 this.zoomAndCenterOn(centerOn.x, centerOn.y);
-                
-                // 更新背景位置以匹配网格
-                if (mapBackground && mapGrid.style.transform) {
-                    mapBackground.style.transform = mapGrid.style.transform;
-                }
             }
         } else {
             // 移除缩放类
             mapContent.classList.remove('zoomed');
             
-            // 重置变换
-            mapGrid.style.transform = '';
+            // 重置变换 - 同时应用到背景和位置容器
+            locationsContainer.style.transform = '';
             if (mapBackground) {
                 mapBackground.style.transform = '';
             }
@@ -164,11 +168,11 @@ class MapView {
 
     // 缩放并居中到特定单元格
     zoomAndCenterOn(x, y) {
-        const mapGrid = document.getElementById('mapGrid');
+        const locationsContainer = document.getElementById('mapLocationsContainer');
         const mapBackground = document.getElementById('mapBackground');
         const mapContent = document.querySelector('.map-content');
         
-        if (!mapGrid || !mapContent) return;
+        if (!locationsContainer || !mapContent) return;
         
         // 缩放比例
         const zoomScale = 1.5;
@@ -178,35 +182,23 @@ class MapView {
         const contentWidth = contentRect.width;
         const contentHeight = contentRect.height;
         
-        // 获取地图网格的尺寸
-        const gridRect = mapGrid.getBoundingClientRect();
-        const gridWidth = gridRect.width;
-        const gridHeight = gridRect.height;
-        
-        // 单元格尺寸
-        const cellSize = 26;
-        
-        // 计算选中单元格在网格中的位置
-        const cellX = x * cellSize + cellSize / 2;
-        const cellY = y * cellSize + cellSize / 2;
-        
-        // 计算目标中心点 - 略微靠右(网格宽度的40%)，垂直居中
+        // 计算目标中心点 - 垂直居中
         const targetCenterX = contentWidth * 0.5;
         const targetCenterY = contentHeight / 2;
         
-        // 计算缩放后，单元格到网格原点的距离
-        const scaledCellX = cellX * zoomScale;
-        const scaledCellY = cellY * zoomScale;
+        // 计算缩放后，位置点到原点的距离
+        const scaledPointX = x * zoomScale;
+        const scaledPointY = y * zoomScale;
         
-        // 计算需要的平移量，使单元格位于目标中心点
-        const translateX = targetCenterX - scaledCellX;
-        const translateY = targetCenterY - scaledCellY;
+        // 计算需要的平移量，使位置点位于目标中心点
+        const translateX = targetCenterX - scaledPointX;
+        const translateY = targetCenterY - scaledPointY;
         
-        // 应用变换 - 同时缩放和平移
+        // 构建变换字符串
         const transform = `scale(${zoomScale}) translate(${translateX/zoomScale}px, ${translateY/zoomScale}px)`;
-        mapGrid.style.transform = transform;
         
-        // 同步应用到背景
+        // 同时应用变换到位置容器和背景 - 确保同步
+        locationsContainer.style.transform = transform;
         if (mapBackground) {
             mapBackground.style.transform = transform;
         }
@@ -229,21 +221,38 @@ class MapView {
     updateCursorPosition(position) {
         if (!this.cursorElement) return;
         
-        const cellSize = 26; // 单元格尺寸（包括边框）
-        this.cursorElement.style.left = `${position.x * cellSize}px`;
-        this.cursorElement.style.top = `${position.y * cellSize}px`;
+        // 直接使用像素坐标
+        this.cursorElement.style.left = `${position.x}px`;
+        this.cursorElement.style.top = `${position.y}px`;
         
-        // 高亮当前单元格
-        const mapGrid = document.getElementById('mapGrid');
-        const cells = mapGrid.querySelectorAll('.map-cell');
+        // 高亮当前位置点
+        const locationsContainer = document.getElementById('mapLocationsContainer');
+        const markers = locationsContainer.querySelectorAll('.location-marker');
         
         // 移除所有cursor-highlight类
-        cells.forEach(cell => cell.classList.remove('cursor-highlight'));
+        markers.forEach(marker => marker.classList.remove('cursor-highlight'));
         
-        // 添加到当前单元格
-        const index = position.y * 20 + position.x;
-        if (cells[index]) {
-            cells[index].classList.add('cursor-highlight');
+        // 添加到当前位置点 - 通过找出最接近光标位置的标记
+        let closestMarker = null;
+        let minDistance = Infinity;
+        
+        markers.forEach(marker => {
+            const markerX = parseInt(marker.style.left);
+            const markerY = parseInt(marker.style.top);
+            const distance = Math.sqrt(
+                Math.pow(markerX - position.x, 2) + 
+                Math.pow(markerY - position.y, 2)
+            );
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestMarker = marker;
+            }
+        });
+        
+        // 如果找到最接近的标记，并且距离足够近，高亮它
+        if (closestMarker && minDistance < 30) {
+            closestMarker.classList.add('cursor-highlight');
         }
     }
     
@@ -298,14 +307,14 @@ class MapView {
     // 高亮显示选中的位置
     highlightLocation(locationName) {
         // 移除之前的高亮
-        const highlightedCells = document.querySelectorAll('.map-cell.highlighted');
-        highlightedCells.forEach(cell => cell.classList.remove('highlighted'));
+        const highlightedMarkers = document.querySelectorAll('.location-marker.highlighted');
+        highlightedMarkers.forEach(marker => marker.classList.remove('highlighted'));
         
         // 如果提供了位置名，添加高亮
         if (locationName) {
-            const cell = document.querySelector(`.map-cell[data-location="${locationName}"]`);
-            if (cell) {
-                cell.classList.add('highlighted');
+            const marker = document.querySelector(`.location-marker[data-location="${locationName}"]`);
+            if (marker) {
+                marker.classList.add('highlighted');
             }
         }
     }
