@@ -174,6 +174,14 @@ class GameModel {
                 return "CLEAR_SCREEN";
             case "status":
                 return this.getStatus();
+
+            case "test mode":
+                this.isTestMode = !this.isTestMode;
+                // 通知其他组件测试模式状态变化
+                EventBus.emit('testModeChanged', this.isTestMode);
+                return `测试模式已${this.isTestMode ? '启用' : '禁用'}。\n` +
+                    `- 界面切换闪屏效果: ${this.isTestMode ? '关闭' : '开启'}\n` +
+                    `- 用于开发和测试用途`;
             
             // 处理无参数的命令情况
             case "search":
@@ -229,6 +237,7 @@ class GameModel {
 cpu使用率: 38%
 RAM空间: 12.4MB/20MB
 网络状态: 已连接
+测试模式: ${this.isTestMode ? '已启用' : '已禁用'}
 `;
     }
     

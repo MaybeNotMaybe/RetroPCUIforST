@@ -106,7 +106,6 @@ class GameController {
         // 获取软盘状态（如果软盘控制器存在）
         const floppyDriveState = this.floppyController ? this.floppyController.getFloppyState() : null;
         
-
         // 获取当前地图状态（如果地图控制器存在）
         const mapVisible = window.mapController ? window.mapController.model.isVisible : false;
 
@@ -114,7 +113,8 @@ class GameController {
             isPowerOn: this.model.isOn,
             colorMode: document.getElementById('colorToggle').classList.contains('amber') ? 'amber' : 'green',
             floppyDriveState: floppyDriveState,
-            mapVisible: mapVisible
+            mapVisible: mapVisible,
+            isTestMode: this.model.isTestMode 
         };
         
         // 只有开机状态才保存历史记录
@@ -181,6 +181,13 @@ class GameController {
                         toggleSlider.style.backgroundColor = '#666';
                         toggleSlider.style.left = '2px';
                     }
+                }
+
+                // 恢复测试模式状态
+                if (settings.isTestMode !== undefined) {
+                    this.model.isTestMode = settings.isTestMode;
+                    // 广播测试模式状态，让其他组件知道
+                    EventBus.emit('testModeChanged', this.model.isTestMode);
                 }
                 
                 // 设置初始电源状态
