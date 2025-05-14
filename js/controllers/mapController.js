@@ -150,10 +150,10 @@ class MapController {
         const isVisible = this.model.toggleVisibility();
         
         if (isVisible) {
-            // 显示地图并渲染数据
+            // 显示地图
             this.view.show();
             
-            // 同步游戏控制器中的当前位置（如果存在）
+            // 同步当前位置
             if (window.gameController && window.gameController.model) {
                 const gameLocation = window.gameController.model.currentLocation;
                 if (gameLocation && this.model.locations[gameLocation]) {
@@ -164,8 +164,8 @@ class MapController {
             // 渲染地图
             this.renderMap();
             
-            // 默认选中当前位置
-            this.handleLocationSelection(this.model.currentLocation);
+            // 默认显示位置列表，不选中任何位置
+            this.showLocationDetails(null);
         } else {
             // 隐藏地图
             this.view.hide();
