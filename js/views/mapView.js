@@ -294,8 +294,6 @@ class MapView {
             return;
         }
         
-        console.log(`显示位置详情: ${location ? location.name : '无'}`);
-        
         if (!location) {
             // 没有选择位置，显示列表
             detailsContainer.style.display = 'none';
@@ -303,37 +301,80 @@ class MapView {
             return;
         }
         
-        // 选择了位置，显示详情
+         // 选择了位置，显示详情
         detailsContainer.style.display = 'flex';
         locationList.style.display = 'none';
         
-        // 其余更新详情的代码保持不变...
         // 更新图片区域
-        locationImage.innerHTML = `<div class="map-location-placeholder">${location.name}</div>`;
+        locationImage.innerHTML = `<div class="map-location-placeholder">${location.displayName}</div>`;
         
-        // 更新信息区域
-        let connectionsHTML = '';
-        if (location.connections && location.connections.length > 0) {
-            connectionsHTML = `
-                <p>连接位置:</p>
-                <ul>
-                    ${location.connections.map(loc => `<li>${loc}</li>`).join('')}
-                </ul>
-            `;
-        }
-        
-        locationInfo.innerHTML = `
-            <div class="tui-frame">
-                <div class="tui-title">${location.name}</div>
-                <p>${location.description}</p>
-                ${connectionsHTML}
+        // 初始只显示表面信息
+        let infoHTML = `
+            <div class="tui-frame location-info-frame" id="locationInfoFrame">
+                <div class="tui-title">${location.displayName}</div>
+                <p class="location-description">${location.description}</p>
             </div>
         `;
         
-        // 更新底部区域
+        locationInfo.innerHTML = infoHTML;
+        
+        // 添加点击事件处理 - 保持原来的逻辑
+        const infoFrame = document.getElementById('locationInfoFrame');
+        if (infoFrame) {
+            infoFrame.addEventListener('click', () => {
+                // 只有在已知隐藏信息或已识破伪装的情况下才切换显示
+                if ((location.knowsHidden || location.disguiseRevealed) && 
+                    (location.hiddenDescription || location.isDisguised)) {
+                    
+                    // 更新标题 - 如果伪装已识破，显示真实名称
+                    const titleElement = infoFrame.querySelector('.tui-title');
+                    if (titleElement && location.isDisguised && location.disguiseRevealed) {
+                        titleElement.textContent = location.realName;
+                        
+                        // 同时更新图片区域的标题
+                        locationImage.innerHTML = `<div class="map-location-placeholder">${location.realName}</div>`;
+                    }
+                    
+                    // 更新描述 - 如果知道隐藏信息，显示隐藏描述
+                    const descElement = infoFrame.querySelector('.location-description');
+                    if (descElement && location.knowsHidden && location.hiddenDescription) {
+                        descElement.textContent = location.hiddenDescription;
+                        
+                        // 添加视觉反馈，表明信息已切换
+                        descElement.classList.add('revealed');
+                        
+                        // 播放信息切换音效
+                        if (window.audioManager) {
+                            window.audioManager.play('dataReveal');
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新底部区域，显示双重访问状态
+        let accessStatusHTML = '';
+        
+        // 明面身份访问状态
+        if (location.publicAccess) {
+            accessStatusHTML += '<p class="access-info positive">公开身份：可进入</p>';
+        } else {
+            accessStatusHTML += '<p class="access-info negative">公开身份：禁止进入</p>';
+        }
+        
+        // 如果已识破伪装或知道隐藏信息，才显示秘密身份访问状态
+        if ((location.isDisguised && location.disguiseRevealed) || location.knowsHidden) {
+            if (location.covertAccess) {
+                accessStatusHTML += '<p class="access-info covert positive">秘密身份：已获准入</p>';
+            } else {
+                accessStatusHTML += '<p class="access-info covert negative">秘密身份：未获准入</p>';
+            }
+        }
+        
         locationFooter.innerHTML = `
             <div class="tui-frame">
                 <p>坐标: [${location.coordinates[0]}, ${location.coordinates[1]}]</p>
+                ${accessStatusHTML}
             </div>
         `;
     }
