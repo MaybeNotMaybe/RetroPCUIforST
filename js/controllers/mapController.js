@@ -328,7 +328,8 @@ class MapController {
     // 初始化位置数组
     initLocationPositions() {
         this.locationPositions = [];
-        const locations = this.model.getAllLocations();
+        // 只使用可见位置
+        const locations = this.model.getAllVisibleLocations();
         
         for (const [name, data] of Object.entries(locations)) {
             const [x, y] = data.coordinates;
@@ -368,7 +369,7 @@ class MapController {
     
     // 渲染地图
     renderMap() {
-        const locations = this.model.getAllLocations();
+        const locations = this.model.getAllVisibleLocations();
         const currentLocation = this.model.getCurrentLocation().name;
         
         // 传递事件处理器引用给视图，让视图可以调用控制器的方法
@@ -415,5 +416,28 @@ class MapController {
         this.handleLocationSelection(name);
         
         console.log(`位置点击: ${name}, 坐标: (${x}, ${y})`);
+    }
+
+    // 设置地点可见性并更新地图
+    setLocationVisibility(locationName, isVisible) {
+        // 调用模型方法设置可见性
+        const success = this.model.setLocationVisibility(locationName, isVisible);
+        
+        if (success && this.model.isVisible) {
+            // 如果地图当前显示，则重新渲染
+            this.renderMap();
+        }
+        
+        return success;
+    }
+
+    // 显示一个隐藏的地点
+    revealLocation(locationName) {
+        return this.setLocationVisibility(locationName, true);
+    }
+
+    // 隐藏一个地点
+    hideLocation(locationName) {
+        return this.setLocationVisibility(locationName, false);
     }
 }

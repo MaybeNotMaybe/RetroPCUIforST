@@ -265,3 +265,64 @@
 .map-content.zoomed .map-locations-container {
     transition: transform 0.3s ease-out;
 }
+
+.location-info-frame {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.location-info-frame:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.location-description {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.location-description.revealed {
+    animation: text-reveal 0.5s ease-out;
+}
+
+@keyframes text-reveal {
+    0% { opacity: 0.2; transform: translateY(-2px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.access-info {
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.access-info.positive {
+    color: #5fff5f;
+}
+
+.access-info.negative {
+    color: #ff5f5f;
+}
+
+.access-info.covert {
+    margin-top: 2px;
+    font-style: italic;
+    border-left: 2px solid;
+    padding-left: 5px;
+    margin-left: 3px;
+}
+
+.access-info.covert.positive {
+    border-color: #5fff5f;
+}
+
+.access-info.covert.negative {
+    border-color: #ff5f5f;
+}
+
+/* 添加一个小图标表示秘密身份 - 使用特殊字符或自定义样式 */
+.access-info.covert::before {
+    content: '\1F512'; /* 锁形图标 Unicode */
+    margin-right: 4px;
+}
+
+.access-info.covert.positive::before {
+    content: '\1F513'; /* 开锁图标 Unicode */
+}
