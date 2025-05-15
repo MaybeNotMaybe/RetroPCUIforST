@@ -11,9 +11,9 @@ class MapView {
         this.isTestMode = false;
 
         // --- 地图三级缩放状态的配置 ---
-        this.defaultMapZoomScale = 4.0;  // 默认概览状态显示区域
-        this.defaultMapOffsetX = 35;    
-        this.defaultMapOffsetY = 10;
+        this.defaultMapZoomScale = 1.2;  // 默认概览状态显示区域
+        this.defaultMapOffsetX = 5;    
+        this.defaultMapOffsetY = 0;
         
         this.midLevelZoomScale = 7.0;   // 中间区域缩放级别，显示区域内地点
         this.midLevelOffsetX = 35;
@@ -243,6 +243,8 @@ class MapView {
         const mapContent = document.querySelector('.map-content');
         if (!mapContent) return;
         
+        // 保存当前状态用于检测变化
+        const previousState = this.viewState;
         this.viewState = state;
         
         switch(state) {
@@ -251,6 +253,7 @@ class MapView {
                 mapContent.classList.remove('zoomed', 'region-zoomed');
                 this.applyMapTransform(this.defaultMapZoomScale, this.defaultMapOffsetX, this.defaultMapOffsetY);
                 this.resetLocationLabelFonts();
+                this.isZoomed = false; // 重要：确保isZoomed状态正确
                 break;
                 
             case 'region':
@@ -266,6 +269,7 @@ class MapView {
                     this.applyMapTransform(this.midLevelZoomScale, this.midLevelOffsetX, this.midLevelOffsetY);
                 }
                 this.resetLocationLabelFonts();
+                this.isZoomed = false; // 在区域视图中，isZoomed仍为false
                 break;
                 
             case 'location':
@@ -283,7 +287,13 @@ class MapView {
                     this.applyMapTransform(targetScale, offsetX, offsetY);
                 }
                 this.adjustLocationLabelFonts();
+                this.isZoomed = true; // 只有在位置视图中，isZoomed才为true
                 break;
+        }
+        
+        // 如果状态发生变化，确保重新应用标记缩放
+        if (previousState !== state) {
+            this.applyMarkerScaling();
         }
     }
 
@@ -291,18 +301,36 @@ class MapView {
         const allMarkers = document.querySelectorAll('.location-marker');
         let effectiveApparentSizeFactor;
 
-        if (this.isZoomed) { // 处于高倍细节状态
+        // 根据视图状态确定缩放因子
+        if (this.viewState === 'location') {
             effectiveApparentSizeFactor = this.zoomedMarkerApparentSizeFactor;
-        } else { // 处于默认概览状态
+        } else if (this.viewState === 'region') {
+            effectiveApparentSizeFactor = this.markerApparentSizeFactor * 1.2; // 区域视图稍大一点
+        } else {
             effectiveApparentSizeFactor = this.markerApparentSizeFactor;
         }
         
-        // currentMapZoomScale 会是 defaultMapZoomScale 或 highDetailZoomScale
-        const safeMapZoomScale = this.currentMapZoomScale === 0 ? 1.0 : this.currentMapZoomScale;
+        // 获取当前地图缩放比例
+        let currentScale;
+        if (this.viewState === 'location') {
+            currentScale = this.highDetailZoomScale;
+        } else if (this.viewState === 'region') {
+            currentScale = this.midLevelZoomScale;
+        } else {
+            currentScale = this.defaultMapZoomScale;
+        }
+        
+        const safeMapZoomScale = currentScale === 0 ? 1.0 : currentScale;
         const newMarkerCssScale = (this.defaultMarkerCssScale / safeMapZoomScale) * effectiveApparentSizeFactor;
 
         allMarkers.forEach(marker => {
-            marker.style.transform = `translate(-50%, -50%) scale(${newMarkerCssScale})`;
+            // 区域标记和位置标记有不同的基础大小
+            if (marker.classList.contains('region-marker') && this.viewState === 'default') {
+                // 区域标记在默认视图下更大
+                marker.style.transform = `translate(-50%, -50%) scale(${newMarkerCssScale * 1.5})`;
+            } else {
+                marker.style.transform = `translate(-50%, -50%) scale(${newMarkerCssScale})`;
+            }
         });
 
         if (this.cursorElement) {
