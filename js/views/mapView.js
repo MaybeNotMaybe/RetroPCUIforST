@@ -217,26 +217,26 @@ class MapView {
         if (!locationsContainer) return;
         
         // 使用固定缩放比例
-        const zoomScale = 1.8;
+        const zoomScale = 5;
+        
+        // 计算要平移的距离 - 将目标点居中
+        let translateX = 50 - x;
+        let translateY = 50 - y;
         
         // 边界限制参数（百分比）
         const boundaryLimits = {
-            left: 20,   // 左边界限制
-            right: 20,  // 右边界限制
-            top: 20,    // 上边界限制
-            bottom: 20  // 下边界限制
+            left: 100,   // 左边界限制
+            right: 100,  // 右边界限制
+            top: 100,    // 上边界限制
+            bottom: 100  // 下边界限制
         };
-        
-        // 计算要平移的距离，同时考虑边界限制
-        let translateX = 50 - x;
-        let translateY = 50 - y;
         
         // 应用边界限制
         translateX = Math.max(Math.min(translateX, boundaryLimits.right), -boundaryLimits.left);
         translateY = Math.max(Math.min(translateY, boundaryLimits.bottom), -boundaryLimits.top);
         
         // 构建变换字符串
-        const transform = `scale(${zoomScale}) translate(${translateX/zoomScale}%, ${translateY/zoomScale}%)`;
+        const transform = `translate(${translateX*zoomScale}%, ${translateY*zoomScale}%) scale(${zoomScale})`;
         
         // 应用变换
         locationsContainer.style.transform = transform;
@@ -254,8 +254,8 @@ class MapView {
         const mapBackground = document.getElementById('mapBackground');
         if (mapBackground) {
             mapBackground.style.backgroundImage = isAmber ? 
-                'url("https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@7cb5688/assets/images/map_amber.png")' : 
-                'url("https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@7cb5688/assets/images/map_green.png")';
+                'url("assets/images/map_amber_33.png")' : 
+                'url("assets/images/map_green_33.png")';
         }
     }
 
