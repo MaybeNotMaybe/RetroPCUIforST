@@ -394,8 +394,8 @@ class MapView {
         const mapBackground = document.getElementById('mapBackground');
         if (mapBackground) {
             mapBackground.style.backgroundImage = isAmber ?
-                'url("assets/images/map_amber_33.png")' :
-                'url("assets/images/map_green_33.png")';
+                'url("https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@65dac4b/assets/images/map_amber_33.png")' :
+                'url("https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@65dac4b/assets/images/map_green_33.png")';
         }
     }
 
