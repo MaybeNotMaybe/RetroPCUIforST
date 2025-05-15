@@ -173,6 +173,38 @@ class MapModel {
                 disguiseRevealed: null
             }
         };
+
+        // 添加区域数据结构
+        this.regions = {
+            "中央区": {
+                description: "华盛顿的主要政府区域，包含白宫、国会大厦等重要建筑。",
+                coordinates: [45, 50],
+                isVisible: true,
+                // 该区域包含的地点名称数组
+                locations: ["白宫", "国会山", "国家档案馆", "华盛顿纪念碑"]
+            },
+            "西北区": {
+                description: "包含富兰克林公园和一些重要外国使馆的区域。",
+                coordinates: [25, 25],
+                isVisible: true,
+                locations: ["富兰克林公园", "苏联大使馆", "英国大使馆", "林肯纪念堂"]
+            },
+            "东北区": {
+                description: "包含多个政府办公机构和情报单位的区域。",
+                coordinates: [65, 30],
+                isVisible: true,
+                locations: ["CIA DC分部", "NSA DC办公室", "全视眼照相馆", "红宝石酒吧"]
+            },
+            "南部区": {
+                description: "包含一些商业区和秘密交易点的区域。",
+                coordinates: [50, 70],
+                isVisible: true,
+                locations: ["地下交易点", "柯楠牙医诊所", "老鹰书店"]
+            }
+        };
+        
+        // 当前选中区域
+        this.currentRegion = null;
         
         // 地图状态
         this.isVisible = false;
@@ -285,6 +317,45 @@ class MapModel {
         returnObj.originalName = name;
         
         return returnObj;
+    }
+
+    getAllVisibleRegions() {
+        const visibleRegions = {};
+        
+        for (const [name, data] of Object.entries(this.regions)) {
+            if (data.isVisible) {
+                visibleRegions[name] = { ...data };
+            }
+        }
+        
+        return visibleRegions;
+    }
+
+    getLocationsByRegion(regionId) {
+        if (!this.regions[regionId]) return {};
+        
+        const regionLocations = {};
+        const locationNames = this.regions[regionId].locations || [];
+        
+        for (const name of locationNames) {
+            if (this.locations[name] && this.locations[name].isVisible) {
+                regionLocations[name] = { ...this.locations[name] };
+            }
+        }
+        
+        return regionLocations;
+    }
+
+    setCurrentRegion(regionId) {
+        if (this.regions[regionId]) {
+            this.currentRegion = regionId;
+            return true;
+        }
+        return false;
+    }
+
+    getCurrentRegion() {
+        return this.currentRegion;
     }
 
     // 设置公开访问权限

@@ -277,7 +277,6 @@
     /* 容器的缩放动画已在此处定义 */
 }
 
-
 .location-info-frame {
     cursor: pointer;
     transition: all 0.3s ease;
@@ -336,4 +335,26 @@
 
 .access-info.covert.positive::before {
     content: '\1F513'; 
+}
+
+
+/* 区域标记样式 */
+.location-marker.region-marker {
+    width: 12px; 
+    height: 12px;
+    border: 2px solid currentColor;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 4;
+}
+
+.location-marker.region-marker .location-label {
+    font-size: 14px;
+    font-weight: bold;
+    bottom: -20px;
+}
+
+/* 区域缩放状态 */
+.map-content.region-zoomed .map-background,
+.map-content.region-zoomed .map-locations-container {
+    /* 中间缩放级别的变换在 JavaScript 中处理 */
 }
