@@ -10,6 +10,9 @@ class MapController {
         this.locationPositions = [];
         // 当前在locationPositions中的索引
         this.currentLocationIndex = -1;
+
+        this.regionPositions = [];
+        this.currentRegionIndex = -1;
         
         // 初始化UI
         this.view.initializeUI();
@@ -146,14 +149,13 @@ class MapController {
     handleLocationSelection(locationName) {
         console.log(`处理位置选择: ${locationName}`);
         
-        // 选择位置并显示详情
         if (this.model.selectLocation(locationName)) {
             const location = this.model.getSelectedLocation();
             
-            // 先设置高亮
+            // 高亮选中的位置
             this.view.highlightLocation(locationName);
             
-            // 显示详情
+            // 显示位置详情
             this.view.showLocationDetails(location);
             
             // 更新光标位置
@@ -161,14 +163,14 @@ class MapController {
             this.cursorPosition = { x, y };
             this.view.updateCursorPosition(this.cursorPosition);
             
-            // 如果尚未缩放，启用缩放
-            if (!this.view.isZoomed) {
-                this.view.toggleZoom({
+            // 切换到位置详情视图
+            if (this.view.viewState !== 'location') {
+                this.view.setViewState('location', {
                     x: location.coordinates[0],
                     y: location.coordinates[1]
                 });
             } else {
-                // 已经缩放，则重新缩放到新位置
+                // 已经是位置详情视图，则重新缩放到新位置
                 this.view.zoomAndCenterOn(location.coordinates[0], location.coordinates[1]);
             }
             
@@ -176,6 +178,66 @@ class MapController {
         }
         
         return false;
+    }
+
+    // 处理区域选择
+    handleRegionSelection(regionName) {
+        console.log(`处理区域选择: ${regionName}`);
+        
+        if (this.model.setCurrentRegion(regionName)) {
+            const regions = this.model.getAllVisibleRegions();
+            const region = regions[regionName];
+            
+            if (region) {
+                // 更新视图状态为区域缩放
+                this.view.setViewState('region', {
+                    x: region.coordinates[0],
+                    y: region.coordinates[1]
+                });
+                
+                // 获取区域内的位置
+                const regionLocations = this.model.getLocationsByRegion(regionName);
+                
+                // 渲染区域内的位置
+                this.view.renderMap(regionLocations, this.model.getCurrentLocation().name, (name, x, y) => {
+                    this.handleLocationClick(name, x, y);
+                });
+                
+                // 清除选中的位置
+                this.model.selectLocation(null);
+                this.view.highlightLocation(null);
+                this.view.showLocationDetails(null);
+                
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    // 初始化区域位置
+    initRegionPositions() {
+        this.regionPositions = [];
+        const regions = this.model.getAllVisibleRegions();
+        
+        for (const [name, data] of Object.entries(regions)) {
+            const [x, y] = data.coordinates;
+            this.regionPositions.push({ 
+                x: x, 
+                y: y, 
+                name: name 
+            });
+        }
+    }
+
+    // 处理区域点击
+    handleRegionClick(name, x, y) {
+        // 更新光标位置
+        this.cursorPosition = { x, y };
+        this.view.updateCursorPosition(this.cursorPosition);
+        
+        // 处理区域选择
+        this.handleRegionSelection(name);
     }
     
     // 切换地图视图
@@ -201,10 +263,13 @@ class MapController {
                 }
             }
             
+            // 重置到默认视图状态
+            this.view.setViewState('default');
+            this.model.setCurrentRegion(null);
+            
             // 渲染地图
             this.renderMap();
             
-            // 修改这一行，使用 this.view 引用
             this.view.showLocationDetails(null);
         } else {
             // 隐藏地图
@@ -219,7 +284,7 @@ class MapController {
             }, 100);
         }
 
-        // 保存当前状态，确保记住地图可见性
+        // 保存当前状态
         if (window.gameController) {
             window.gameController.saveSettings();
         }
@@ -234,10 +299,30 @@ class MapController {
             this.view.highlightLocation(null);
             this.view.showLocationDetails(null);
             
-            // 如果处于缩放状态，取消缩放
-            if (this.view.isZoomed) {
-                this.view.toggleZoom();
+            // 如果在位置详情视图，返回到区域视图
+            if (this.view.viewState === 'location') {
+                const currentRegion = this.model.getCurrentRegion();
+                if (currentRegion) {
+                    const regions = this.model.getAllVisibleRegions();
+                    const region = regions[currentRegion];
+                    if (region) {
+                        this.view.setViewState('region', {
+                            x: region.coordinates[0],
+                            y: region.coordinates[1]
+                        });
+                        this.renderMap();
+                    }
+                } else {
+                    // 如果没有当前区域，回到默认视图
+                    this.view.setViewState('default');
+                    this.renderMap();
+                }
             }
+        } else if (this.model.getCurrentRegion() && this.view.viewState !== 'default') {
+            // 如果在区域视图但没有选中位置，返回到默认视图
+            this.model.setCurrentRegion(null);
+            this.view.setViewState('default');
+            this.renderMap();
         }
     }
     
@@ -373,17 +458,38 @@ class MapController {
     
     // 渲染地图
     renderMap() {
-        const locations = this.model.getAllVisibleLocations();
-        const currentLocation = this.model.getCurrentLocation().name;
-        
-        // 传递事件处理器引用给视图，让视图可以调用控制器的方法
-        this.view.renderMap(locations, currentLocation, (name, x, y) => {
-            // 位置被点击的回调
-            this.handleLocationClick(name, x, y);
-        });
-        
-        // 初始化位置导航数组
-        this.initLocationPositions();
+        // 根据当前视图状态决定显示什么
+        if (this.view.viewState === 'default') {
+            // 显示区域标记
+            const regions = this.model.getAllVisibleRegions();
+            this.view.renderRegions(regions, (name, x, y) => {
+                this.handleRegionClick(name, x, y);
+            });
+            
+            // 初始化区域导航数组
+            this.initRegionPositions();
+        } else {
+            // 显示位置标记
+            const currentRegion = this.model.getCurrentRegion();
+            let locations;
+            
+            if (currentRegion && this.view.viewState === 'region') {
+                // 在区域视图中只显示该区域的位置
+                locations = this.model.getLocationsByRegion(currentRegion);
+            } else {
+                // 在位置详情视图中显示所有可见位置
+                locations = this.model.getAllVisibleLocations();
+            }
+            
+            const currentLocation = this.model.getCurrentLocation().name;
+            
+            this.view.renderMap(locations, currentLocation, (name, x, y) => {
+                this.handleLocationClick(name, x, y);
+            });
+            
+            // 初始化位置导航数组
+            this.initLocationPositions();
+        }
         
         // 设置初始光标位置
         this.view.updateCursorPosition(this.cursorPosition);

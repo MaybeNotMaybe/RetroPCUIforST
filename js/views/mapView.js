@@ -10,13 +10,19 @@ class MapView {
         this.cursorElement = null;
         this.isTestMode = false;
 
-        // --- 地图默认状态和高倍放大状态的配置 ---
-        this.defaultMapZoomScale = 6.0;  // 默认概览状态的缩放级别 (例如 2x)
-        this.defaultMapOffsetX = 35;    // 默认概览状态的X轴偏移百分比 (例如 -50% 会将地图向左移动半个容器宽度)
-        this.defaultMapOffsetY = 10;    // 默认概览状态的Y轴偏移百分比 (例如 -30% 会将地图向上移动)
+        // --- 地图三级缩放状态的配置 ---
+        this.defaultMapZoomScale = 4.0;  // 默认概览状态显示区域
+        this.defaultMapOffsetX = 35;    
+        this.defaultMapOffsetY = 10;
         
-        this.highDetailZoomScale = 10.0; // 高倍细节状态的缩放级别 (例如 5x)
-        // --- 结束新增配置 ---
+        this.midLevelZoomScale = 7.0;   // 中间区域缩放级别，显示区域内地点
+        this.midLevelOffsetX = 35;
+        this.midLevelOffsetY = 10;
+        
+        this.highDetailZoomScale = 10.0; // 高倍细节状态，显示地点详情
+        
+        // 当前视图状态: 'default', 'region', 'location'
+        this.viewState = 'default';
 
         // 当前地图的变换状态
         this.currentMapZoomScale = this.defaultMapZoomScale;
@@ -39,7 +45,7 @@ class MapView {
         });
     }
 
-    // 辅助方法：应用指定的变换到地图容器和背景
+    // 应用指定的变换到地图容器和背景
     applyMapTransform(scale, offsetX, offsetY) {
         const locationsContainer = document.getElementById('mapLocationsContainer');
         const mapBackground = document.getElementById('mapBackground');
@@ -172,6 +178,115 @@ class MapView {
         });
     }
 
+    // 渲染区域的方法
+    renderRegions(regions, onRegionClick = null) {
+        const locationsContainer = document.getElementById('mapLocationsContainer');
+        if (!locationsContainer) return;
+        
+        const currentCursor = this.cursorElement;
+        locationsContainer.innerHTML = ''; 
+        if (currentCursor) { 
+            locationsContainer.appendChild(currentCursor);
+        }
+
+        for (const [name, data] of Object.entries(regions)) {
+            const [x, y] = data.coordinates;
+            const regionMarker = document.createElement('div');
+            regionMarker.className = 'location-marker region-marker';
+            regionMarker.dataset.region = name;
+            regionMarker.style.left = `${x}%`;
+            regionMarker.style.top = `${y}%`;
+            regionMarker.style.transform = 'translate(-50%, -50%)'; 
+            
+            const label = document.createElement('span');
+            label.className = 'location-label';
+            label.textContent = name;
+            regionMarker.appendChild(label);
+
+            regionMarker.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (onRegionClick) {
+                    onRegionClick(name, x, y);
+                }
+            });
+            locationsContainer.appendChild(regionMarker);
+        }
+        
+        this.renderRegionList(regions);
+        this.applyMarkerScaling();
+        this.resetLocationLabelFonts();
+    }
+
+    // 渲染区域列表
+    renderRegionList(regions) {
+        const locationList = document.getElementById('locationList');
+        if (!locationList) return;
+        let listHTML = '<div class="tui-frame"><div class="tui-title">可用区域</div>';
+        for (const [name, data] of Object.entries(regions)) {
+            listHTML += `<div class="map-location-item" data-region="${name}">${name}</div>`;
+        }
+        listHTML += '</div>';
+        locationList.innerHTML = listHTML;
+        const items = locationList.querySelectorAll('.map-location-item');
+        items.forEach(item => {
+            item.addEventListener('click', () => {
+                const regionName = item.dataset.region;
+                if (window.mapController) {
+                    window.mapController.handleRegionSelection(regionName);
+                }
+            });
+        });
+    }
+
+    // 设置视图状态方法
+    setViewState(state, centerOn = null) {
+        const mapContent = document.querySelector('.map-content');
+        if (!mapContent) return;
+        
+        this.viewState = state;
+        
+        switch(state) {
+            case 'default':
+                // 默认概览状态 - 显示区域
+                mapContent.classList.remove('zoomed', 'region-zoomed');
+                this.applyMapTransform(this.defaultMapZoomScale, this.defaultMapOffsetX, this.defaultMapOffsetY);
+                this.resetLocationLabelFonts();
+                break;
+                
+            case 'region':
+                // 区域缩放状态 - 显示区域内地点
+                mapContent.classList.remove('zoomed');
+                mapContent.classList.add('region-zoomed');
+                if (centerOn) {
+                    const targetScale = this.midLevelZoomScale;
+                    const offsetX = (50 - centerOn.x) * targetScale;
+                    const offsetY = (50 - centerOn.y) * targetScale;
+                    this.applyMapTransform(targetScale, offsetX, offsetY);
+                } else {
+                    this.applyMapTransform(this.midLevelZoomScale, this.midLevelOffsetX, this.midLevelOffsetY);
+                }
+                this.resetLocationLabelFonts();
+                break;
+                
+            case 'location':
+                // 高倍详情状态 - 显示地点详情
+                mapContent.classList.add('zoomed');
+                mapContent.classList.remove('region-zoomed');
+                if (centerOn) {
+                    this.zoomAndCenterOn(centerOn.x, centerOn.y);
+                } else {
+                    const targetX = this.cursorPosition ? this.cursorPosition.x : 50;
+                    const targetY = this.cursorPosition ? this.cursorPosition.y : 50;
+                    const targetScale = this.highDetailZoomScale;
+                    const offsetX = (50 - targetX) * targetScale;
+                    const offsetY = (50 - targetY) * targetScale;
+                    this.applyMapTransform(targetScale, offsetX, offsetY);
+                }
+                this.adjustLocationLabelFonts();
+                break;
+        }
+    }
+
     applyMarkerScaling() {
         const allMarkers = document.querySelectorAll('.location-marker');
         let effectiveApparentSizeFactor;
@@ -196,30 +311,17 @@ class MapView {
     }
 
     // toggleZoom 现在用于在“默认概览”和“高倍细节”之间切换
-    toggleZoom(centerOn = null) { 
-        const mapContent = document.querySelector('.map-content');
-        if (!mapContent) return;
-
-        if (this.isZoomed) { // 如果当前是高倍细节，则切换回默认概览
-            this.isZoomed = false;
-            mapContent.classList.remove('zoomed'); // 'zoomed' class 表示高倍细节状态
-            this.applyMapTransform(this.defaultMapZoomScale, this.defaultMapOffsetX, this.defaultMapOffsetY);
-            this.resetLocationLabelFonts(); 
-        } else { // 如果当前是默认概览，则切换到高倍细节
-            this.isZoomed = true;
-            mapContent.classList.add('zoomed');
-            if (centerOn) {
-                this.zoomAndCenterOn(centerOn.x, centerOn.y); // 使用高倍缩放并居中
-            } else {
-                // 如果没有指定中心点，则以当前光标位置或地图中心进行高倍缩放
-                const targetX = this.cursorPosition ? this.cursorPosition.x : 50; // 假设 this.cursorPosition 存在且已更新
-                const targetY = this.cursorPosition ? this.cursorPosition.y : 50;
-                const targetScale = this.highDetailZoomScale;
-                const offsetX = (50 - targetX) * targetScale; // 计算使 targetX, targetY 居中的偏移
-                const offsetY = (50 - targetY) * targetScale;
-                this.applyMapTransform(targetScale, offsetX, offsetY);
-            }
-            this.adjustLocationLabelFonts(); 
+    toggleZoom(centerOn = null) {
+        switch(this.viewState) {
+            case 'default':
+                this.setViewState('region', centerOn);
+                break;
+            case 'region':
+                this.setViewState('location', centerOn);
+                break;
+            case 'location':
+                this.setViewState('default');
+                break;
         }
     }
 
