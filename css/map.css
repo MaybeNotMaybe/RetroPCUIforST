@@ -37,7 +37,7 @@
     width: 75%;
     height: 100%;
     position: relative;
-    overflow: hidden;
+    overflow: hidden; /* Important for zoom behavior */
     border-right: 1px solid #444;
 }
 
@@ -70,7 +70,8 @@
     opacity: 0.6;
     z-index: 1;
     pointer-events: none;
-    transition: transform 0.3s ease-out;
+    transition: transform 0.3s ease-out; /* 动画：地图背景缩放 */
+    transform-origin: center; 
 }
 
 /* 位置标记容器 */
@@ -81,14 +82,15 @@
     width: 100%;
     height: 100%;
     z-index: 2;
-    transition: transform 0.3s ease-out;
+    transition: transform 0.3s ease-out; /* 动画：位置容器缩放 */
+    transform-origin: center; 
 }
 
 /* 位置标记样式 */
 .location-marker {
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 10px; 
+    height: 10px; 
     border-radius: 50%;
     background-color: currentColor;
     display: flex;
@@ -97,7 +99,8 @@
     cursor: pointer;
     z-index: 3;
     transform: translate(-50%, -50%);
-    transition: all 0.3s ease-out;
+    transform-origin: center; 
+    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, opacity 0.3s ease-out; /* 动画：标记物缩放和其他属性 */
     box-shadow: 0 0 5px currentColor;
 }
 
@@ -112,14 +115,15 @@
 
 .location-label {
     position: absolute;
-    bottom: -16px;
+    bottom: -16px; 
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%); 
     white-space: nowrap;
-    font-size: 12px;
+    font-size: 12px; 
     font-weight: bold;
     text-shadow: 0 0 3px #000, 0 0 3px #000;
     opacity: 1;
+    /* 标签的缩放会随父元素 .location-marker 的 transform 变化而变化 */
 }
 
 /* 当前位置样式 */
@@ -133,6 +137,7 @@
 /* 高亮位置样式 */
 .location-marker.highlighted {
     animation: highlight-pulse 1.5s infinite alternate;
+    /* transition 中已经包含了 transform, box-shadow, opacity, animation 会独立运作 */
     z-index: 9;
 }
 
@@ -146,6 +151,8 @@
     pointer-events: none;
     transform: translate(-50%, -50%);
     z-index: 11;
+    transition: transform 0.3s ease-out; /* 新增：光标缩放动画 */
+    transform-origin: center;
 }
 
 /* 详情区域布局 */
@@ -192,20 +199,20 @@
 
 /* 位置列表样式 */
 .map-location-list {
-    height: 100%; /* 保持高度为100% */
-    overflow-y: auto; /* 允许垂直滚动 */
-    overflow-x: hidden; /* 防止水平滚动 */
+    height: 100%; 
+    overflow-y: auto; 
+    overflow-x: hidden; 
     scrollbar-width: none;
     padding: 5px 10px;
-    display: flex; /* 添加flex布局 */
-    flex-direction: column; /* 垂直布局 */
+    display: flex; 
+    flex-direction: column; 
 }
 
 .map-location-list .tui-frame {
-    flex: 1; /* 让框架占用所有可用空间 */
-    overflow-y: auto; /* 在框架内滚动 */
-    max-height: 100%; /* 最大高度限制为容器高度 */
-    margin: 0; /* 减少边距 */
+    flex: 1; 
+    overflow-y: auto; 
+    max-height: 100%; 
+    margin: 0; 
     display: flex;
     flex-direction: column;
     scrollbar-width: none;
@@ -274,11 +281,11 @@
     font-weight: bold;
 }
 
-/* 放大时的样式，保持容器尺寸不变 */
 .map-content.zoomed .map-background,
 .map-content.zoomed .map-locations-container {
-    transition: transform 0.3s ease-out;
+    /* 容器的缩放动画已在此处定义 */
 }
+
 
 .location-info-frame {
     cursor: pointer;
@@ -331,12 +338,11 @@
     border-color: #ff5f5f;
 }
 
-/* 添加一个小图标表示秘密身份 - 使用特殊字符或自定义样式 */
 .access-info.covert::before {
-    content: '\1F512'; /* 锁形图标 Unicode */
+    content: '\1F512'; 
     margin-right: 4px;
 }
 
 .access-info.covert.positive::before {
-    content: '\1F513'; /* 开锁图标 Unicode */
+    content: '\1F513'; 
 }
