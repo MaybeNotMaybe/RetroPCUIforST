@@ -225,6 +225,39 @@ class MapController {
                 this.model.selectLocation(null);
                 this.view.highlightLocation(null);
                 this.view.showLocationDetails(null);
+
+                this.initLocationPositions();
+                
+                // 查找光标应该移动到的位置
+                const currentLocation = this.model.getCurrentLocation().name;
+                let targetLocation = null;
+                
+                // 优先检查当前位置是否在区域内
+                if (regionLocations[currentLocation]) {
+                    targetLocation = currentLocation;
+                } else {
+                    // 否则使用第一个位置
+                    targetLocation = Object.keys(regionLocations)[0];
+                }
+                
+                // 如果找到目标位置，移动光标（但不选择）
+                if (targetLocation && regionLocations[targetLocation]) {
+                    const [x, y] = regionLocations[targetLocation].coordinates;
+                    
+                    // 更新光标位置
+                    this.cursorPosition = { x, y };
+                    this.view.updateCursorPosition(this.cursorPosition);
+                    
+                    // 更新当前位置索引
+                    this.currentLocationIndex = this.locationPositions.findIndex(
+                        pos => pos.name === targetLocation
+                    );
+                    
+                    // 仅高亮但不选择
+                    this.view.highlightLocation(targetLocation);
+                    
+                    console.log(`区域视图: 光标移动到位置 ${targetLocation} (${x}, ${y})`);
+                }
                 
                 return true;
             }
@@ -340,6 +373,19 @@ class MapController {
             }
         } else if (currentViewState === 'region') {
             // 在区域视图中：清除当前区域并返回默认视图
+            const currentRegion = this.model.getCurrentRegion();
+            
+            // 重要：在更改视图前保存当前区域信息
+            let regionX = 50, regionY = 50;
+            if (currentRegion) {
+                const regions = this.model.getAllVisibleRegions();
+                const region = regions[currentRegion];
+                if (region && region.coordinates) {
+                    [regionX, regionY] = region.coordinates;
+                }
+            }
+            
+            // 清除当前区域并切换视图
             this.model.setCurrentRegion(null);
             this.view.setViewState('default');
             
@@ -348,6 +394,29 @@ class MapController {
             this.view.renderRegions(regions, (name, x, y) => {
                 this.handleRegionClick(name, x, y);
             });
+            
+            // 如果有当前区域，移动光标到该区域位置并高亮
+            if (currentRegion) {
+                // 设置光标位置
+                this.cursorPosition = { x: regionX, y: regionY };
+                this.view.updateCursorPosition(this.cursorPosition);
+                
+                // 更新当前区域索引
+                this.currentRegionIndex = this.regionPositions.findIndex(
+                    pos => pos.name === currentRegion
+                );
+                
+                // 高亮区域标记
+                const regionMarker = document.querySelector(`.location-marker[data-region="${currentRegion}"]`);
+                if (regionMarker) {
+                    // 先移除其他高亮
+                    const highlightedMarkers = document.querySelectorAll('.location-marker.highlighted');
+                    highlightedMarkers.forEach(marker => marker.classList.remove('highlighted'));
+                    
+                    // 添加高亮
+                    regionMarker.classList.add('highlighted');
+                }
+            }
         }
     }
     
@@ -502,18 +571,6 @@ class MapController {
                 name: name 
             });
         }
-        
-        // 初始位置设为当前位置
-        const currentLocation = this.model.getCurrentLocation();
-        if (currentLocation) {
-            const [x, y] = currentLocation.coordinates;
-            this.cursorPosition = { x: x, y: y };
-            
-            // 找到当前位置在数组中的索引
-            this.currentLocationIndex = this.locationPositions.findIndex(
-                pos => pos.x === x && pos.y === y
-            );
-        }
     }
     
     // 选择光标位置的单元格
@@ -553,6 +610,13 @@ class MapController {
     
     // 渲染地图
     renderMap() {
+        // 获取当前位置信息以便在任何视图中使用
+        const currentLocationData = this.model.getCurrentLocation();
+        const currentLocationName = currentLocationData.name;
+        
+        // 始终更新位置显示
+        this.view.updateCurrentLocation(currentLocationName);
+        
         // 根据当前视图状态决定显示什么
         if (this.view.viewState === 'default') {
             // 显示区域标记
@@ -576,9 +640,8 @@ class MapController {
                 locations = this.model.getAllVisibleLocations();
             }
             
-            const currentLocation = this.model.getCurrentLocation().name;
-            
-            this.view.renderMap(locations, currentLocation, (name, x, y) => {
+            // 确保传递当前位置
+            this.view.renderMap(locations, currentLocationName, (name, x, y) => {
                 this.handleLocationClick(name, x, y);
             });
             
