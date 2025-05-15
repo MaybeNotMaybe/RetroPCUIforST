@@ -358,3 +358,28 @@
 .map-content.region-zoomed .map-locations-container {
     /* 中间缩放级别的变换在 JavaScript 中处理 */
 }
+
+.location-marker.region-marker {
+    width: 12px; 
+    height: 12px;
+    border: 2px solid currentColor;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 4;
+}
+
+.location-marker.region-marker .location-label {
+    font-size: 14px;
+    font-weight: bold;
+    bottom: -20px;
+}
+
+/* 区域缩放状态特有样式 */
+.map-content.region-zoomed .location-marker:not(.region-marker) {
+    /* 区域视图中的位置标记稍小 */
+    transform: translate(-50%, -50%) scale(0.9);
+}
+
+/* 当光标在区域标记上时的状态 */
+.location-marker.region-marker:hover {
+    box-shadow: 0 0 15px currentColor, 0 0 25px currentColor;
+}

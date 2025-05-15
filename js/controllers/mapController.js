@@ -57,10 +57,19 @@ class MapController {
                 return;
             }
             
-            // 如果点击的是空白区域，并且有选中位置，才清除选择
-            if (this.model.isVisible && this.model.selectedLocation) {
-                console.log("点击空白区域，清除选择");
-                this.clearSelection();
+            // 如果点击的是空白区域，根据当前视图状态处理
+            if (this.model.isVisible) {
+                if (this.view.viewState === 'location' && this.model.selectedLocation) {
+                    // 在位置视图中点击空白区域，清除选择回到区域视图
+                    console.log("从位置视图返回区域视图");
+                    this.clearSelection();
+                } else if (this.view.viewState === 'region') {
+                    // 在区域视图中点击空白区域，返回默认视图
+                    console.log("从区域视图返回默认视图");
+                    this.model.setCurrentRegion(null);
+                    this.view.setViewState('default');
+                    this.renderMap();
+                }
             }
         });
 
@@ -108,7 +117,16 @@ class MapController {
                     break;
                 case 'Escape':
                     e.preventDefault();
-                    this.clearSelection();
+                    // 根据当前视图状态处理ESC
+                    if (this.view.viewState === 'location') {
+                        // 在位置视图中，返回区域视图
+                        this.clearSelection();
+                    } else if (this.view.viewState === 'region') {
+                        // 在区域视图中，返回默认视图
+                        this.model.setCurrentRegion(null);
+                        this.view.setViewState('default');
+                        this.renderMap();
+                    }
                     break;
             }
         });
@@ -294,51 +312,91 @@ class MapController {
 
     // 清除当前选择
     clearSelection() {
-        if (this.model.selectedLocation) {
+        const currentViewState = this.view.viewState;
+        
+        if (this.model.selectedLocation && currentViewState === 'location') {
+            // 在位置视图中：清除选择并返回区域视图
             this.model.selectLocation(null);
             this.view.highlightLocation(null);
             this.view.showLocationDetails(null);
             
-            // 如果在位置详情视图，返回到区域视图
-            if (this.view.viewState === 'location') {
-                const currentRegion = this.model.getCurrentRegion();
-                if (currentRegion) {
-                    const regions = this.model.getAllVisibleRegions();
-                    const region = regions[currentRegion];
-                    if (region) {
-                        this.view.setViewState('region', {
-                            x: region.coordinates[0],
-                            y: region.coordinates[1]
-                        });
-                        this.renderMap();
-                    }
-                } else {
-                    // 如果没有当前区域，回到默认视图
-                    this.view.setViewState('default');
-                    this.renderMap();
+            // 如果有当前区域，返回到区域视图
+            const currentRegion = this.model.getCurrentRegion();
+            if (currentRegion) {
+                const regions = this.model.getAllVisibleRegions();
+                const region = regions[currentRegion];
+                if (region) {
+                    this.view.setViewState('region', {
+                        x: region.coordinates[0],
+                        y: region.coordinates[1]
+                    });
+                    
+                    // 重新渲染当前区域内的地点
+                    const regionLocations = this.model.getLocationsByRegion(currentRegion);
+                    this.view.renderMap(regionLocations, this.model.getCurrentLocation().name, (name, x, y) => {
+                        this.handleLocationClick(name, x, y);
+                    });
                 }
             }
-        } else if (this.model.getCurrentRegion() && this.view.viewState !== 'default') {
-            // 如果在区域视图但没有选中位置，返回到默认视图
+        } else if (currentViewState === 'region') {
+            // 在区域视图中：清除当前区域并返回默认视图
             this.model.setCurrentRegion(null);
             this.view.setViewState('default');
-            this.renderMap();
+            
+            // 渲染区域
+            const regions = this.model.getAllVisibleRegions();
+            this.view.renderRegions(regions, (name, x, y) => {
+                this.handleRegionClick(name, x, y);
+            });
         }
     }
     
     // 移动光标
     moveCursor(deltaX, deltaY) {
-        // 如果位置数组为空，初始化它
-        if (this.locationPositions.length === 0) {
-            this.initLocationPositions();
+        // 根据当前视图状态选择要导航的位置集合
+        if (this.view.viewState === 'default') {
+            // 如果区域位置数组为空，初始化它
+            if (this.regionPositions.length === 0) {
+                this.initRegionPositions();
+            }
+            
+            if (this.regionPositions.length === 0) return;
+            
+            // 使用区域位置数组进行导航
+            this._navigateBetweenPositions(this.regionPositions, this.currentRegionIndex, deltaX, deltaY, (newPos) => {
+                // 更新当前区域索引
+                this.currentRegionIndex = this.regionPositions.findIndex(
+                    pos => pos.x === newPos.x && pos.y === newPos.y
+                );
+                // 不自动选择区域，只移动光标
+                this.cursorPosition = { x: newPos.x, y: newPos.y };
+                this.view.updateCursorPosition(this.cursorPosition);
+            });
+        } else {
+            // 在区域视图或位置视图中导航地点
+            if (this.locationPositions.length === 0) {
+                this.initLocationPositions();
+            }
+            
+            if (this.locationPositions.length === 0) return;
+            
+            this._navigateBetweenPositions(this.locationPositions, this.currentLocationIndex, deltaX, deltaY, (newPos) => {
+                // 更新当前位置索引
+                this.currentLocationIndex = this.locationPositions.findIndex(
+                    pos => pos.x === newPos.x && pos.y === newPos.y
+                );
+                // 不自动选择位置，只移动光标
+                this.cursorPosition = { x: newPos.x, y: newPos.y };
+                this.view.updateCursorPosition(this.cursorPosition);
+            });
         }
-        
-        if (this.locationPositions.length === 0) return;
-        
+    }
+
+    _navigateBetweenPositions(positions, currentIndex, deltaX, deltaY, callback) {
         const currentX = this.cursorPosition.x;
         const currentY = this.cursorPosition.y;
         
-        // 定义移动速度（像素单位）
+        // 定义移动速度
         const moveSpeed = 50;
         deltaX *= moveSpeed;
         deltaY *= moveSpeed;
@@ -350,75 +408,91 @@ class MapController {
         else if (deltaY > 0) direction = 'down';
         else if (deltaY < 0) direction = 'up';
         
-        // 查找该方向上最近的地点
-        let closestLocation = null;
+        // 查找该方向上最近的位置
+        let closestPos = null;
         let closestDistance = Infinity;
         
-        for (const location of this.locationPositions) {
+        for (const pos of positions) {
             // 根据方向过滤
-            if ((direction === 'right' && location.x <= currentX) ||
-                (direction === 'left' && location.x >= currentX) ||
-                (direction === 'down' && location.y <= currentY) ||
-                (direction === 'up' && location.y >= currentY)) {
-                continue; // 忽略不在目标方向的地点
+            if ((direction === 'right' && pos.x <= currentX) ||
+                (direction === 'left' && pos.x >= currentX) ||
+                (direction === 'down' && pos.y <= currentY) ||
+                (direction === 'up' && pos.y >= currentY)) {
+                continue; // 忽略不在目标方向的位置
             }
             
             // 计算距离
             const distance = Math.sqrt(
-                Math.pow(location.x - currentX, 2) + 
-                Math.pow(location.y - currentY, 2)
+                Math.pow(pos.x - currentX, 2) + 
+                Math.pow(pos.y - currentY, 2)
             );
             
-            // 更新最近地点
+            // 更新最近位置
             if (distance < closestDistance) {
                 closestDistance = distance;
-                closestLocation = location;
+                closestPos = pos;
             }
         }
         
-        // 如果找到了最近地点，移动光标
-        if (closestLocation) {
-            this.cursorPosition = { x: closestLocation.x, y: closestLocation.y };
-            this.view.updateCursorPosition(this.cursorPosition);
-            
-            // 更新当前索引
-            this.currentLocationIndex = this.locationPositions.findIndex(
-                pos => pos.x === closestLocation.x && pos.y === closestLocation.y
-            );
-
-            // 自动选中新位置
-            this.handleLocationSelection(closestLocation.name);
+        // 如果找到了最近位置，处理它
+        if (closestPos && callback) {
+            callback(closestPos);
         }
     }
     
     // 在标签间导航
     navigateLocations(delta) {
-        // 如果位置数组为空，初始化它
-        if (this.locationPositions.length === 0) {
-            this.initLocationPositions();
+        if (this.view.viewState === 'default') {
+            // 在默认视图中，在区域之间导航
+            if (this.regionPositions.length === 0) {
+                this.initRegionPositions();
+            }
+            
+            if (this.regionPositions.length === 0) return;
+            
+            // 更新索引
+            this.currentRegionIndex = (this.currentRegionIndex + delta + this.regionPositions.length) % this.regionPositions.length;
+            
+            // 获取新位置
+            const newPos = this.regionPositions[this.currentRegionIndex];
+            this.cursorPosition = { x: newPos.x, y: newPos.y };
+            
+            // 更新视图
+            this.view.updateCursorPosition(this.cursorPosition);
+        } else {
+            // 在区域视图或位置视图中，在位置之间导航
+            if (this.locationPositions.length === 0) {
+                this.initLocationPositions();
+            }
+            
+            if (this.locationPositions.length === 0) return;
+            
+            // 更新索引
+            this.currentLocationIndex = (this.currentLocationIndex + delta + this.locationPositions.length) % this.locationPositions.length;
+            
+            // 获取新位置
+            const newPos = this.locationPositions[this.currentLocationIndex];
+            this.cursorPosition = { x: newPos.x, y: newPos.y };
+            
+            // 更新视图
+            this.view.updateCursorPosition(this.cursorPosition);
         }
-        
-        if (this.locationPositions.length === 0) return;
-        
-        /// 更新索引
-        this.currentLocationIndex = (this.currentLocationIndex + delta + this.locationPositions.length) % this.locationPositions.length;
-        
-        // 获取新位置
-        const newPos = this.locationPositions[this.currentLocationIndex];
-        this.cursorPosition = { x: newPos.x, y: newPos.y };
-        
-        // 更新视图
-        this.view.updateCursorPosition(this.cursorPosition);
-        
-        // 自动选中新位置
-        this.handleLocationSelection(newPos.name);
     }
     
     // 初始化位置数组
     initLocationPositions() {
         this.locationPositions = [];
-        // 只使用可见位置
-        const locations = this.model.getAllVisibleLocations();
+        
+        // 根据当前视图状态选择位置集合
+        let locations;
+        if (this.view.viewState === 'region') {
+            // 区域视图只使用当前区域内的位置
+            const currentRegion = this.model.getCurrentRegion();
+            locations = currentRegion ? this.model.getLocationsByRegion(currentRegion) : {};
+        } else {
+            // 位置视图使用所有可见位置
+            locations = this.model.getAllVisibleLocations();
+        }
         
         for (const [name, data] of Object.entries(locations)) {
             const [x, y] = data.coordinates;
@@ -444,14 +518,35 @@ class MapController {
     
     // 选择光标位置的单元格
     selectAtCursor() {
-        // 查找光标位置是否有位置
-        const locations = this.model.getAllLocations();
-        for (const [name, data] of Object.entries(locations)) {
-            const [x, y] = data.coordinates;
-            if (x === this.cursorPosition.x && y === this.cursorPosition.y) {
-                // 找到位置，选中它
-                this.handleLocationSelection(name);
-                return;
+        if (this.view.viewState === 'default') {
+            // 在默认视图中，查找光标下的区域
+            for (const [name, data] of Object.entries(this.model.getAllVisibleRegions())) {
+                const [x, y] = data.coordinates;
+                if (Math.abs(x - this.cursorPosition.x) < 5 && Math.abs(y - this.cursorPosition.y) < 5) {
+                    // 找到区域，选中它
+                    this.handleRegionSelection(name);
+                    return;
+                }
+            }
+        } else {
+            // 在区域视图或位置视图中，查找光标下的位置
+            let locations;
+            if (this.view.viewState === 'region') {
+                // 区域视图只检查当前区域内的位置
+                const currentRegion = this.model.getCurrentRegion();
+                locations = currentRegion ? this.model.getLocationsByRegion(currentRegion) : {};
+            } else {
+                // 位置视图检查所有位置
+                locations = this.model.getAllVisibleLocations();
+            }
+
+            for (const [name, data] of Object.entries(locations)) {
+                const [x, y] = data.coordinates;
+                if (Math.abs(x - this.cursorPosition.x) < 5 && Math.abs(y - this.cursorPosition.y) < 5) {
+                    // 找到位置，选中它
+                    this.handleLocationSelection(name);
+                    return;
+                }
             }
         }
     }
