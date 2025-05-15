@@ -10,28 +10,52 @@ class MapView {
         this.cursorElement = null;
         this.isTestMode = false;
 
-        // 地图缩放和标记物缩放相关的属性
-        this.currentMapZoomScale = 1.0; // 当前地图容器的缩放级别
-        this.defaultMarkerCssScale = 1.0; // 标记物在CSS中定义的原始缩放（通常是1）
+        // --- 地图默认状态和高倍放大状态的配置 ---
+        this.defaultMapZoomScale = 6.0;  // 默认概览状态的缩放级别 (例如 2x)
+        this.defaultMapOffsetX = 35;    // 默认概览状态的X轴偏移百分比 (例如 -50% 会将地图向左移动半个容器宽度)
+        this.defaultMapOffsetY = 10;    // 默认概览状态的Y轴偏移百分比 (例如 -30% 会将地图向上移动)
+        
+        this.highDetailZoomScale = 10.0; // 高倍细节状态的缩放级别 (例如 5x)
+        // --- 结束新增配置 ---
 
-        // 用户可调参数：
-        // 1. 地图未放大时，标记物目标视窗尺寸调整因子
-        //    1.0 表示标记物在屏幕上看起来与其CSS定义的原始尺寸一致
-        this.markerApparentSizeFactor = 1.0; // <<<< 你可以在这里调整地图未放大时的标记物大小
+        // 当前地图的变换状态
+        this.currentMapZoomScale = this.defaultMapZoomScale;
+        this.currentMapOffsetX = this.defaultMapOffsetX;
+        this.currentMapOffsetY = this.defaultMapOffsetY;
 
-        // 2. 地图放大后，标记物目标视窗尺寸调整因子
-        //    例如，如果地图放大了5倍 (currentMapZoomScale = 5)，
-        //    zoomedMarkerApparentSizeFactor = 1.0 会让标记物尝试保持其原始CSS大小 (实际scale = 1/5 * 1.0 = 0.2)
-        //    zoomedMarkerApparentSizeFactor = 0.5 会让标记物看起来是原始CSS大小的一半 (实际scale = 1/5 * 0.5 = 0.1)
-        this.zoomedMarkerApparentSizeFactor = 2; // <<<< 你可以在这里调整地图放大后的标记物缩小程度
+        // 标记物在CSS中定义的原始缩放（通常是1）
+        this.defaultMarkerCssScale = 1.5; 
 
-        // 添加缩放状态标记
-        this.isZoomed = false; // mapView 内部的缩放状态跟踪
+        // 标记物/光标的目标视窗尺寸调整因子
+        this.markerApparentSizeFactor = 1.0;       // 用于 defaultMapZoomScale (默认概览状态)
+        this.zoomedMarkerApparentSizeFactor = 2; // 用于 highDetailZoomScale (高倍细节状态)
+
+        // isZoomed 现在表示是否处于 highDetailZoomScale 状态
+        this.isZoomed = false; 
 
         EventBus.on('testModeChanged', (isEnabled) => {
             this.isTestMode = isEnabled;
             console.log(`地图视图测试模式: ${isEnabled ? '已启用' : '已禁用'}`);
         });
+    }
+
+    // 辅助方法：应用指定的变换到地图容器和背景
+    applyMapTransform(scale, offsetX, offsetY) {
+        const locationsContainer = document.getElementById('mapLocationsContainer');
+        const mapBackground = document.getElementById('mapBackground');
+        if (!locationsContainer) return;
+
+        this.currentMapZoomScale = scale;
+        this.currentMapOffsetX = offsetX;
+        this.currentMapOffsetY = offsetY;
+
+        const transform = `translate(${offsetX}%, ${offsetY}%) scale(${scale})`;
+        locationsContainer.style.transform = transform;
+        if (mapBackground) {
+            mapBackground.style.transform = transform;
+        }
+        // 每次地图变换后，都需要重新计算标记物和光标的缩放
+        this.applyMarkerScaling();
     }
 
     initializeUI() {
@@ -61,26 +85,25 @@ class MapView {
         if (locationsContainer) {
             this.cursorElement = document.createElement('div');
             this.cursorElement.className = 'map-cursor';
-            // 光标的初始 transform 仅用于居中，缩放将在 applyMarkerScaling 中应用
-            this.cursorElement.style.transform = 'translate(-50%, -50%)';
+            this.cursorElement.style.transform = 'translate(-50%, -50%)'; // 初始居中
             locationsContainer.appendChild(this.cursorElement);
         }
         this.updateMapBackground(this.screen.classList.contains('amber-mode'));
+        
+        // 初始化时应用默认的地图缩放和偏移
+        this.applyMapTransform(this.defaultMapZoomScale, this.defaultMapOffsetX, this.defaultMapOffsetY);
+        this.resetLocationLabelFonts(); // 初始时使用默认概览状态的字体
     }
 
     renderMap(locations, currentLocation, onLocationClick = null) {
         const locationsContainer = document.getElementById('mapLocationsContainer');
-        if (!locationsContainer) {
-            console.error("找不到地图位置容器元素");
-            return;
-        }
-        // 清空时，保留光标元素
+        if (!locationsContainer) return;
+        
         const currentCursor = this.cursorElement;
         locationsContainer.innerHTML = ''; 
-        if (currentCursor) { // 如果光标存在，重新附加
+        if (currentCursor) { 
             locationsContainer.appendChild(currentCursor);
         }
-
 
         for (const [name, data] of Object.entries(locations)) {
             const [x, y] = data.coordinates;
@@ -89,9 +112,7 @@ class MapView {
             locationMarker.dataset.location = name;
             locationMarker.style.left = `${x}%`;
             locationMarker.style.top = `${y}%`;
-            // 初始 transform 仅用于居中，缩放将在 applyMarkerScaling 中应用
-            locationMarker.style.transform = 'translate(-50%, -50%)';
-
+            locationMarker.style.transform = 'translate(-50%, -50%)'; // 初始居中
 
             const label = document.createElement('span');
             label.className = 'location-label';
@@ -119,7 +140,8 @@ class MapView {
         }
 
         this.renderLocationList(locations, currentLocation);
-        this.applyMarkerScaling(); 
+        this.applyMarkerScaling(); // 应用当前状态的标记物缩放
+        
         if (this.isZoomed) { 
             this.adjustLocationLabelFonts();
         } else {
@@ -154,81 +176,72 @@ class MapView {
         const allMarkers = document.querySelectorAll('.location-marker');
         let effectiveApparentSizeFactor;
 
-        if (this.currentMapZoomScale > 1.0) { // 地图已放大
+        if (this.isZoomed) { // 处于高倍细节状态
             effectiveApparentSizeFactor = this.zoomedMarkerApparentSizeFactor;
-        } else { // 地图未放大
+        } else { // 处于默认概览状态
             effectiveApparentSizeFactor = this.markerApparentSizeFactor;
         }
         
+        // currentMapZoomScale 会是 defaultMapZoomScale 或 highDetailZoomScale
         const safeMapZoomScale = this.currentMapZoomScale === 0 ? 1.0 : this.currentMapZoomScale;
         const newMarkerCssScale = (this.defaultMarkerCssScale / safeMapZoomScale) * effectiveApparentSizeFactor;
 
         allMarkers.forEach(marker => {
-            // 确保 translate(-50%, -50%) 始终存在，并与 scale 结合
             marker.style.transform = `translate(-50%, -50%) scale(${newMarkerCssScale})`;
         });
 
-        // 对光标应用同样的缩放逻辑
         if (this.cursorElement) {
             this.cursorElement.style.transform = `translate(-50%, -50%) scale(${newMarkerCssScale})`;
         }
     }
 
-    toggleZoom(centerOn = null) {
+    // toggleZoom 现在用于在“默认概览”和“高倍细节”之间切换
+    toggleZoom(centerOn = null) { 
         const mapContent = document.querySelector('.map-content');
-        const locationsContainer = document.getElementById('mapLocationsContainer');
-        const mapBackground = document.getElementById('mapBackground');
-        if (!mapContent || !locationsContainer) return;
+        if (!mapContent) return;
 
-        this.isZoomed = !this.isZoomed; 
-
-        if (this.isZoomed) {
+        if (this.isZoomed) { // 如果当前是高倍细节，则切换回默认概览
+            this.isZoomed = false;
+            mapContent.classList.remove('zoomed'); // 'zoomed' class 表示高倍细节状态
+            this.applyMapTransform(this.defaultMapZoomScale, this.defaultMapOffsetX, this.defaultMapOffsetY);
+            this.resetLocationLabelFonts(); 
+        } else { // 如果当前是默认概览，则切换到高倍细节
+            this.isZoomed = true;
             mapContent.classList.add('zoomed');
             if (centerOn) {
-                this.zoomAndCenterOn(centerOn.x, centerOn.y);
+                this.zoomAndCenterOn(centerOn.x, centerOn.y); // 使用高倍缩放并居中
             } else {
-                if (this.currentMapZoomScale <= 1.0) { 
-                    this.currentMapZoomScale = 5.0; 
-                }
-                 const transform = `scale(${this.currentMapZoomScale})`;
-                 locationsContainer.style.transform = transform;
-                 if (mapBackground) {
-                     mapBackground.style.transform = transform;
-                 }
-                this.applyMarkerScaling(); // 需要在容器缩放后应用标记和光标的缩放
+                // 如果没有指定中心点，则以当前光标位置或地图中心进行高倍缩放
+                const targetX = this.cursorPosition ? this.cursorPosition.x : 50; // 假设 this.cursorPosition 存在且已更新
+                const targetY = this.cursorPosition ? this.cursorPosition.y : 50;
+                const targetScale = this.highDetailZoomScale;
+                const offsetX = (50 - targetX) * targetScale; // 计算使 targetX, targetY 居中的偏移
+                const offsetY = (50 - targetY) * targetScale;
+                this.applyMapTransform(targetScale, offsetX, offsetY);
             }
-            this.adjustLocationLabelFonts();
-        } else { 
-            mapContent.classList.remove('zoomed');
-            locationsContainer.style.transform = ''; 
-            if (mapBackground) {
-                mapBackground.style.transform = '';
-            }
-            this.currentMapZoomScale = 1.0; 
-            this.applyMarkerScaling(); 
-            this.resetLocationLabelFonts();
+            this.adjustLocationLabelFonts(); 
         }
     }
 
+    // zoomAndCenterOn 总是将地图设置为高倍细节状态，并居中于指定点
     zoomAndCenterOn(x, y) {
-        const locationsContainer = document.getElementById('mapLocationsContainer');
-        const mapBackground = document.getElementById('mapBackground');
-        if (!locationsContainer) return;
+        const mapContent = document.querySelector('.map-content');
+        if (!mapContent) return;
 
-        const targetMapZoomScale = 5; 
-        this.currentMapZoomScale = targetMapZoomScale; 
+        this.isZoomed = true; // 进入高倍细节状态
+        mapContent.classList.add('zoomed');
 
-        const finalTranslateX = (50 - x) * targetMapZoomScale;
-        const finalTranslateY = (50 - y) * targetMapZoomScale;
-        const transform = `translate(${finalTranslateX}%, ${finalTranslateY}%) scale(${targetMapZoomScale})`;
+        const targetScale = this.highDetailZoomScale;
+        // 计算使目标点 (x,y) 居中的偏移量
+        // (50 - coord)% 意味着将 coord 移动到 50% 的位置
+        // 这个偏移量需要乘以目标缩放比例，因为 transform 的百分比是相对于元素自身大小的
+        const offsetX = (50 - x) * targetScale; 
+        const offsetY = (50 - y) * targetScale;
         
-        locationsContainer.style.transform = transform;
-        if (mapBackground) {
-            mapBackground.style.transform = transform;
-        }
+        this.applyMapTransform(targetScale, offsetX, offsetY);
         
-        console.log(`Zooming to: (${x}%,${y}%), Container Scale: ${targetMapZoomScale}, Effective Translation: (${finalTranslateX}%, ${finalTranslateY}%)`);
-        this.applyMarkerScaling(); // 应用标记物和光标缩放
+        console.log(`Zooming to detail: (${x}%,${y}%), Container Scale: ${targetScale}, Offset: (${offsetX}%, ${offsetY}%)`);
+        this.adjustLocationLabelFonts(); 
     }
 
     updateMapBackground(isAmber) {
@@ -242,10 +255,11 @@ class MapView {
 
     updateCursorPosition(position) {
         if (!this.cursorElement) return;
+        // 光标的位置是相对于 locationsContainer 的，其 transform 已由 applyMapTransform 处理
+        // 所以这里直接设置 left/top 即可
         this.cursorElement.style.left = `${position.x}%`;
         this.cursorElement.style.top = `${position.y}%`;
-        // 光标的高亮逻辑（如果需要）可以放在这里，或者通过CSS类控制
-        // 例如，如果光标本身有高亮状态，确保它不受其他标记高亮的影响
+        // 光标的 scale 由 applyMarkerScaling 统一处理
     }
 
     showLocationDetails(location) {
@@ -336,18 +350,13 @@ class MapView {
         const highlightedMarkers = document.querySelectorAll('.location-marker.highlighted');
         highlightedMarkers.forEach(marker => marker.classList.remove('highlighted'));
         
-        // 移除光标可能有的高亮类（如果光标自身也实现了高亮）
-        // if (this.cursorElement) {
-        //     this.cursorElement.classList.remove('cursor-highlight'); // 假设有这个类
-        // }
-
         if (locationName) {
             const marker = document.querySelector(`.location-marker[data-location="${locationName}"]`);
             if (marker) {
                 marker.classList.add('highlighted');
             }
         }
-        // 字体调整现在应该在 applyMarkerScaling 后，或者在 zoom/unzoom 时统一处理
+        // 根据当前是否高倍缩放来调整字体
         if (this.isZoomed) {
             this.adjustLocationLabelFonts();
         } else {
@@ -360,10 +369,16 @@ class MapView {
             this.terminal.style.display = 'none';
             this.mapInterface.style.display = 'flex';
             this.updateColorMode(this.screen.classList.contains('amber-mode'));
-            this.applyMarkerScaling(); 
-             if (this.isZoomed) {
+
+            // 重新显示时，恢复当前的地图变换状态
+            this.applyMapTransform(this.currentMapZoomScale, this.currentMapOffsetX, this.currentMapOffsetY);
+
+            const mapContent = document.querySelector('.map-content');
+            if (this.isZoomed) { // 如果是高倍细节状态
+                mapContent?.classList.add('zoomed');
                 this.adjustLocationLabelFonts();
-            } else {
+            } else { // 默认概览状态
+                mapContent?.classList.remove('zoomed');
                 this.resetLocationLabelFonts();
             }
         };
@@ -393,16 +408,16 @@ class MapView {
     }
 
     flickerScreen(callback) {
-        const screen = document.querySelector('.screen');
+        const screenElement = document.querySelector('.screen'); // Renamed to avoid conflict
         if (window.audioManager) window.audioManager.play('screenSwitch');
-        screen.classList.add('screen-flicker');
+        screenElement.classList.add('screen-flicker');
         setTimeout(() => {
-            screen.classList.remove('screen-flicker');
+            screenElement.classList.remove('screen-flicker');
             if (callback) callback();
         }, 75); 
     }
 
-    adjustLocationLabelFonts() {
+    adjustLocationLabelFonts() { // 用于高倍细节状态
         const highlightedMarker = document.querySelector('.location-marker.highlighted');
         const selectedLocationName = highlightedMarker ? highlightedMarker.dataset.location : null;
         const allMarkers = document.querySelectorAll('.location-marker');
@@ -410,7 +425,8 @@ class MapView {
         allMarkers.forEach(marker => {
             const label = marker.querySelector('.location-label');
             if (label) {
-                if (this.isZoomed && selectedLocationName && marker.dataset.location !== selectedLocationName) {
+                // 在高倍细节状态下，只有选中的标记标签是正常大小，其他缩小
+                if (selectedLocationName && marker.dataset.location !== selectedLocationName) {
                     label.style.fontSize = '6px'; 
                 } else {
                     label.style.fontSize = '12px'; 
@@ -419,10 +435,10 @@ class MapView {
         });
     }
 
-    resetLocationLabelFonts() {
+    resetLocationLabelFonts() { // 用于默认概览状态
         const allLabels = document.querySelectorAll('.location-label');
         allLabels.forEach(label => {
-            label.style.fontSize = '12px';
+            label.style.fontSize = '12px'; // 所有标签都恢复正常大小
         });
     }
 }
