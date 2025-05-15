@@ -7,7 +7,7 @@ class MapModel {
             "富兰克林公园": {
                 description: "位于白宫东北侧的著名公园，经常有游客和当地居民在此休憩。公园中央有喷泉，树木繁茂。",
                 hiddenDescription: "这个公园是情报人员最常用的非正式会面地点，尤其是靠近白宫的长椅和西北角的棋桌。每周二和周五下午4点是最繁忙的交接时间。",
-                coordinates: [50, 28], // 中心点，百分比坐标
+                coordinates: [44.8, 46.7], // 中心点，百分比坐标
                 publicAccess: true,    // 公开身份可进入
                 covertAccess: true,    // 秘密身份可进入
                 isVisible: true,
@@ -119,7 +119,7 @@ class MapModel {
             "华盛顿纪念碑": {
                 description: "为纪念美国首任总统华盛顿而建的高耸方尖碑，是华盛顿市中心的标志性建筑。",
                 hiddenDescription: "",
-                coordinates: [42, 58.5], // 百分比坐标
+                coordinates: [43.8, 51.35], // 百分比坐标
                 publicAccess: true,    // 开放参观
                 covertAccess: false,   // 监控设施未解锁
                 isVisible: true,
@@ -164,7 +164,7 @@ class MapModel {
             "白宫": {
                 description: "美国总统官邸和办公场所，白色新古典主义建筑，有严格的安保措施。",
                 hiddenDescription: "白宫地下设有总统紧急行动中心，可在核战争等极端情况下充当指挥所。内部通讯系统采用多重加密，定期更换频率以防窃听。",
-                coordinates: [39.8, 40], // 百分比坐标
+                coordinates: [43.446, 48], // 百分比坐标
                 publicAccess: false,   // 需预约参观
                 covertAccess: false,   // 机密区域未解锁
                 isVisible: true,

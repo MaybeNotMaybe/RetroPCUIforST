@@ -89,8 +89,8 @@
 /* 位置标记样式 */
 .location-marker {
     position: absolute;
-    width: 10px; 
-    height: 10px; 
+    width: 6px; 
+    height: 6px; 
     border-radius: 50%;
     background-color: currentColor;
     display: flex;
@@ -102,15 +102,6 @@
     transform-origin: center; 
     transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, opacity 0.3s ease-out; /* 动画：标记物缩放和其他属性 */
     box-shadow: 0 0 5px currentColor;
-}
-
-.location-marker::before {
-    content: '';
-    position: absolute;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .location-label {

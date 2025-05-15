@@ -24,7 +24,7 @@ class MapView {
         this.currentMapOffsetY = this.defaultMapOffsetY;
 
         // 标记物在CSS中定义的原始缩放（通常是1）
-        this.defaultMarkerCssScale = 1.5; 
+        this.defaultMarkerCssScale = 1.2; 
 
         // 标记物/光标的目标视窗尺寸调整因子
         this.markerApparentSizeFactor = 1.0;       // 用于 defaultMapZoomScale (默认概览状态)
