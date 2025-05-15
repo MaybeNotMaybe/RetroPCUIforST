@@ -181,13 +181,13 @@ class MapModel {
                 coordinates: [45, 50],
                 isVisible: true,
                 // 该区域包含的地点名称数组
-                locations: ["白宫", "国会山", "国家档案馆", "华盛顿纪念碑"]
+                locations: ["富兰克林公园", "白宫", "国会山", "国家档案馆", "华盛顿纪念碑"]
             },
             "西北区": {
                 description: "包含富兰克林公园和一些重要外国使馆的区域。",
                 coordinates: [25, 25],
                 isVisible: true,
-                locations: ["富兰克林公园", "苏联大使馆", "英国大使馆", "林肯纪念堂"]
+                locations: ["苏联大使馆", "英国大使馆", "林肯纪念堂"]
             },
             "东北区": {
                 description: "包含多个政府办公机构和情报单位的区域。",

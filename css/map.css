@@ -340,8 +340,8 @@
 
 /* 区域标记样式 */
 .location-marker.region-marker {
-    width: 12px; 
-    height: 12px;
+    width: 6px; 
+    height: 6px;
     border: 2px solid currentColor;
     background-color: rgba(0, 0, 0, 0.3);
     z-index: 4;
@@ -360,8 +360,8 @@
 }
 
 .location-marker.region-marker {
-    width: 12px; 
-    height: 12px;
+    width: 6px; 
+    height: 6px;
     border: 2px solid currentColor;
     background-color: rgba(0, 0, 0, 0.3);
     z-index: 4;
@@ -376,7 +376,7 @@
 /* 区域缩放状态特有样式 */
 .map-content.region-zoomed .location-marker:not(.region-marker) {
     /* 区域视图中的位置标记稍小 */
-    transform: translate(-50%, -50%) scale(0.9);
+    transform: translate(-50%, -50%) scale(1.5);
 }
 
 /* 当光标在区域标记上时的状态 */

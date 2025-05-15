@@ -189,6 +189,10 @@ class MapView {
             locationsContainer.appendChild(currentCursor);
         }
 
+        // 获取当前区域和当前位置
+        const currentRegion = window.mapController?.model.getCurrentRegion();
+        const currentLocation = window.mapController?.model.getCurrentLocation()?.name;
+        
         for (const [name, data] of Object.entries(regions)) {
             const [x, y] = data.coordinates;
             const regionMarker = document.createElement('div');
@@ -198,6 +202,16 @@ class MapView {
             regionMarker.style.top = `${y}%`;
             regionMarker.style.transform = 'translate(-50%, -50%)'; 
             
+            // 如果是当前区域，添加current类
+            if (name === currentRegion) {
+                regionMarker.classList.add('current');
+            }
+            
+            // 如果当前位置在该区域内，也添加视觉指示
+            if (currentLocation && data.locations && data.locations.includes(currentLocation)) {
+                regionMarker.classList.add('highlighted');
+            }
+            
             const label = document.createElement('span');
             label.className = 'location-label';
             label.textContent = name;
@@ -205,6 +219,8 @@ class MapView {
 
             regionMarker.addEventListener('click', (e) => {
                 e.stopPropagation();
+                // 高亮点击的区域
+                this.highlightRegion(name);
                 if (onRegionClick) {
                     onRegionClick(name, x, y);
                 }
@@ -293,7 +309,7 @@ class MapView {
         
         // 如果状态发生变化，确保重新应用标记缩放
         if (previousState !== state) {
-            this.applyMarkerScaling();
+                this.applyMarkerScaling();
         }
     }
 
@@ -371,7 +387,7 @@ class MapView {
         this.applyMapTransform(targetScale, offsetX, offsetY);
         
         console.log(`Zooming to detail: (${x}%,${y}%), Container Scale: ${targetScale}, Offset: (${offsetX}%, ${offsetY}%)`);
-        this.adjustLocationLabelFonts(); 
+        this.adjustLocationLabelFonts();
     }
 
     updateMapBackground(isAmber) {
@@ -545,6 +561,18 @@ class MapView {
             screenElement.classList.remove('screen-flicker');
             if (callback) callback();
         }, 75); 
+    }
+
+    highlightRegion(regionName) {
+        const highlightedMarkers = document.querySelectorAll('.region-marker.highlighted');
+        highlightedMarkers.forEach(marker => marker.classList.remove('highlighted'));
+        
+        if (regionName) {
+            const marker = document.querySelector(`.region-marker[data-region="${regionName}"]`);
+            if (marker) {
+                marker.classList.add('highlighted');
+            }
+        }
     }
 
     adjustLocationLabelFonts() { // 用于高倍细节状态
