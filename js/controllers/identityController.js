@@ -162,6 +162,20 @@ class IdentityController {
                 }
             });
         }
+
+        const currentDisguiseDisplay = document.getElementById('currentDisguiseDisplay');
+        if (currentDisguiseDisplay) {
+            currentDisguiseDisplay.addEventListener('click', () => {
+                // 对伪装身份执行适当的操作
+                // 例如：切换到编辑视图
+                this.view.showEditDisguiseView();
+                
+                // 播放切换音效
+                if (window.audioManager) {
+                    window.audioManager.play('functionButton');
+                }
+            });
+        }
     }
     
     // 填充表单选择框
