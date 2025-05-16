@@ -51,7 +51,7 @@ class IdentityView {
         this.clearDisguiseButton = document.getElementById('clearDisguiseButton');
         
         // 初始显示基础信息页
-        this.showBasicInfoPage();
+        this.showDisguisePage();
     }
     
     // 创建状态界面
@@ -116,36 +116,80 @@ class IdentityView {
         disguisePage.id = 'disguisePage';
         disguisePage.className = 'identity-page';
         disguisePage.style.display = 'none';
-        disguisePage.innerHTML = `
-            <div class="disguise-current">
-                <h3>当前伪装</h3>
-                <div id="currentDisguiseDisplay" class="identity-display"></div>
-            </div>
-            <div class="disguise-form">
-                <h3>更改伪装</h3>
-                <div class="form-group">
-                    <label for="nationalitySelect">国籍:</label>
-                    <select id="nationalitySelect"></select>
-                </div>
-                <div class="form-group">
-                    <label for="typeSelect">身份类型:</label>
-                    <select id="typeSelect"></select>
-                </div>
-                <div class="form-group">
-                    <label for="functionSelect">职能:</label>
-                    <select id="functionSelect"></select>
-                </div>
-                <div class="form-group">
-                    <label for="organizationSelect">机构:</label>
-                    <select id="organizationSelect"></select>
-                </div>
-                <div class="disguise-buttons">
-                    <button id="applyDisguiseButton" class="terminal-button">应用伪装</button>
-                    <button id="clearDisguiseButton" class="terminal-button">清除伪装</button>
-                </div>
+
+        // 创建伪装页面容器
+        const disguiseContainer = document.createElement('div');
+        disguiseContainer.className = 'disguise-page-container';
+
+        // 创建顶部导航
+        const disguiseNav = document.createElement('div');
+        disguiseNav.className = 'disguise-nav';
+        disguiseNav.innerHTML = `
+            <h3>伪装系统</h3>
+            <div class="disguise-control-buttons">
+                <button id="quickClearDisguiseButton" class="terminal-button">清除伪装</button>
+                <button id="editDisguiseButton" class="edit-disguise-button">更改伪装</button>
+                <button id="backToCurrentButton" class="back-button" style="display: none;">返回</button>
             </div>
         `;
-        
+
+        // 当前伪装视图
+        const currentView = document.createElement('div');
+        currentView.className = 'disguise-current-view';
+        currentView.id = 'disguiseCurrentView';
+
+        // 当前伪装显示区域
+        const currentDisguiseDisplay = document.createElement('div');
+        currentDisguiseDisplay.id = 'currentDisguiseDisplay';
+        currentDisguiseDisplay.className = 'identity-display';
+
+        // 组装当前伪装视图
+        currentView.appendChild(currentDisguiseDisplay);
+
+        // 更改伪装视图
+        const editView = document.createElement('div');
+        editView.className = 'disguise-edit-view';
+        editView.id = 'disguiseEditView';
+
+        // 伪装表单容器
+        const formContainer = document.createElement('div');
+        formContainer.className = 'disguise-form-container';
+
+        // 伪装表单
+        formContainer.innerHTML = `
+            <div class="form-group">
+                <label for="nationalitySelect">国籍:</label>
+                <select id="nationalitySelect"></select>
+            </div>
+            <div class="form-group">
+                <label for="typeSelect">身份类型:</label>
+                <select id="typeSelect"></select>
+            </div>
+            <div class="form-group">
+                <label for="functionSelect">职能:</label>
+                <select id="functionSelect"></select>
+            </div>
+            <div class="form-group">
+                <label for="organizationSelect">机构:</label>
+                <select id="organizationSelect"></select>
+            </div>
+            <div class="disguise-buttons">
+                <button id="applyDisguiseButton" class="terminal-button">应用伪装</button>
+                <button id="clearDisguiseButton" class="terminal-button">清除伪装</button>
+            </div>
+        `;
+
+        // 组装更改伪装视图
+        editView.appendChild(formContainer);
+
+        // 将导航和两个视图添加到伪装页面容器
+        disguiseContainer.appendChild(disguiseNav);
+        disguiseContainer.appendChild(currentView);
+        disguiseContainer.appendChild(editView);
+
+        // 将容器添加到伪装页面
+        disguisePage.appendChild(disguiseContainer);
+
         // 将两个页面添加到右侧面板
         rightPanel.appendChild(basicInfoPage);
         rightPanel.appendChild(disguisePage);
@@ -208,6 +252,25 @@ class IdentityView {
         document.getElementById('basicInfoButton').classList.remove('active');
         document.getElementById('disguiseButton').classList.add('active');
     }
+
+    
+    // 显示当前伪装视图
+    showCurrentDisguiseView() {
+        document.getElementById('disguiseCurrentView').style.display = 'flex';
+        document.getElementById('disguiseEditView').style.display = 'none';
+        document.getElementById('editDisguiseButton').style.display = 'block';
+        document.getElementById('quickClearDisguiseButton').style.display = 'block';
+        document.getElementById('backToCurrentButton').style.display = 'none';
+    }
+
+    // 显示更改伪装视图
+    showEditDisguiseView() {
+        document.getElementById('disguiseCurrentView').style.display = 'none';
+        document.getElementById('disguiseEditView').style.display = 'flex';
+        document.getElementById('editDisguiseButton').style.display = 'none';
+        document.getElementById('quickClearDisguiseButton').style.display = 'none';
+        document.getElementById('backToCurrentButton').style.display = 'block';
+    }
     
     // 更新身份显示
     updateRealIdentity(identity) {
@@ -236,15 +299,28 @@ class IdentityView {
         
         let html = '<div class="identity-card">';
         
-        html += `<div class="identity-item nationality">${identity.nationality}</div>`;
-        html += `<div class="identity-item type">${identity.type}</div>`;
+        html += `<div class="identity-item">
+            <span class="item-label">国籍:</span>
+            <span class="item-value">${identity.nationality}</span>
+        </div>`;
+        
+        html += `<div class="identity-item">
+            <span class="item-label">身份类型:</span>
+            <span class="item-value">${identity.type}</span>
+        </div>`;
         
         if (identity.function) {
-            html += `<div class="identity-item function">${identity.function}</div>`;
+            html += `<div class="identity-item">
+                <span class="item-label">职能:</span>
+                <span class="item-value">${identity.function}</span>
+            </div>`;
         }
         
         if (identity.organization) {
-            html += `<div class="identity-item organization">${identity.organization}</div>`;
+            html += `<div class="identity-item">
+                <span class="item-label">机构:</span>
+                <span class="item-value">${identity.organization}</span>
+            </div>`;
         }
         
         html += '</div>';
@@ -300,19 +376,36 @@ class IdentityView {
         if (this.organizationSelect) {
             this.organizationSelect.innerHTML = '';
             
-            // 添加空选项
-            const emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = '-- 选择机构 --';
-            this.organizationSelect.appendChild(emptyOption);
-            
-            // 添加可用机构
-            organizations.forEach(org => {
-                const option = document.createElement('option');
-                option.value = org;
-                option.textContent = org;
-                this.organizationSelect.appendChild(option);
-            });
+            // 检查是否有可用机构
+            if (organizations.length === 0) {
+                // 没有可用机构时，显示"无机构"选项
+                const noOrgOption = document.createElement('option');
+                noOrgOption.value = '';
+                noOrgOption.textContent = '-- 无机构 --';
+                noOrgOption.disabled = true;
+                noOrgOption.selected = true;
+                this.organizationSelect.appendChild(noOrgOption);
+                
+                // 可以选择禁用整个选择框
+                this.organizationSelect.disabled = true;
+            } else {
+                // 有可用机构时，启用选择框
+                this.organizationSelect.disabled = false;
+                
+                // 添加空选项
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = '-- 选择机构 --';
+                this.organizationSelect.appendChild(emptyOption);
+                
+                // 添加可用机构
+                organizations.forEach(org => {
+                    const option = document.createElement('option');
+                    option.value = org;
+                    option.textContent = org;
+                    this.organizationSelect.appendChild(option);
+                });
+            }
         }
     }
     
