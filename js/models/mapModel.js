@@ -15,10 +15,21 @@ class MapModel {
                 disguisedAs: null,
                 disguiseRevealed: null
             },
-            "CIA DC分部": {
-                description: "一座看起来毫不起眼的现代化办公楼。员工西装革履，行事低调。",
-                hiddenDescription: "CIA在首都地区执行秘密行动、招募和管理本地线人、进行反情报调查的核心部门之一。内部设有审讯室、安全屋、技术支持实验室等。掌握着大量关于外国使馆和可疑人员的监控数据。",
-                coordinates: [60, 45], // 百分比坐标
+            "国家安全局总部": {
+                 description: "建于1961年的中央情报局总部大楼，坐落在波托马克河岸边的树林中。建筑外观庄严，安保措施极其严格。",
+                hiddenDescription: "总部内设有多个绝密设施，包括技术服务部门、特殊行动中心和全球监控中心。地下三层是档案室，存放着冷战以来收集的大量情报。总部与白宫、五角大楼有专用加密通信线路。",
+                coordinates: [86, 16], // 百分比坐标
+                publicAccess: false,   // 普通人不可进入
+                covertAccess: false,   // 特工身份未解锁
+                isVisible: true,
+                knowsHidden: false,
+                disguisedAs: null,
+                disguiseRevealed: null
+            },
+            "中央情报局总部": {
+                 description: "建于1961年的中央情报局总部大楼，坐落在波托马克河岸边的树林中。建筑外观庄严，安保措施极其严格。",
+                hiddenDescription: "总部内设有多个绝密设施，包括技术服务部门、特殊行动中心和全球监控中心。地下三层是档案室，存放着冷战以来收集的大量情报。总部与白宫、五角大楼有专用加密通信线路。",
+                coordinates: [14, 26.9], // 百分比坐标
                 publicAccess: false,   // 普通人不可进入
                 covertAccess: false,   // 特工身份未解锁
                 isVisible: true,
@@ -40,7 +51,18 @@ class MapModel {
             "苏联大使馆": {
                 description: "位于威斯康星大道上的苏联外交机构，红色国旗明显可见。建筑风格严肃庄重，有高大的围墙。",
                 hiddenDescription: "大使馆内部是KGB在美国的重要据点，多名外交官身份的情报人员在此工作。使馆内部布满了监听设备，每周定期排查美方安装的窃听器。三楼西侧是密码通讯室，由专人24小时值守。",
-                coordinates: [12, 18], // 百分比坐标
+                coordinates: [33.3, 38.3], // 百分比坐标
+                publicAccess: false,   // 普通人不可进入
+                covertAccess: false,   // 特工身份未解锁
+                isVisible: true,
+                knowsHidden: false,
+                disguisedAs: null,
+                disguiseRevealed: null
+            },
+            "法国大使馆": {
+                description: "法国在华盛顿的外交代表处，建筑风格典雅庄重。花园中有精心修剪的草坪和传统的英式园艺。",
+                hiddenDescription: "MI6在此设有秘密办公室，与CIA保持着特殊的情报共享关系。大使馆东翼三楼是情报人员专用区域，普通使馆工作人员无法进入。地下室有通往其他建筑的隐蔽通道。",
+                coordinates: [32.8, 41.2], // 百分比坐标
                 publicAccess: false,   // 普通人不可进入
                 covertAccess: false,   // 特工身份未解锁
                 isVisible: true,
@@ -51,7 +73,7 @@ class MapModel {
             "英国大使馆": {
                 description: "英国在华盛顿的外交代表处，建筑风格典雅庄重。花园中有精心修剪的草坪和传统的英式园艺。",
                 hiddenDescription: "MI6在此设有秘密办公室，与CIA保持着特殊的情报共享关系。大使馆东翼三楼是情报人员专用区域，普通使馆工作人员无法进入。地下室有通往其他建筑的隐蔽通道。",
-                coordinates: [19, 25], // 百分比坐标
+                coordinates: [36.5, 40.3], // 百分比坐标
                 publicAccess: false,   // 普通人不可进入
                 covertAccess: false,   // 特工身份未解锁
                 isVisible: true,
@@ -62,7 +84,7 @@ class MapModel {
             "地下交易点": {
                 description: "位于城市边缘的一个废弃仓库区，看起来杂乱无人。铁丝网围栏上挂着'禁止入内'的标志。",
                 hiddenDescription: "这里是情报和武器交易的秘密场所，只有知道'北极熊'暗号的人才能进入。每周五午夜换岗后是最安全的交易时间。仓库内的特定集装箱可以通向地下空间。",
-                coordinates: [37, 83], // 百分比坐标
+                coordinates: [59.665, 65.929], // 百分比坐标
                 publicAccess: false,   // 普通人不可进入
                 covertAccess: false,   // 特工身份未解锁
                 isVisible: true,      // 默认对玩家不可见
@@ -85,7 +107,7 @@ class MapModel {
             "老鹰书店": {
                 description: "二手书店，专门经营历史和政治类书籍，店内常有学者出入。店主是一位戴眼镜的老人，似乎对每本书的内容都了如指掌。",
                 hiddenDescription: "CIA的秘密收发点，通过特殊标记的书籍传递编码信息。书店老板是退役CIA特工，只对知道正确暗语的人开放地下室。某些书架可以转动，背后隐藏着监控设备和武器。",
-                coordinates: [65, 65], // 百分比坐标
+                coordinates: [35.251, 43.758], // 百分比坐标
                 publicAccess: true,    // 任何人都可以进入书店
                 covertAccess: false,   // 特工区域未解锁
                 isVisible: true,
@@ -94,10 +116,10 @@ class MapModel {
                 disguiseRevealed: true,
                 realName: "CIA情报收发站"
             },
-            "国会山": {
+            "国会大厦": {
                 description: "美国国会大厦所在地，美国立法机构办公场所。宏伟的圆顶建筑是华盛顿最著名的地标之一。",
                 hiddenDescription: "国会地下有秘密会议室，用于紧急状态下的国家安全讨论。某些议员办公室是各国情报机构关注的重点渗透目标。存在多条隐蔽通道连接至附近建筑，以便紧急疏散。",
-                coordinates: [88.5, 58.2], // 百分比坐标
+                coordinates: [50.7, 51.3], // 百分比坐标
                 publicAccess: true,    // 游客可参观
                 covertAccess: false,   // 秘密区域未解锁
                 isVisible: true,
@@ -108,7 +130,7 @@ class MapModel {
             "国家档案馆": {
                 description: "保存美国重要历史文件的机构，包括独立宣言和宪法原件。建筑宏伟，每天都有大量游客参观。",
                 hiddenDescription: "档案馆地下深处存有绝密文件区，记录了冷战初期的敏感行动。只有持特殊许可证的人员才能进入。据传某些最敏感的文件并未编入目录，存放在特殊的隔离保险库中。",
-                coordinates: [55, 40], // 百分比坐标
+                coordinates: [46.9, 50.1], // 百分比坐标
                 publicAccess: true,    // 开放参观
                 covertAccess: false,   // 秘密档案室未解锁
                 isVisible: true,
@@ -128,9 +150,9 @@ class MapModel {
                 disguiseRevealed: null
             },
             "红宝石酒吧": {
-                description: "乔治城区的一家高档酒吧，装修典雅，常有政界人士出没。调酒师以能记住每位常客的喜好而闻名。",
+                description: "乔治城区河对面的一家高档酒吧，装修典雅，常有政界人士出没。调酒师以能记住每位常客的喜好而闻名。",
                 hiddenDescription: "多国情报人员的非正式会面场所，吧台后的酒柜暗藏监听设备。地下室是私人会所，需要会员卡才能进入，实际上是各方情报交易的中立区。",
-                coordinates: [75, 45], // 百分比坐标
+                coordinates: [33, 49], // 百分比坐标
                 publicAccess: true,    // 普通人可进入酒吧
                 covertAccess: false,   // 私人会所未解锁
                 isVisible: true,
@@ -141,7 +163,7 @@ class MapModel {
             "林肯纪念堂": {
                 description: "为纪念美国第16任总统林肯而建的希腊神庙式建筑，内有林肯巨型坐像。",
                 hiddenDescription: "纪念堂是特定情报小组定期换班的标记地点。每周三日落后，东北角的长椅是重要的死信箱位置，特工们会在这里交换加密信息。",
-                coordinates: [15.5, 59.5], // 百分比坐标
+                coordinates: [39.8, 51.6], // 百分比坐标
                 publicAccess: true,    // 开放参观
                 covertAccess: true,    // 情报人员可使用
                 isVisible: true,
@@ -152,7 +174,7 @@ class MapModel {
             "全视眼照相馆": {
                 description: "一家专业摄影工作室，提供证件照和艺术肖像服务。装饰复古，设备却相当现代。",
                 hiddenDescription: "FBI的秘密监控中心，通过提供照相服务获取各国外交官和可疑人物的最新面部图像。地下室连接着复杂的档案系统和面部识别数据库。",
-                coordinates: [55, 65], // 百分比坐标
+                coordinates: [37.121, 45.210], // 百分比坐标
                 publicAccess: true,    // 普通人可进入
                 covertAccess: false,   // 监控中心未解锁
                 isVisible: true,
@@ -171,35 +193,91 @@ class MapModel {
                 knowsHidden: false,
                 disguisedAs: null,
                 disguiseRevealed: null
+            },
+            "阿灵顿国家公墓": {
+                description: "美国最著名的军人公墓，无数美国军人和政要长眠于此。安静肃穆的气氛中，游客们前来凭吊肯尼迪总统墓地和无名战士墓。",
+                hiddenDescription: "公墓的特定区域是情报人员秘密会面的场所。每周四下午，靠近无名战士墓的一处偏僻墓碑下有一个隐蔽的死信箱，用于存放敏感文件交接。",
+                coordinates: [35.064, 55.488], // 百分比坐标
+                publicAccess: true,    // 公开场所
+                covertAccess: true,    // 特工可使用秘密设施
+                isVisible: true,
+                knowsHidden: false,
+                disguisedAs: null,
+                disguiseRevealed: null
+            },
+            "五角大楼": {
+                description: "美国国防部总部，世界上最大的办公楼之一。五边形的建筑结构给人以威严感，戒备森严的入口有军人把守。",
+                hiddenDescription: "五角大楼地下E环有一个代号为'黑匣子'的绝密通讯中心，负责处理全球军事情报。某些走廊需要最高安全许可才能进入，传闻第三层西南区域存有UFO研究档案。",
+                coordinates: [38.341, 58.3], // 百分比坐标
+                publicAccess: false,   // 普通人需要特别许可
+                covertAccess: false,   // 特工身份未解锁
+                isVisible: true,
+                knowsHidden: false,
+                disguisedAs: null,
+                disguiseRevealed: null
+            },
+            "华盛顿国家机场": {
+                description: "首都地区主要的民用机场，客流量大，安保措施严格。候机大厅内人来人往，行色匆匆。",
+                hiddenDescription: "机场西南角的维修区域有一个不起眼的仓库，实际是CIA的秘密行动基地，用于接收和派遣海外特工。机场还设有专用的外交通道，可绕过常规安检。",
+                coordinates: [42.939, 64.244], // 百分比坐标
+                publicAccess: true,    // 公共场所
+                covertAccess: false,   // 特殊区域未解锁
+                isVisible: true,
+                knowsHidden: false,
+                disguisedAs: null,
+                disguiseRevealed: null
+            },
+            "陆军海军乡村俱乐部": {
+                description: "一座优雅的会员制俱乐部，提供高尔夫、网球等设施。多位军方高官和政要是这里的常客，场所氛围轻松却不失严肃。",
+                hiddenDescription: "俱乐部是高级军官和情报官员非正式交流的场所。地下酒窖有一个秘密会议室，传言国防部与CIA的某些最敏感决策在此达成。高尔夫球场的第七洞附近有一个隐蔽的通讯设备。",
+                coordinates: [33.8, 63], // 百分比坐标
+                publicAccess: false,   // 会员制
+                covertAccess: false,   // 特殊区域未解锁
+                isVisible: true,
+                knowsHidden: false,
+                disguisedAs: null,
+                disguiseRevealed: null
             }
         };
 
         // 添加区域数据结构
         this.regions = {
-            "中央区": {
+            "市中心": {
                 description: "华盛顿的主要政府区域，包含白宫、国会大厦等重要建筑。",
                 coordinates: [45, 50],
                 isVisible: true,
                 // 该区域包含的地点名称数组
-                locations: ["富兰克林公园", "白宫", "国会山", "国家档案馆", "华盛顿纪念碑"]
+                locations: ["富兰克林公园", "白宫", "国会大厦", "国家档案馆", "华盛顿纪念碑","林肯纪念堂"]
             },
-            "西北区": {
-                description: "包含富兰克林公园和一些重要外国使馆的区域。",
-                coordinates: [25, 25],
+            "阿灵顿": {
+                description: "位于波托马克河西岸的弗吉尼亚州区域，包含五角大楼和阿灵顿国家公墓等重要地标。",
+                coordinates: [38.2, 60.1],
                 isVisible: true,
-                locations: ["苏联大使馆", "英国大使馆", "林肯纪念堂"]
+                locations: ["阿灵顿国家公墓", "五角大楼", "华盛顿国家机场","陆军海军乡村俱乐部"]
             },
-            "东北区": {
+            "乔治城": {
+                description: "外国使馆聚集的区域。",
+                coordinates: [35.4, 43],
+                isVisible: true,
+                locations: ["苏联大使馆", "英国大使馆", "法国大使馆", "全视眼照相馆", "老鹰书店", "红宝石酒吧"]
+            },
+            "东南区": {
                 description: "包含多个政府办公机构和情报单位的区域。",
-                coordinates: [65, 30],
+                coordinates: [58, 62],
                 isVisible: true,
-                locations: ["CIA DC分部", "NSA DC办公室", "全视眼照相馆", "红宝石酒吧"]
+                locations: [ "地下交易点"]
             },
-            "南部区": {
-                description: "包含一些商业区和秘密交易点的区域。",
-                coordinates: [50, 70],
+            "兰利": {
+                description: "CIA总部所在地，位于弗吉尼亚州，华盛顿特区西南约13公里处，是美国情报系统的核心区域。",
+                coordinates: [14, 26.9],
                 isVisible: true,
-                locations: ["地下交易点", "柯楠牙医诊所", "老鹰书店"]
+                locations: ["中央情报局总部",]
+            },
+            "米德堡": {
+                description: "CIA总部所在地，位于弗吉尼亚州，华盛顿特区西南约13公里处，是美国情报系统的核心区域。",
+                coordinates: [81, 16],
+                isVisible: true,
+                locations: ["国家安全局总部",]
             }
         };
         
