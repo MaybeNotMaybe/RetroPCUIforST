@@ -337,3 +337,173 @@
 .status-interface.amber-mode #quickClearDisguiseButton:hover {
     background-color: rgba(255, 176, 0, 0.3);
 }
+
+
+/* 档案文件容器 */
+.identity-file-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 档案标签栏 */
+.file-tab-container {
+    display: flex;
+    border-bottom: 1px solid #33ff33;
+}
+
+.file-tab {
+    padding: 8px 15px;
+    cursor: pointer;
+    background-color: rgba(51, 255, 51, 0.1);
+    border: 1px solid #33ff33;
+    border-bottom: none;
+    margin-right: 5px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.file-tab.active {
+    background-color: rgba(51, 255, 51, 0.3);
+}
+
+/* 档案内容区域 */
+.identity-file {
+    flex-grow: 1;
+    border: 1px solid #33ff33;
+    padding: 15px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.identity-file:hover {
+    background-color: rgba(51, 255, 51, 0.05);
+}
+
+/* 文件标题样式 */
+.file-header-title {
+    border-bottom: 1px solid #33ff33;
+    padding: 8px 15px;
+    background-color: rgba(51, 255, 51, 0.2);
+    text-align: center;
+}
+
+.file-header-text {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.amber-mode .file-header-title {
+    border-color: #ffb000;
+    background-color: rgba(255, 176, 0, 0.2);
+}
+
+.amber-mode .identity-file:hover {
+    background-color: rgba(255, 176, 0, 0.05);
+}
+
+/* 国籍特定样式 */
+.identity-file.nationality-usa {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" opacity="0.05"><text x="5" y="30" font-family="Arial" font-size="24" fill="%2333ff33">CIA</text></svg>');
+}
+
+.identity-file.nationality-uk {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" opacity="0.05"><text x="5" y="30" font-family="Arial" font-size="24" fill="%2333ff33">MI6</text></svg>');
+}
+
+.identity-file.nationality-france {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" opacity="0.05"><text x="5" y="30" font-family="Arial" font-size="24" fill="%2333ff33">DGSE</text></svg>');
+}
+
+.identity-file.nationality-soviet {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" opacity="0.05"><text x="5" y="30" font-family="Arial" font-size="20" fill="%2333ff33">KGB</text></svg>');
+}
+
+/* 档案内容样式 */
+.file-header {
+    border-bottom: 1px dashed #33ff33;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.file-title {
+    font-size: 1.4rem;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.file-subtitle {
+    font-size: 1.1rem;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.file-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.file-section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    border-bottom: 1px solid #33ff33;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.file-row {
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.file-label {
+    flex: 0 0 120px;
+    font-weight: bold;
+}
+
+.file-value {
+    flex: 1;
+}
+
+/* 过期/机密标记 */
+.file-stamp {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    font-size: 2.5rem;
+    text-transform: uppercase;
+    opacity: 0.15;
+    font-weight: bold;
+    pointer-events: none;
+    border: 3px solid;
+    padding: 5px 15px;
+    white-space: nowrap; /* 防止文字换行 */
+    max-width: none; /* 移除可能的最大宽度限制 */
+    width: auto; /* 宽度自适应内容 */
+}
+
+/* 琥珀色模式适配 */
+.amber-mode .file-tab {
+    border-color: #ffb000;
+    background-color: rgba(255, 176, 0, 0.1);
+}
+
+.amber-mode .file-tab.active {
+    background-color: rgba(255, 176, 0, 0.3);
+}
+
+.amber-mode .identity-file {
+    border-color: #ffb000;
+}
+
+.amber-mode .file-stamp {
+    color: #ffb000;
+    border-color: #ffb000;
+}

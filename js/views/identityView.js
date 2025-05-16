@@ -101,13 +101,13 @@ class IdentityView {
         basicInfoPage.id = 'basicInfoPage';
         basicInfoPage.className = 'identity-page';
         basicInfoPage.innerHTML = `
-            <div class="identity-section">
-                <h3>真实身份</h3>
-                <div id="realIdentityDisplay" class="identity-display"></div>
-            </div>
-            <div class="identity-section">
-                <h3>表面身份</h3>
-                <div id="coverIdentityDisplay" class="identity-display"></div>
+            <div class="identity-file-container">
+                <div class="file-header-title">
+                    <div class="file-header-text">人员档案</div>
+                </div>
+                <div class="identity-file" id="identityFile">
+                    <!-- 档案内容将在这里动态生成 -->
+                </div>
             </div>
         `;
         
@@ -420,5 +420,126 @@ class IdentityView {
                 this.statusInterface.classList.add('green-mode');
             }
         }
+    }
+
+    formatFileDisplay(identity, isSecret = false) {
+        if (!identity) return '<p class="no-identity">身份不明</p>';
+        
+        // 根据国籍选择不同的文档格式和文本
+        let headerTitle = '';
+        let headerSubtitle = '';
+        let stampText = '';
+        
+        switch(identity.nationality) {
+            case "美国":
+                headerTitle = "联邦调查局";
+                headerSubtitle = "人员档案";
+                stampText = isSecret ? "最高机密" : "官方档案";
+                break;
+            case "英国":
+                headerTitle = "秘密情报局";
+                headerSubtitle = "档案编号: " + this.generateRandomCode(8);
+                stampText = isSecret ? "绝密" : "机密";
+                break;
+            case "法国":
+                headerTitle = "对外安全总局";
+                headerSubtitle = "特工档案";
+                stampText = isSecret ? "国家机密" : "限制传阅";
+                break;
+            case "苏联":
+                headerTitle = "国家安全委员会";
+                headerSubtitle = "人员档案 " + this.generateRandomCode(5);
+                stampText = isSecret ? "绝密档案" : "登记档案";
+                break;
+            default:
+                headerTitle = "档案记录";
+                headerSubtitle = "身份信息";
+                stampText = isSecret ? "机密" : "已登记";
+        }
+        
+        let html = `
+        <div class="file-header">
+            <div class="file-title">${headerTitle}</div>
+            <div class="file-subtitle">${headerSubtitle}</div>
+        </div>
+        <div class="file-content">
+            <div class="file-section">
+                <div class="section-title">基本信息</div>
+                <div class="file-row">
+                    <div class="file-label">国籍:</div>
+                    <div class="file-value">${identity.nationality}</div>
+                </div>
+                <div class="file-row">
+                    <div class="file-label">身份类型:</div>
+                    <div class="file-value">${identity.type}</div>
+                </div>`;
+        
+        if (identity.function) {
+            html += `
+                <div class="file-row">
+                    <div class="file-label">职能:</div>
+                    <div class="file-value">${identity.function}</div>
+                </div>`;
+        }
+        
+        if (identity.organization) {
+            html += `
+                <div class="file-row">
+                    <div class="file-label">隶属机构:</div>
+                    <div class="file-value">${identity.organization}</div>
+                </div>`;
+        }
+        
+        // 根据身份类型添加额外信息
+        html += `
+            </div>
+            <div class="file-section">
+                <div class="section-title">附加信息</div>`;
+        
+        // 根据身份类型生成不同的附加信息
+        if (identity.type === "情报人员") {
+            html += `
+                <div class="file-row">
+                    <div class="file-label">安全级别:</div>
+                    <div class="file-value">${isSecret ? "α" : "β"}</div>
+                </div>
+                <div class="file-row">
+                    <div class="file-label">行动许可:</div>
+                    <div class="file-value">${isSecret ? "无限制" : "有限"}</div>
+                </div>`;
+        } else if (identity.type === "外交人员") {
+            html += `
+                <div class="file-row">
+                    <div class="file-label">外交级别:</div>
+                    <div class="file-value">${isSecret ? "特级" : "普通"}</div>
+                </div>
+                <div class="file-row">
+                    <div class="file-label">外交豁免:</div>
+                    <div class="file-value">是</div>
+                </div>`;
+        } else {
+            html += `
+                <div class="file-row">
+                    <div class="file-label">备注:</div>
+                    <div class="file-value">${isSecret ? "此档案包含敏感信息" : "标准档案"}</div>
+                </div>`;
+        }
+        
+        html += `
+            </div>
+        </div>
+        <div class="file-stamp">${stampText}</div>`;
+        
+        return html;
+    }
+
+    // 辅助方法 - 生成随机代码
+    generateRandomCode(length) {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let result = "";
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
     }
 }

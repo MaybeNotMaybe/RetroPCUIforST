@@ -44,9 +44,10 @@ function setupFunctionButtonsForIdentity() {
         
         // 添加点击事件
         f2Button.addEventListener('click', () => {
-            // A check if system is operational
+            // 检查系统是否可操作
             if (window.isSystemOperational() && window.identityController) {
-                window.identityController.toggleIdentityView();
+                // 仅切换显示/隐藏，不触发身份类型切换
+                window.identityController.showHideIdentityView();
                 
                 // 播放按钮音效
                 if (window.audioManager) {
