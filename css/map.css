@@ -170,7 +170,7 @@
 }
 
 .map-location-info {
-    height: 42%;
+    height: 57%; /* 增加高度从42%到57% */
     border-bottom: 1px solid #444;
     padding: 10px;
     overflow-y: auto;
@@ -182,7 +182,8 @@
 }
 
 .map-location-footer {
-    flex: 1;
+    height: 10%; /* 替换flex:1为固定高度 */
+    min-height: 60px; /* 确保最小高度足够显示内容 */
     padding: 10px;
     font-size: 0.9em;
     opacity: 0.8;
