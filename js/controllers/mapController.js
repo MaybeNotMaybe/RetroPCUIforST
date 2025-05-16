@@ -325,6 +325,15 @@ class MapController {
                 name: name 
             });
         }
+        
+        // 对区域位置进行同样的排序
+        this.regionPositions.sort((a, b) => {
+            const yTolerance = 3;
+            if (Math.abs(a.y - b.y) <= yTolerance) {
+                return a.x - b.x;
+            }
+            return a.y - b.y;
+        });
     }
 
     // 处理区域点击
@@ -586,8 +595,11 @@ class MapController {
             
             if (this.regionPositions.length === 0) return;
             
-            // 更新索引
-            this.currentRegionIndex = (this.currentRegionIndex + delta + this.regionPositions.length) % this.regionPositions.length;
+            if (delta > 0) { // E键 - 正向遍历
+                this.currentRegionIndex = (this.currentRegionIndex + 1) % this.regionPositions.length;
+            } else { // Q键 - 反向遍历
+                this.currentRegionIndex = (this.currentRegionIndex - 1 + this.regionPositions.length) % this.regionPositions.length;
+            }
             
             // 获取新位置
             const newPos = this.regionPositions[this.currentRegionIndex];
@@ -603,8 +615,11 @@ class MapController {
             
             if (this.locationPositions.length === 0) return;
             
-            // 更新索引
-            this.currentLocationIndex = (this.currentLocationIndex + delta + this.locationPositions.length) % this.locationPositions.length;
+            if (delta > 0) { // E键 - 正向遍历
+                this.currentLocationIndex = (this.currentLocationIndex + 1) % this.locationPositions.length;
+            } else { // Q键 - 反向遍历
+                this.currentLocationIndex = (this.currentLocationIndex - 1 + this.locationPositions.length) % this.locationPositions.length;
+            }
             
             // 获取新位置
             const newPos = this.locationPositions[this.currentLocationIndex];
@@ -642,6 +657,19 @@ class MapController {
                 name: name 
             });
         }
+        
+        // 按照Y轴优先，X轴次要的顺序排序（从上到下，从左到右）
+        this.locationPositions.sort((a, b) => {
+            // 允许一定的Y轴容差，将Y轴距离相近的点视为同一行
+            const yTolerance = 3; // 可以根据需要调整这个容差值
+            
+            if (Math.abs(a.y - b.y) <= yTolerance) {
+                // Y轴接近，按X轴从左到右排序
+                return a.x - b.x;
+            }
+            // 否则按Y轴从上到下排序
+            return a.y - b.y;
+        });
     }
     
     // 选择光标位置的单元格
