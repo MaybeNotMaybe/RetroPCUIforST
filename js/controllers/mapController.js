@@ -66,9 +66,32 @@ class MapController {
                 } else if (this.view.viewState === 'region') {
                     // 在区域视图中点击空白区域，返回默认视图
                     console.log("从区域视图返回默认视图");
-                    this.model.setCurrentRegion(null);
-                    this.view.setViewState('default');
-                    this.renderMap();
+                    const exitedRegionName = this.model.getCurrentRegion(); // 1. 获取当前区域名称
+                    let newCursorPosX = 50, newCursorPosY = 50; // 如果区域信息丢失，则为默认值
+
+                    if (exitedRegionName) {
+                        const regionsData = this.model.getAllVisibleRegions();
+                        const exitedRegion = regionsData[exitedRegionName];
+                        if (exitedRegion && exitedRegion.coordinates) {
+                            [newCursorPosX, newCursorPosY] = exitedRegion.coordinates; // 2. 获取其坐标
+                        }
+                    }
+
+                    this.model.setCurrentRegion(null);                 // 3. 清除模型中的当前区域
+                    this.view.setViewState('default');                 // 4. 设置视图状态为默认
+
+                    this.cursorPosition = { x: newCursorPosX, y: newCursorPosY }; // 5. 更新光标位置
+
+                    this.renderMap();                                  // 6. 渲染地图（将使用新的光标位置）
+
+                    if (exitedRegionName) {
+                        this.view.highlightRegion(exitedRegionName);   // 7. 高亮退出的区域
+                        // 为Q/E导航一致性更新 currentRegionIndex
+                        if (this.regionPositions.length === 0) this.initRegionPositions(); // 确保 regionPositions 已填充
+                        this.currentRegionIndex = this.regionPositions.findIndex(
+                            pos => pos.name === exitedRegionName
+                        );
+                    }
                 }
             }
         });
@@ -123,9 +146,32 @@ class MapController {
                         this.clearSelection();
                     } else if (this.view.viewState === 'region') {
                         // 在区域视图中，返回默认视图
-                        this.model.setCurrentRegion(null);
-                        this.view.setViewState('default');
-                        this.renderMap();
+                        const exitedRegionName = this.model.getCurrentRegion(); // 1. 获取当前区域名称
+                        let newCursorPosX = 50, newCursorPosY = 50; // 如果区域信息丢失，则为默认值
+
+                        if (exitedRegionName) {
+                            const regionsData = this.model.getAllVisibleRegions();
+                            const exitedRegion = regionsData[exitedRegionName];
+                            if (exitedRegion && exitedRegion.coordinates) {
+                                [newCursorPosX, newCursorPosY] = exitedRegion.coordinates; // 2. 获取其坐标
+                            }
+                        }
+
+                        this.model.setCurrentRegion(null);                 // 3. 清除模型中的当前区域
+                        this.view.setViewState('default');                 // 4. 设置视图状态为默认
+
+                        this.cursorPosition = { x: newCursorPosX, y: newCursorPosY }; // 5. 更新光标位置
+
+                        this.renderMap();                                  // 6. 渲染地图（将使用新的光标位置）
+
+                        if (exitedRegionName) {
+                            this.view.highlightRegion(exitedRegionName);   // 7. 高亮退出的区域
+                             // 为Q/E导航一致性更新 currentRegionIndex
+                            if (this.regionPositions.length === 0) this.initRegionPositions(); // 确保 regionPositions 已填充
+                            this.currentRegionIndex = this.regionPositions.findIndex(
+                                pos => pos.name === exitedRegionName
+                            );
+                        }
                     }
                     break;
             }
