@@ -532,9 +532,13 @@ class MapController {
         else if (deltaY > 0) direction = 'down';
         else if (deltaY < 0) direction = 'up';
         
-        // 查找该方向上最近的位置
-        let closestPos = null;
-        let closestDistance = Infinity;
+        // 设置权重系数
+        const primaryAxisWeight = 1.0;   // 主轴权重
+        const secondaryAxisWeight = 1.5; // 次轴权重
+        
+        // 查找最佳位置
+        let bestPos = null;
+        let lowestScore = Infinity;
         
         for (const pos of positions) {
             // 根据方向过滤
@@ -545,22 +549,30 @@ class MapController {
                 continue; // 忽略不在目标方向的位置
             }
             
-            // 计算距离
-            const distance = Math.sqrt(
-                Math.pow(pos.x - currentX, 2) + 
-                Math.pow(pos.y - currentY, 2)
-            );
+            // 计算X和Y轴上的距离
+            const xDistance = Math.abs(pos.x - currentX);
+            const yDistance = Math.abs(pos.y - currentY);
             
-            // 更新最近位置
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestPos = pos;
+            // 根据移动方向计算加权分数
+            let score;
+            if (direction === 'left' || direction === 'right') {
+                // 对于左右移动，X是主轴，Y是次轴
+                score = (xDistance * primaryAxisWeight) + (yDistance * secondaryAxisWeight);
+            } else {
+                // 对于上下移动，Y是主轴，X是次轴
+                score = (yDistance * primaryAxisWeight) + (xDistance * secondaryAxisWeight);
+            }
+            
+            // 更新最佳位置
+            if (score < lowestScore) {
+                lowestScore = score;
+                bestPos = pos;
             }
         }
         
-        // 如果找到了最近位置，处理它
-        if (closestPos && callback) {
-            callback(closestPos);
+        // 如果找到了最佳位置，处理它
+        if (bestPos && callback) {
+            callback(bestPos);
         }
     }
     
