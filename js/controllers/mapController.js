@@ -457,6 +457,15 @@ class MapController {
                 // 不自动选择位置，只移动光标
                 this.cursorPosition = { x: newPos.x, y: newPos.y };
                 this.view.updateCursorPosition(this.cursorPosition);
+                
+                // 新增：如果是在地点详情视图中，自动选择当前光标下的地点
+                if (this.view.viewState === 'location') {
+                    // 查找光标所在的地点
+                    const locationFound = this.locationPositions[this.currentLocationIndex];
+                    if (locationFound && locationFound.name) {
+                        this.handleLocationSelection(locationFound.name);
+                    }
+                }
             });
         }
     }
@@ -545,6 +554,10 @@ class MapController {
             
             // 更新视图
             this.view.updateCursorPosition(this.cursorPosition);
+
+            if (this.view.viewState === 'location' && newPos.name) {
+                this.handleLocationSelection(newPos.name);
+            }
         }
     }
     
@@ -586,21 +599,29 @@ class MapController {
                 }
             }
         } else {
-            // 在区域视图或位置视图中，查找光标下的位置
+            // 在区域视图或位置视图中
+            if (this.locationPositions.length > 0 && this.currentLocationIndex >= 0) {
+                // 直接使用当前选中的地点
+                const selectedPosition = this.locationPositions[this.currentLocationIndex];
+                if (selectedPosition && selectedPosition.name) {
+                    // 选择当前索引对应的地点
+                    this.handleLocationSelection(selectedPosition.name);
+                    return;
+                }
+            }
+            
+            // 如果没有当前索引或索引无效，回退到原来的坐标查找方法
             let locations;
             if (this.view.viewState === 'region') {
-                // 区域视图只检查当前区域内的位置
                 const currentRegion = this.model.getCurrentRegion();
                 locations = currentRegion ? this.model.getLocationsByRegion(currentRegion) : {};
             } else {
-                // 位置视图检查所有位置
                 locations = this.model.getAllVisibleLocations();
             }
 
             for (const [name, data] of Object.entries(locations)) {
                 const [x, y] = data.coordinates;
                 if (Math.abs(x - this.cursorPosition.x) < 5 && Math.abs(y - this.cursorPosition.y) < 5) {
-                    // 找到位置，选中它
                     this.handleLocationSelection(name);
                     return;
                 }
