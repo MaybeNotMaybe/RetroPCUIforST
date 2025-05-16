@@ -115,14 +115,35 @@
 /* 伪装页面区块 */
 #disguisePage {
     flex-direction: column;
+    max-height: 100%;
+    overflow: hidden;
 }
-
 .disguise-current {
     margin-bottom: 20px;
 }
 
 .disguise-form {
     flex-grow: 1;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    max-height: 300px;     /* 限制高度以启用滚动 */
+}
+
+.disguise-form-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.disguise-form-container::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+}
+
+/* 隐藏WebKit/Chrome浏览器的滚动条 */
+.disguise-form::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
 }
 
 /* 身份显示 */
@@ -131,6 +152,12 @@
     height: 180px;
     padding: 10px;
     overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.identity-display::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
 }
 
 .identity-card {
@@ -140,10 +167,108 @@
 }
 
 .identity-item {
+    display: flex;
+    justify-content: space-between;
     font-size: 1.1rem;
     padding: 5px;
     border: 1px solid #33ff33;
     background-color: rgba(51, 255, 51, 0.1);
+    margin-bottom: 5px;
+}
+
+.disguise-page-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 当前伪装视图 */
+.disguise-current-view {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 更改伪装视图 */
+.disguise-edit-view {
+    width: 100%;
+    height: 100%;
+    display: none; /* 初始隐藏 */
+}
+
+.disguise-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #33ff33;
+}
+
+.disguise-nav h3 {
+    margin: 0;
+}
+
+.disguise-control-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+/* 保持视图样式 */
+.disguise-current-view, .disguise-edit-view {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.disguise-edit-view {
+    display: none; /* 初始隐藏 */
+}
+
+/* 琥珀色模式适配 */
+.status-interface.amber-mode .disguise-nav {
+    border-bottom-color: #ffb000;
+}
+
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.view-header h3 {
+    margin: 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #33ff33;
+}
+
+/* 切换按钮样式 */
+.edit-disguise-button, .back-button {
+    background-color: transparent;
+    color: #33ff33;
+    border: 1px solid #33ff33;
+    padding: 2px 8px;
+    font-family: 'VT323', monospace;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-shadow: 0 0 5px rgba(51, 255, 51, 0.8);
+}
+
+.edit-disguise-button:hover, .back-button:hover {
+    background-color: rgba(51, 255, 51, 0.2);
+}
+
+.item-label {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.item-value {
+    text-align: right;
 }
 
 .no-disguise, .no-identity {
@@ -151,6 +276,25 @@
     opacity: 0.7;
     text-align: center;
     margin-top: 40px;
+}
+
+#currentDisguiseDisplay {
+    scrollbar-width: none;
+}
+
+#currentDisguiseDisplay::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+}
+
+/* 在琥珀色模式下也保持无滚动条 */
+.status-interface.amber-mode .identity-display {
+    scrollbar-width: none;
+}
+
+.status-interface.amber-mode .identity-display::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
 }
 
 /* 表单样式 */
@@ -260,4 +404,41 @@
 .status-interface.amber-mode .terminal-button:active,
 .status-interface.amber-mode .terminal-button.active {
     background-color: rgba(255, 176, 0, 0.3);
+}
+
+.status-interface.amber-mode .edit-disguise-button,
+.status-interface.amber-mode .back-button {
+    color: #ffb000;
+    border-color: #ffb000;
+    text-shadow: 0 0 5px rgba(255, 176, 0, 0.8);
+}
+
+.status-interface.amber-mode .edit-disguise-button:hover,
+.status-interface.amber-mode .back-button:hover {
+    background-color: rgba(255, 176, 0, 0.2);
+}
+
+/* 调整控制按钮组的样式 */
+.disguise-control-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* 快捷清除伪装按钮样式 */
+#quickClearDisguiseButton {
+    border-color: #33ff33
+}
+
+#quickClearDisguiseButton:hover {
+    background-color: #1f971f62
+}
+
+/* 琥珀色模式下的按钮样式 */
+.status-interface.amber-mode #quickClearDisguiseButton {
+    background-color: rgba(255, 150, 0, 0.15);
+    border-color: rgba(255, 150, 0, 0.5);
+}
+
+.status-interface.amber-mode #quickClearDisguiseButton:hover {
+    background-color: rgba(255, 150, 0, 0.25);
 }

@@ -21,6 +21,10 @@ class IdentityController {
         
         // 更新身份显示
         this.updateIdentityDisplays();
+        
+        // 默认显示伪装页面的当前伪装视图
+        this.view.showDisguisePage();
+        this.view.showCurrentDisguiseView();
     }
     
     // 设置事件监听
@@ -68,6 +72,49 @@ class IdentityController {
         if (this.view.clearDisguiseButton) {
             this.view.clearDisguiseButton.addEventListener('click', () => {
                 this.clearDisguise();
+            });
+        }
+
+        // 添加更改伪装按钮事件
+        const editDisguiseButton = document.getElementById('editDisguiseButton');
+        if (editDisguiseButton) {
+            editDisguiseButton.addEventListener('click', () => {
+                window.audioManager.play('functionButton');
+                this.view.showEditDisguiseView();
+            });
+        }
+
+        // 添加快捷清除伪装按钮事件
+        const quickClearDisguiseButton = document.getElementById('quickClearDisguiseButton');
+        if (quickClearDisguiseButton) {
+            quickClearDisguiseButton.addEventListener('click', () => {
+                window.audioManager.play('systemBeep');
+                this.clearDisguise();
+            });
+        }
+        
+        // 添加返回当前伪装按钮事件
+        const backToCurrentButton = document.getElementById('backToCurrentButton');
+        if (backToCurrentButton) {
+            backToCurrentButton.addEventListener('click', () => {
+                window.audioManager.play('functionButton');
+                this.view.showCurrentDisguiseView();
+            });
+        }
+        
+        // 应用伪装后应该返回到当前伪装视图
+        if (this.view.applyDisguiseButton) {
+            this.view.applyDisguiseButton.addEventListener('click', () => {
+                this.applyDisguise();
+                this.view.showCurrentDisguiseView(); // 应用后返回当前视图
+            });
+        }
+        
+        // 清除伪装后也应该返回到当前伪装视图
+        if (this.view.clearDisguiseButton) {
+            this.view.clearDisguiseButton.addEventListener('click', () => {
+                this.clearDisguise();
+                this.view.showCurrentDisguiseView(); // 清除后返回当前视图
             });
         }
     }
