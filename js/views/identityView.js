@@ -138,6 +138,18 @@ class IdentityView {
         currentView.className = 'disguise-current-view';
         currentView.id = 'disguiseCurrentView';
 
+        // 使用与基本档案页面一致的结构
+        currentView.innerHTML = `
+            <div class="identity-file-container">
+                <div class="file-header-title">
+                    <div class="file-header-text">当前伪装</div>
+                </div>
+                <div class="identity-file" id="currentDisguiseDisplay">
+                    <!-- 伪装档案内容将在这里动态生成 -->
+                </div>
+            </div>
+        `;
+
         // 当前伪装显示区域
         const currentDisguiseDisplay = document.createElement('div');
         currentDisguiseDisplay.id = 'currentDisguiseDisplay';
@@ -286,10 +298,32 @@ class IdentityView {
     }
     
     updateDisguiseIdentity(identity) {
-        if (this.disguiseIdentityDisplay) {
-            this.disguiseIdentityDisplay.innerHTML = identity ? 
-                this.formatIdentityDisplay(identity) : 
+        const disguiseDisplay = document.getElementById('currentDisguiseDisplay');
+        if (disguiseDisplay) {
+            // 使用与基本档案相同的格式化方法，但适当调整
+            disguiseDisplay.innerHTML = identity ? 
+                this.formatDisguiseFileDisplay(identity) : 
                 '<p class="no-disguise">无伪装</p>';
+                
+            // 设置国籍特定样式
+            disguiseDisplay.className = 'identity-file';
+            if (identity) {
+                // 映射国籍到CSS类
+                switch(identity.nationality) {
+                    case "美国":
+                        disguiseDisplay.classList.add('nationality-usa');
+                        break;
+                    case "英国":
+                        disguiseDisplay.classList.add('nationality-uk');
+                        break;
+                    case "法国":
+                        disguiseDisplay.classList.add('nationality-france');
+                        break;
+                    case "苏联":
+                        disguiseDisplay.classList.add('nationality-soviet');
+                        break;
+                }
+            }
         }
     }
     
@@ -325,6 +359,81 @@ class IdentityView {
         
         html += '</div>';
         return html;
+    }
+
+    // 添装档案格式化方法
+    formatDisguiseFileDisplay(identity) {
+        if (!identity) return '<p class="no-disguise">无伪装</p>';
+        
+        // 为伪装档案选择格式
+        const headerTitle = '临时伪装档案';
+        const headerSubtitle = '使用中';
+        const stampText = '伪装身份';
+        
+        let html = `
+        <div class="file-header">
+            <div class="file-title">${headerTitle}</div>
+            <div class="file-subtitle">${headerSubtitle}</div>
+        </div>
+        <div class="file-content">
+            <div class="file-section">
+                <div class="section-title">基本信息</div>
+                <div class="file-row">
+                    <div class="file-label">国籍:</div>
+                    <div class="file-value">${identity.nationality}</div>
+                </div>
+                <div class="file-row">
+                    <div class="file-label">身份类型:</div>
+                    <div class="file-value">${identity.type}</div>
+                </div>`;
+        
+        if (identity.function) {
+            html += `
+                <div class="file-row">
+                    <div class="file-label">职能:</div>
+                    <div class="file-value">${identity.function}</div>
+                </div>`;
+        }
+        
+        if (identity.organization) {
+            html += `
+                <div class="file-row">
+                    <div class="file-label">隶属机构:</div>
+                    <div class="file-value">${identity.organization}</div>
+                </div>`;
+        }
+        
+        // 伪装特有信息
+        html += `
+            </div>
+            <div class="file-section">
+                <div class="section-title">伪装信息</div>
+                <div class="file-row">
+                    <div class="file-label">启用时间:</div>
+                    <div class="file-value">${this.getCurrentTimeString()}</div>
+                </div>
+                <div class="file-row">
+                    <div class="file-label">状态:</div>
+                    <div class="file-value">有效</div>
+                </div>
+            </div>
+        </div>
+        <div class="file-stamp">${stampText}</div>`;
+        
+        return html;
+    }
+
+    // 获取当前时间字符串的辅助方法
+    getCurrentTimeString() {
+        // 使用固定的1983年，但保留当前的月份、日期和时间
+        const now = new Date();
+        const year = 1983; // 固定为1983年
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
     }
     
     // 填充下拉选择框

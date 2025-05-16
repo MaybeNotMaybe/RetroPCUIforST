@@ -149,8 +149,30 @@
 }
 
 /* 伪装视图 */
-.disguise-current-view, .disguise-edit-view {
+ .disguise-edit-view {
     flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+.disguise-current-view {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* 启用垂直滚动 */
+    scrollbar-width: none; /* Firefox 隐藏滚动条 */
+    -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
+}
+
+/* Webkit 浏览器隐藏滚动条 */
+.disguise-current-view::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+}
+
+/* 确保伪装档案容器填充整个可滚动区域 */
+.disguise-current-view .identity-file-container {
+    width: 100%;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
 }
@@ -376,6 +398,15 @@
     position: relative;
     cursor: pointer;
     transition: background-color 0.2s;
+    overflow-y: auto; /* 启用垂直滚动 */
+    scrollbar-width: none; /* Firefox 隐藏滚动条 */
+    -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
+}
+
+/* Webkit 浏览器(Chrome/Safari)隐藏滚动条 */
+.identity-file::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
 }
 
 .identity-file:hover {
@@ -505,5 +536,30 @@
 
 .amber-mode .file-stamp {
     color: #ffb000;
+    border-color: #ffb000;
+}
+
+/* 伪装当前视图样式 */
+.disguise-current-view .identity-file-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 确保伪装系统使用相同的档案样式 */
+#currentDisguiseDisplay {
+    flex-grow: 1;
+    border: 1px solid #33ff33;
+    padding: 15px;
+    position: relative;
+}
+
+#currentDisguiseDisplay::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+}
+
+.amber-mode #currentDisguiseDisplay {
     border-color: #ffb000;
 }
