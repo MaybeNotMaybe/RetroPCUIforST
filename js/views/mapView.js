@@ -511,40 +511,25 @@ class MapView {
     }
 
     show() {
-        const action = () => {
-            this.terminal.style.display = 'none';
-            this.mapInterface.style.display = 'flex';
-            this.updateColorMode(this.screen.classList.contains('amber-mode'));
-
-            // 重新显示时，恢复当前的地图变换状态
-            this.applyMapTransform(this.currentMapZoomScale, this.currentMapOffsetX, this.currentMapOffsetY);
-
-            const mapContent = document.querySelector('.map-content');
-            if (this.isZoomed) { // 如果是高倍细节状态
-                mapContent?.classList.add('zoomed');
-                this.adjustLocationLabelFonts();
-            } else { // 默认概览状态
-                mapContent?.classList.remove('zoomed');
-                this.resetLocationLabelFonts();
-            }
-        };
-        if (this.isTestMode) {
-            action();
+        // 简化为仅控制自己的显示
+        this.mapInterface.style.display = 'flex';
+        this.updateColorMode(this.screen.classList.contains('amber-mode'));
+        
+        // 维持地图状态和缩放
+        this.applyMapTransform(this.currentMapZoomScale, this.currentMapOffsetX, this.currentMapOffsetY);
+        
+        const mapContent = document.querySelector('.map-content');
+        if (this.isZoomed) {
+            mapContent?.classList.add('zoomed');
+            this.adjustLocationLabelFonts();
         } else {
-            this.flickerScreen(action);
+            mapContent?.classList.remove('zoomed');
+            this.resetLocationLabelFonts();
         }
     }
 
     hide() {
-        const action = () => {
-            this.terminal.style.display = 'flex';
-            this.mapInterface.style.display = 'none';
-        };
-        if (this.isTestMode) {
-            action();
-        } else {
-            this.flickerScreen(action);
-        }
+        this.mapInterface.style.display = 'none';
     }
 
     updateColorMode(isAmber) {

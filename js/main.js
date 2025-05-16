@@ -35,7 +35,7 @@ window.onload = function() {
         const gameModel = new GameModel();
         const gameView = new GameView();
         const gameController = new GameController(gameModel, gameView);
-        
+
         // 为了让FloppyController能访问到gameController进行保存
         window.gameController = gameController;
         
@@ -56,6 +56,13 @@ window.onload = function() {
         // 为了方便访问，也将mapController添加到window对象
         window.mapController = mapController;
 
+        // 初始化身份MVC
+        const identityModel = new IdentityModel();
+        const identityView = new IdentityView();
+        const identityController = new IdentityController(identityModel, identityView);
+        window.identityController = identityController;
+        identityController.initialize();
+
         // // 程序运行事件监听
         // EventBus.on('runProgram', (data) => {
         //     console.log(`正在运行程序: ${data.program}`);
@@ -67,6 +74,14 @@ window.onload = function() {
         //         }
         //     }
         // });
+
+        // 创建界面管理器
+        window.interfaceManager = new InterfaceManager();
+
+        // 注册控制器
+        window.interfaceManager.registerController('terminal', gameController);
+        window.interfaceManager.registerController('map', mapController);
+        window.interfaceManager.registerController('identity', identityController);
         
         // 订阅系统电源变化事件
         EventBus.on('systemPowerChange', (isOn) => {
@@ -81,11 +96,20 @@ window.onload = function() {
                 mapView.hide();
             }
         });
+
+        EventBus.on('runProgram', (data) => {
+            if (data.program === 'map') {
+                window.interfaceManager.switchTo('map');
+            }
+        });
         
         // 添加颜色切换事件监听
         EventBus.on('colorModeChanged', (isAmber) => {
             if (mapController) {
                 mapView.updateColorMode(isAmber);
+            }
+            if (identityController) {
+                identityController.updateColorMode(isAmber);
             }
         });
 

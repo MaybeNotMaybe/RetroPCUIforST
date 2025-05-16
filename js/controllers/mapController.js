@@ -354,6 +354,12 @@ class MapController {
             return false;
         }
         
+        // 使用界面管理器切换
+        if (window.interfaceManager) {
+            window.interfaceManager.switchTo(this.model.isVisible ? 'terminal' : 'map');
+            return true;
+        }
+        
         // 切换可见性模型状态
         const isVisible = this.model.toggleVisibility();
         

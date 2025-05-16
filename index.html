@@ -34,6 +34,8 @@
     <link rel="stylesheet" href="css/floppy-drive.css">
     <!-- map.css: 地图界面样式，包括标记和位置信息显示 -->
     <link rel="stylesheet" href="css/map.css">
+    <!-- identity.css: 身份信息界面样式 -->
+    <link rel="stylesheet" href="css/identity.css">
 </head>
 <body>
     <div class="computer-wrapper">
@@ -369,6 +371,7 @@
 
     <!-- 管理器类 -->
     <script src="js/managers/audioManager.js"></script>
+    <script src="js/managers/interfaceManager.js"></script>
 
     <!-- 基础工具类 -->
     <script src="js/eventBus.js"></script>
@@ -381,20 +384,24 @@
     <script src="js/models/floppyModel.js"></script>
     <script src="js/models/mapModel.js"></script>
     <script src="js/models/npcChatModel.js"></script>
+    <script src="js/models/identityModel.js"></script>
 
     <!-- 视图层 -->
     <script src="js/views/gameView.js"></script>
     <script src="js/views/floppyView.js"></script>
     <script src="js/views/mapView.js"></script>
     <script src="js/views/npcChatView.js"></script>
+    <script src="js/views/identityView.js"></script>
 
     <!-- 控制器层 -->
     <script src="js/controllers/gameController.js"></script>
     <script src="js/controllers/floppyController.js"></script>
     <script src="js/controllers/mapController.js"></script>
     <script src="js/controllers/npcChatController.js"></script>
+    <script src="js/controllers/identityController.js"></script>
 
     <!-- 子系统主入口文件 -->
+    <script src="js/identitySystem.js"></script>
     <script src="js/npcChatSystem.js"></script>
 
     <!-- 主入口文件 -->
