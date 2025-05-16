@@ -42,14 +42,18 @@ class IdentityModel {
     initializeIdentities() {
         // 默认起始身份
         this.realIdentity = {
+            nationality: "苏联",
+            type: "情报人员",
+            function: "间谍",
+            organization: "KGB"
+        };
+        
+        // 初始表面身份
+        this.coverIdentity = {
             nationality: "美国",
             type: "情报人员",
             function: "外勤特工",
-            organization: "CIA"
-        };
-        
-        // 初始表面身份等同于真实身份
-        this.coverIdentity = {...this.realIdentity};
+            organization: "CIA"};
         
         // 初始无伪装
         this.disguiseIdentity = null;

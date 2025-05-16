@@ -22,9 +22,27 @@ class IdentityController {
         // 更新身份显示
         this.updateIdentityDisplays();
         
-        // 默认显示伪装页面的当前伪装视图
-        this.view.showDisguisePage();
-        this.view.showCurrentDisguiseView();
+        // 默认显示基本档案页面
+        this.view.showBasicInfoPage();
+        
+        // 初始化档案视图 - 默认显示表面身份
+        this.currentIdentityType = 'cover';
+    
+        // 直接设置档案显示为表面身份
+        // 这里强制使用 coverIdentity 而不是通过类型判断
+        const identityFile = document.getElementById('identityFile');
+        if (identityFile) {
+            // 更新档案内容为表面身份
+            identityFile.innerHTML = this.view.formatFileDisplay(this.model.coverIdentity, false);
+            
+            // 设置表面身份对应的国籍样式
+            identityFile.className = 'identity-file';
+            const nationality = this.model.coverIdentity.nationality;
+            if (nationality === "美国") identityFile.classList.add('nationality-usa');
+            else if (nationality === "英国") identityFile.classList.add('nationality-uk');
+            else if (nationality === "法国") identityFile.classList.add('nationality-france');
+            else if (nationality === "苏联") identityFile.classList.add('nationality-soviet');
+        }
     }
     
     // 设置事件监听
@@ -115,6 +133,33 @@ class IdentityController {
             this.view.clearDisguiseButton.addEventListener('click', () => {
                 this.clearDisguise();
                 this.view.showCurrentDisguiseView(); // 清除后返回当前视图
+            });
+        }
+
+        document.querySelectorAll('.file-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const identityType = e.target.getAttribute('data-identity-type');
+                this.switchIdentityView(identityType);
+                
+                // 更新标签状态
+                document.querySelectorAll('.file-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                // 播放切换音效
+                window.audioManager.play('functionButton');
+            });
+        });
+
+        const identityFile = document.getElementById('identityFile');
+        if (identityFile) {
+            identityFile.addEventListener('click', () => {
+                // 切换身份视图
+                this.toggleIdentityView();
+                
+                // 播放切换音效
+                if (window.audioManager) {
+                    window.audioManager.play('functionButton');
+                }
             });
         }
     }
@@ -243,6 +288,65 @@ class IdentityController {
         // 更新状态
         this.isVisible = false;
     }
+
+    switchIdentityView(identityType) {
+        const identityFile = document.getElementById('identityFile');
+        if (!identityFile) return;
+        
+        let identity = null;
+        let isSecret = false;
+        
+        // 确定要显示的身份
+        if (identityType === 'real') {
+            identity = this.model.realIdentity;
+            isSecret = true;
+        } else {
+            identity = this.model.coverIdentity;
+        }
+        
+        // 更新档案内容
+        identityFile.innerHTML = this.view.formatFileDisplay(identity, isSecret);
+        
+        // 设置国籍特定样式
+        identityFile.className = 'identity-file';
+        if (identity) {
+            // 移除所有国籍类
+            identityFile.classList.remove(
+                'nationality-usa',
+                'nationality-uk', 
+                'nationality-france', 
+                'nationality-soviet'
+            );
+            
+            // 添加对应国籍类
+            switch(identity.nationality) {
+                case "美国":
+                    identityFile.classList.add('nationality-usa');
+                    break;
+                case "英国":
+                    identityFile.classList.add('nationality-uk');
+                    break;
+                case "法国":
+                    identityFile.classList.add('nationality-france');
+                    break;
+                case "苏联":
+                    identityFile.classList.add('nationality-soviet');
+                    break;
+                // 其他国籍不添加特殊类，使用默认样式
+            }
+        }
+    }
+
+    toggleIdentityView() {
+        // 获取当前显示的身份类型
+        const currentType = this.currentIdentityType || 'cover';
+        // 切换类型
+        const newType = (currentType === 'cover') ? 'real' : 'cover';
+        // 保存当前类型
+        this.currentIdentityType = newType;
+        // 更新显示
+        this.switchIdentityView(newType);
+    }
     
     // 检查身份是否被识破
     checkIdentityBlown(detectionRate) {
@@ -261,5 +365,41 @@ class IdentityController {
     // 设置颜色模式
     updateColorMode(isAmber) {
         this.view.updateColorMode(isAmber);
+    }
+
+    showHideIdentityView() {
+        // 检查系统是否开机
+        if (!window.isSystemOperational()) {
+            console.log("系统未开机，无法切换到档案视图");
+            return false;
+        }
+        
+        // 使用界面管理器切换
+        if (window.interfaceManager) {
+            if (this.isVisible) {
+                // 如果当前已经显示档案，则切回终端
+                window.interfaceManager.switchTo('terminal');
+            } else {
+                // 否则切到档案，并确保显示表面身份
+                window.interfaceManager.switchTo('identity');
+                
+                // 确保显示表面身份，不管当前状态如何
+                this.currentIdentityType = 'cover';
+                this.switchIdentityView('cover');
+            }
+            return true;
+        }
+        
+        // 以下是旧的逻辑，作为后备方案
+        if (this.isVisible) {
+            this.hide();
+        } else {
+            this.show();
+            // 确保显示表面身份
+            this.currentIdentityType = 'cover';
+            this.switchIdentityView('cover');
+        }
+        
+        return this.isVisible;
     }
 }
