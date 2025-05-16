@@ -197,11 +197,12 @@
     scrollbar-width: none;
     padding: 5px 10px;
     display: flex; 
+    overflow: hidden;
     flex-direction: column; 
 }
 
 .map-location-list .tui-frame {
-    flex: 1; 
+    height: 100%; 
     overflow-y: auto; 
     max-height: 100%; 
     margin: 0; 
@@ -219,6 +220,14 @@
     cursor: pointer;
     border-bottom: 1px solid #333;
     transition: all 0.2s;
+}
+
+.map-location-items-container {
+    flex: 1; /* 让内容区域占满剩余空间 */
+    overflow-y: auto; /* 只有内容区域滚动 */
+    overflow-x: hidden;
+    scrollbar-width: none; /* Firefox */
+    padding-right: 2px; /* 给滚动留出些空间 */
 }
 
 .map-location-item:hover {
