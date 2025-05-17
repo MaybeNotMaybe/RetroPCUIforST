@@ -78,6 +78,9 @@ window.onload = function() {
         // 创建界面管理器
         window.interfaceManager = new InterfaceManager();
 
+        // 初始化世界书系统
+        initializeLorebookSystem();
+
         // 注册控制器
         window.interfaceManager.registerController('terminal', gameController);
         window.interfaceManager.registerController('map', mapController);
