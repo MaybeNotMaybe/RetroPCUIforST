@@ -126,6 +126,9 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    overflow-y: auto; /* 启用垂直滚动 */
+    scrollbar-width: none; /* Firefox 隐藏滚动条 */
+    -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
 }
 
 /* 伪装导航栏 */
@@ -158,9 +161,6 @@
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    overflow-y: auto; /* 启用垂直滚动 */
-    scrollbar-width: none; /* Firefox 隐藏滚动条 */
-    -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
 }
 
 /* Webkit 浏览器隐藏滚动条 */
