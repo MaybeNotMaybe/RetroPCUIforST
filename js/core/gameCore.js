@@ -53,31 +53,32 @@ class GameCore {
                 // 1. 获取服务定位器
                 const serviceLocator = window.ServiceLocator;
                 
-                // 2. 注册核心服务
-                // 注意: EventBus已经在全局作用域中，保持原有结构
+                // 2. 先注册工具类服务
+                const domUtils = window.DOMUtils || new DOMUtils();
+                serviceLocator.register('domUtils', domUtils);
+                
+                const storageUtils = window.StorageUtils || new StorageUtils();
+                serviceLocator.register('storage', storageUtils);
+                
+                // 3. 注册核心服务
                 serviceLocator.register('eventBus', EventBus);
                 
-                // 3. 初始化系统服务
+                // 4. 初始化系统服务
                 const systemService = new SystemService();
                 serviceLocator.register('system', systemService);
                 this.registerComponent('systemService', systemService);
 
-                // 4. 初始化音频服务 (AudioService是从AudioManager迁移而来)
-                // 保持与原AudioManager相同的API，但作为服务提供
+                // 5. 初始化音频服务
                 const audioService = window.audioManager || new AudioService();
                 serviceLocator.register('audio', audioService);
                 this.registerComponent('audioService', audioService);
 
-                // 5. 初始化接口服务 (替代interfaceManager)
+                // 6. 初始化接口服务
                 const interfaceService = new InterfaceService();
                 serviceLocator.register('interface', interfaceService);
                 this.registerComponent('interfaceService', interfaceService);
 
-                // 6. 初始化存储服务
-                const storageUtils = new StorageUtils();
-                serviceLocator.register('storage', storageUtils);
-
-                // 7. 初始化MVC组件 (保持与原来的交互方式)
+                // 7. 初始化MVC组件
                 const gameModel = new GameModel();
                 const gameView = new GameView();
                 const gameController = new GameController(gameModel, gameView);
@@ -88,6 +89,21 @@ class GameCore {
 
                 // 将gameController绑定到window，保持与现有代码兼容
                 window.gameController = gameController;
+                
+                // 8. 初始化地图MVC
+                const mapModel = new MapModel(serviceLocator);
+                const mapView = new MapView(serviceLocator);
+                const mapController = new MapController(mapModel, mapView, serviceLocator);
+                
+                this.registerComponent('mapModel', mapModel);
+                this.registerComponent('mapView', mapView);
+                this.registerComponent('mapController', mapController);
+                
+                // 为向后兼容保留全局引用
+                window.mapController = mapController;
+                
+                // 注册到界面服务
+                interfaceService.registerController('map', mapController);
 
                 console.log("游戏核心初始化完成");
                 this.initialized = true;

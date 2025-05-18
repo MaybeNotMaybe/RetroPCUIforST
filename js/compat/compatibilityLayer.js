@@ -166,3 +166,62 @@
 
     console.log("兼容性适配层已加载");
 })();
+
+if (window.mapController) {
+    // 保存原始方法引用
+    const originalRenderMap = window.mapController.renderMap;
+    const originalToggleMapView = window.mapController.toggleMapView;
+    const originalHandleLocationSelection = window.mapController.handleLocationSelection;
+    
+    // 添加向后兼容方法
+    window.mapController.renderMap = function() {
+        try {
+            return originalRenderMap.apply(this, arguments);
+        } catch (error) {
+            console.warn("使用渲染地图的兼容方法:", error);
+            // 回退到基本实现
+            if (this.model && this.view) {
+                const locations = this.model.getAllVisibleLocations();
+                const currentLocation = this.model.getCurrentLocation().name;
+                this.view.renderMap(locations, currentLocation);
+                return true;
+            }
+            return false;
+        }
+    };
+    
+    window.mapController.toggleMapView = function() {
+        try {
+            return originalToggleMapView.apply(this, arguments);
+        } catch (error) {
+            console.warn("使用切换地图视图的兼容方法:", error);
+            // 基本实现
+            if (this.model) {
+                const isVisible = this.model.toggleVisibility();
+                if (isVisible) {
+                    this.view.show();
+                    this.renderMap();
+                } else {
+                    this.view.hide();
+                }
+                return true;
+            }
+            return false;
+        }
+    };
+    
+    // 为全局函数提供兼容性
+    if (!window.isSystemOperational) {
+        window.isSystemOperational = function() {
+            const gameCore = window.GameCore;
+            if (gameCore) {
+                return gameCore.isSystemOperational();
+            }
+            // 回退到旧的实现
+            return window.gameController && 
+                   window.gameController.model && 
+                   window.gameController.model.isOn && 
+                   window.gameController.model.getSystemState() === window.gameController.model.SystemState.POWERED_ON;
+        };
+    }
+}

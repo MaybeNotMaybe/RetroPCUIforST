@@ -179,8 +179,11 @@ class InterfaceService {
             }
             
             // 2. 特殊状态更新
-            if (this.activeInterface === 'map' && window.mapController) {
-                window.mapController.model.setVisibility(false);
+            if (this.activeInterface === 'map' && currentInterface.controller) {
+                // 使用控制器的模型设置可见性
+                if (currentInterface.controller.model) {
+                    currentInterface.controller.model.setVisibility(false);
+                }
             } else if (this.activeInterface === 'identity' && window.identityController) {
                 window.identityController.isVisible = false;
             }
@@ -194,12 +197,14 @@ class InterfaceService {
             }
             
             // 5. 特殊状态更新和视图刷新
-            if (interfaceName === 'map' && window.mapController) {
-                // 更新地图状态
-                window.mapController.model.setVisibility(true);
+            if (interfaceName === 'map' && targetInterface.controller) {
+                // 更新地图状态 - 使用控制器的模型设置可见性
+                if (targetInterface.controller.model) {
+                    targetInterface.controller.model.setVisibility(true);
+                }
                 
-                // 直接触发地图渲染
-                window.mapController.renderMap();
+                // 触发地图渲染
+                targetInterface.controller.renderMap();
             } else if (interfaceName === 'identity' && window.identityController) {
                 // 更新档案界面状态
                 window.identityController.isVisible = true;

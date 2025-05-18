@@ -1,7 +1,12 @@
 // js/models/mapModel.js
 class MapModel {
-    constructor() {
-        // 地图初始化
+    constructor(serviceLocator = null) {
+        // 依赖注入
+        this.serviceLocator = serviceLocator || window.ServiceLocator;
+        this.eventBus = this.serviceLocator?.get('eventBus') || window.EventBus || EventBus;
+        this.storage = this.serviceLocator?.get('storage') || window.StorageUtils;
+        
+        // 地图数据结构
         this.currentLocation = "富兰克林公园";
         this.locations = {
             "富兰克林公园": {
@@ -240,9 +245,9 @@ class MapModel {
             }
         };
 
-        // 添加区域数据结构
+        // 区域数据结构
         this.regions = {
-            "市中心": {
+           "市中心": {
                 description: "华盛顿的主要政府区域，包含白宫、国会大厦等重要建筑。",
                 coordinates: [45, 50],
                 isVisible: true,
@@ -287,14 +292,195 @@ class MapModel {
         // 地图状态
         this.isVisible = false;
         this.selectedLocation = null;
+        
+        // 加载保存的状态
+        this.loadState();
+        
+        console.log("地图模型已初始化");
     }
     
-    // 获取位置信息
+    // 新增: 保存地图状态
+    saveState() {
+        if (this.storage) {
+            this.storage.save('mapState', {
+                currentLocation: this.currentLocation,
+                currentRegion: this.currentRegion,
+                isVisible: this.isVisible,
+                selectedLocation: this.selectedLocation
+            });
+        }
+    }
+    
+    // 新增: 加载地图状态
+    loadState() {
+        if (this.storage) {
+            const state = this.storage.load('mapState');
+            if (state) {
+                this.currentLocation = state.currentLocation || this.currentLocation;
+                this.currentRegion = state.currentRegion || null;
+                this.isVisible = state.isVisible || false;
+                this.selectedLocation = state.selectedLocation || null;
+            }
+        }
+    }
+    
+    // 保留原有功能，但修改为在状态变更时发布事件
+    setCurrentLocation(name) {
+        if (this.locations[name]) {
+            const oldLocation = this.currentLocation;
+            this.currentLocation = name;
+            
+            // 发布位置变更事件
+            if (oldLocation !== name) {
+                this.eventBus.emit('locationChanged', {
+                    oldLocation: oldLocation,
+                    newLocation: name
+                });
+                
+                // 保存状态
+                this.saveState();
+            }
+            
+            return true;
+        }
+        return false;
+    }
+    
+    selectLocation(name) {
+        const oldSelection = this.selectedLocation;
+        
+        if (name === null || this.locations[name]) {
+            this.selectedLocation = name;
+            
+            // 发布选择变更事件
+            if (oldSelection !== name) {
+                this.eventBus.emit('locationSelectionChanged', {
+                    oldSelection: oldSelection,
+                    newSelection: name
+                });
+                
+                // 保存状态
+                this.saveState();
+            }
+            
+            return true;
+        }
+        return false;
+    }
+    
+    // 修改切换可见性方法，添加事件发布
+    toggleVisibility() {
+        this.isVisible = !this.isVisible;
+        
+        // 发布可见性变更事件
+        this.eventBus.emit('mapVisibilityChanged', this.isVisible);
+        
+        // 保存状态
+        this.saveState();
+        
+        return this.isVisible;
+    }
+    
+    // 修改设置可见性方法，添加事件发布
+    setVisibility(isVisible) {
+        if (this.isVisible !== isVisible) {
+            this.isVisible = isVisible;
+            
+            // 发布可见性变更事件
+            this.eventBus.emit('mapVisibilityChanged', this.isVisible);
+            
+            // 保存状态
+            this.saveState();
+        }
+        
+        return this.isVisible;
+    }
+    
+    // 修改区域选择方法，添加事件发布
+    setCurrentRegion(regionId) {
+        const oldRegion = this.currentRegion;
+        
+        if (regionId === null || this.regions[regionId]) {
+            this.currentRegion = regionId;
+            
+            // 发布区域变更事件
+            if (oldRegion !== regionId) {
+                this.eventBus.emit('regionChanged', {
+                    oldRegion: oldRegion,
+                    newRegion: regionId
+                });
+                
+                // 保存状态
+                this.saveState();
+            }
+            
+            return true;
+        }
+        return false;
+    }
+    
+    // 修改位置可见性设置方法，添加事件发布
+    setLocationVisibility(locationName, isVisible) {
+        if (this.locations[locationName]) {
+            const oldVisibility = this.locations[locationName].isVisible;
+            this.locations[locationName].isVisible = isVisible;
+            
+            // 发布位置可见性变更事件
+            if (oldVisibility !== isVisible) {
+                this.eventBus.emit('locationVisibilityChanged', {
+                    location: locationName,
+                    isVisible: isVisible
+                });
+            }
+            
+            return true;
+        }
+        return false;
+    }
+    
+    // 修改解锁隐藏描述方法，添加事件发布
+    unlockHiddenDescription(locationName, unlocked = true) {
+        if (this.locations[locationName]) {
+            const oldValue = this.locations[locationName].knowsHidden;
+            this.locations[locationName].knowsHidden = unlocked;
+            
+            // 发布隐藏信息解锁事件
+            if (oldValue !== unlocked) {
+                this.eventBus.emit('hiddenInfoUnlocked', {
+                    location: locationName,
+                    unlocked: unlocked
+                });
+            }
+            
+            return true;
+        }
+        return false;
+    }
+    
+    // 修改揭露伪装方法，添加事件发布
+    revealDisguise(locationName, revealed = true) {
+        if (this.locations[locationName] && this.locations[locationName].disguisedAs) {
+            const oldValue = this.locations[locationName].disguiseRevealed;
+            this.locations[locationName].disguiseRevealed = revealed;
+            
+            // 发布伪装揭露事件
+            if (oldValue !== revealed) {
+                this.eventBus.emit('disguiseRevealed', {
+                    location: locationName,
+                    revealed: revealed
+                });
+            }
+            
+            return true;
+        }
+        return false;
+    }
+    
+    // 保留所有原有的getter方法，无需修改
     getLocation(name) {
         return this.locations[name] || null;
     }
     
-    // 获取所有可见位置
     getAllVisibleLocations() {
         const visibleLocations = {};
         
@@ -307,21 +493,16 @@ class MapModel {
         return visibleLocations;
     }
     
-    // 获取所有位置(包括不可见的)
     getAllLocations() {
         return { ...this.locations };
     }
     
-    // 获取当前位置
     getCurrentLocation() {
-        // 如果当前位置不可见，且玩家在观看地图，应该返回一个可见的备选位置
         if (this.isVisible && this.locations[this.currentLocation] && 
             !this.locations[this.currentLocation].isVisible) {
             
-            // 查找第一个可见位置作为备选
             for (const [name, data] of Object.entries(this.locations)) {
                 if (data.isVisible) {
-                    // 临时返回这个可见位置，但不改变实际的当前位置
                     return {
                         name: name,
                         ...data
@@ -330,73 +511,43 @@ class MapModel {
             }
         }
         
-        // 正常情况，返回当前位置
         return {
             name: this.currentLocation,
             ...this.locations[this.currentLocation]
         };
     }
     
-    // 设置当前位置
-    setCurrentLocation(name) {
-        if (this.locations[name]) {
-            this.currentLocation = name;
-            return true;
-        }
-        return false;
-    }
-    
-    // 选择位置以显示详情
-    selectLocation(name) {
-        if (this.locations[name]) {
-            this.selectedLocation = name;
-            return true;
-        }
-        return false;
-    }
-    
-    // 获取所选位置的显示信息
     getSelectedLocation() {
         if (!this.selectedLocation) return null;
         
         const location = { ...this.locations[this.selectedLocation] };
         const name = this.selectedLocation;
         
-        // 创建返回对象，包含所有必要的信息以供视图层处理点击交互
         const returnObj = {
-            // 基本信息
             coordinates: location.coordinates,
             publicAccess: location.publicAccess,
             covertAccess: location.covertAccess,
             isVisible: location.isVisible,
-            
-            // 描述信息 - 分开返回，不自动合并
             description: location.description,
             hiddenDescription: location.hiddenDescription,
             knowsHidden: location.knowsHidden,
-            
-            // 伪装信息
             isDisguised: !!location.disguisedAs,
             disguiseRevealed: !!location.disguiseRevealed
         };
         
-        // 处理名称显示逻辑
         if (location.disguisedAs) {
-            // 有伪装的情况
-            returnObj.displayName = location.disguisedAs; // 默认显示伪装名称
-            returnObj.realName = location.realName; // 存储真实名称以备点击后显示
+            returnObj.displayName = location.disguisedAs;
+            returnObj.realName = location.realName;
         } else {
-            // 没有伪装的情况
             returnObj.displayName = name;
             returnObj.realName = name;
         }
         
-        // 将原始名称也传递以便追踪
         returnObj.originalName = name;
         
         return returnObj;
     }
-
+    
     getAllVisibleRegions() {
         const visibleRegions = {};
         
@@ -408,7 +559,7 @@ class MapModel {
         
         return visibleRegions;
     }
-
+    
     getLocationsByRegion(regionId) {
         if (!this.regions[regionId]) return {};
         
@@ -423,38 +574,11 @@ class MapModel {
         
         return regionLocations;
     }
-
-    setCurrentRegion(regionId) {
-        if (this.regions[regionId]) {
-            this.currentRegion = regionId;
-            return true;
-        }
-        return false;
-    }
-
+    
     getCurrentRegion() {
         return this.currentRegion;
     }
-
-    // 设置公开访问权限
-    setPublicAccess(locationName, hasAccess) {
-        if (this.locations[locationName]) {
-            this.locations[locationName].publicAccess = hasAccess;
-            return true;
-        }
-        return false;
-    }
-
-    // 设置秘密访问权限
-    setCovertAccess(locationName, hasAccess) {
-        if (this.locations[locationName]) {
-            this.locations[locationName].covertAccess = hasAccess;
-            return true;
-        }
-        return false;
-    }
     
-    // 检查是否有公开访问权限
     hasPublicAccess(locationName) {
         if (this.locations[locationName]) {
             return this.locations[locationName].publicAccess;
@@ -462,7 +586,6 @@ class MapModel {
         return false;
     }
     
-    // 检查是否有秘密访问权限
     hasCovertAccess(locationName) {
         if (this.locations[locationName]) {
             return this.locations[locationName].covertAccess;
@@ -470,63 +593,45 @@ class MapModel {
         return false;
     }
     
-    // 切换地图可见性
-    toggleVisibility() {
-        this.isVisible = !this.isVisible;
-        return this.isVisible;
-    }
-    
-    // 设置地图可见性
-    setVisibility(isVisible) {
-        this.isVisible = isVisible;
-        return this.isVisible;
-    }
-    
-    // 设置位置可见性
-    setLocationVisibility(locationName, isVisible) {
+    // 修改访问权限设置方法，添加事件发布
+    setPublicAccess(locationName, hasAccess) {
         if (this.locations[locationName]) {
-            this.locations[locationName].isVisible = isVisible;
+            const oldValue = this.locations[locationName].publicAccess;
+            this.locations[locationName].publicAccess = hasAccess;
+            
+            // 发布访问权限变更事件
+            if (oldValue !== hasAccess) {
+                this.eventBus.emit('accessRightsChanged', {
+                    location: locationName,
+                    accessType: 'public',
+                    hasAccess: hasAccess
+                });
+            }
+            
             return true;
         }
         return false;
     }
     
-    // 设置位置访问权限
-    setLocationAccess(locationName, hasAccess) {
+    setCovertAccess(locationName, hasAccess) {
         if (this.locations[locationName]) {
-            this.locations[locationName].hasAccess = hasAccess;
+            const oldValue = this.locations[locationName].covertAccess;
+            this.locations[locationName].covertAccess = hasAccess;
+            
+            // 发布访问权限变更事件
+            if (oldValue !== hasAccess) {
+                this.eventBus.emit('accessRightsChanged', {
+                    location: locationName,
+                    accessType: 'covert',
+                    hasAccess: hasAccess
+                });
+            }
+            
             return true;
         }
         return false;
     }
     
-    // 揭露伪装
-    revealDisguise(locationName, revealed = true) {
-        if (this.locations[locationName] && this.locations[locationName].disguisedAs) {
-            this.locations[locationName].disguiseRevealed = revealed;
-            return true;
-        }
-        return false;
-    }
-    
-    // 解锁隐藏描述
-    unlockHiddenDescription(locationName, unlocked = true) {
-        if (this.locations[locationName]) {
-            this.locations[locationName].knowsHidden = unlocked;
-            return true;
-        }
-        return false;
-    }
-    
-    // 检查是否有权限访问位置
-    hasAccessTo(locationName) {
-        if (this.locations[locationName]) {
-            return this.locations[locationName].hasAccess;
-        }
-        return false;
-    }
-    
-    // 检查位置是否可见
     isLocationVisible(locationName) {
         if (this.locations[locationName]) {
             return this.locations[locationName].isVisible;
@@ -534,7 +639,6 @@ class MapModel {
         return false;
     }
     
-    // 获取位置真实名称（如果有）
     getRealLocationName(locationName) {
         if (this.locations[locationName] && this.locations[locationName].realName) {
             return this.locations[locationName].realName;

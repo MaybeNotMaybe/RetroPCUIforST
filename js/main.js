@@ -19,14 +19,9 @@ function initializeGame() {
             gameController.floppyController = floppyController;
             
             // 5. 初始化地图MVC
-            const mapModel = new MapModel();
-            const mapView = new MapView();
-            const mapController = new MapController(mapModel, mapView);
-            
-            // 6. 为了向后兼容，也将mapController添加到window对象
-            window.mapController = mapController;
+            const mapController = window.GameCore.getComponent('mapController');
 
-            // 7. 初始化身份MVC
+            // 6. 初始化身份MVC
             const identityModel = new IdentityModel();
             const identityView = new IdentityView();
             const identityController = new IdentityController(identityModel, identityView);
@@ -50,14 +45,14 @@ function initializeGame() {
                 // 如果系统关闭，确保地图也隐藏
                 if (!isOn && mapController.model.isVisible) {
                     mapController.model.setVisibility(false);
-                    mapView.hide();
+                    mapController.view.hide();
                 }
             });
 
             // 10. 添加颜色切换事件监听
             EventBus.on('colorModeChanged', (isAmber) => {
                 if (mapController) {
-                    mapView.updateColorMode(isAmber);
+                    mapController.view.updateColorMode(isAmber);
                 }
                 if (identityController) {
                     identityController.updateColorMode(isAmber);
