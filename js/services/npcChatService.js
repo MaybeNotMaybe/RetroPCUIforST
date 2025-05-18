@@ -15,12 +15,16 @@ class NpcChatService {
         this.model = new NpcChatModel(this.serviceLocator);
         this.view = new NpcChatView(this.serviceLocator);
         this.controller = new NpcChatController(this.model, this.view, this.serviceLocator);
-        
-        // 注册命令预处理器
-        this.registerCommandPreprocessor();
-        
+
         // 订阅事件
         this.subscribeToEvents();
+        
+        // 等待CommandService就绪再注册命令
+        if (this.eventBus) {
+            this.eventBus.on('commandSystemReady', (data) => {
+                this.registerCommands(data.service);
+            });
+        }
         
         console.log("NPC聊天服务已初始化");
     }
@@ -43,39 +47,64 @@ class NpcChatService {
                 // 初始化NPC聊天模型
                 this.model.initialize();
             });
+            
+            // 等待命令服务就绪，注册NPC聊天命令
+            this.eventBus.on('commandSystemReady', (data) => {
+                this.registerCommands(data.service);
+            });
         }
     }
+
     
-    /**
-     * 注册命令预处理器
-     */
-    registerCommandPreprocessor() {
-        // 创建命令处理函数
-        const commandHandler = (input) => {
-            // 处理message命令和rerun命令
-            if (input.startsWith('message ') || input.startsWith('msg ') || input === 'rerun') {
-                // 检查系统是否可操作
-                const systemService = this.serviceLocator.get('system');
-                if (systemService && systemService.isOperational()) {
-                    // 通过事件总线发布命令事件
-                    this.eventBus.emit('terminalCommand', { command: input });
-                    return true; // 命令已处理
-                } else {
-                    // 系统不可操作时，记录而不处理
-                    console.log("系统不可操作，无法处理NPC聊天命令");
-                    return false;
-                }
+    // 添加注册命令的方法
+    registerCommands(commandService) {
+        if (!commandService) return;
+        
+        // 注册message命令
+        commandService.registerCommand('message', (args, context) => {
+            const parts = args.split(' ');
+            
+            // 至少需要NPC ID和消息内容
+            if (parts.length < 2) {
+                return {
+                    success: false, 
+                    message: "命令格式错误。正确格式: message [目标ID] [消息内容]"
+                };
             }
-            return false; // 命令未处理
-        };
+            
+            // 提取NPC ID和消息内容
+            const npcId = parts[0];
+            const message = parts.slice(1).join(' ');
+            
+            // 通过控制器处理消息
+            this.controller.sendMessageToNpc(npcId, message);
+            
+            // 不返回消息，由控制器处理显示
+            return { success: true, message: null };
+        }, {
+            category: 'communication',
+            description: '向NPC发送消息',
+            usage: 'message [目标ID] [消息内容]',
+            examples: ['message lab1 你好'],
+            aliases: ['msg']
+        });
         
-        // 添加到全局命令预处理器链
-        if (!window.commandPreprocessors) {
-            window.commandPreprocessors = [];
-        }
+        // 注册rerun命令
+        commandService.registerCommand('rerun', (args, context) => {
+            
+            // 重新生成上一条消息
+            this.controller.rerunLastMessage();
+            
+            // 不返回消息，由控制器处理显示
+            return { success: true, message: null };
+        }, {
+            category: 'communication',
+            description: '重新生成上一条NPC回复',
+            usage: 'rerun',
+            examples: ['rerun']
+        });
         
-        window.commandPreprocessors.push(commandHandler);
-        console.log("NPC聊天命令预处理器已注册");
+        console.log("NPC聊天命令已注册");
     }
     
     /**

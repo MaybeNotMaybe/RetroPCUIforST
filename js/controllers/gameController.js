@@ -234,8 +234,17 @@ class GameController {
             this.view.input.focus();
         }, 50);
         
+        // 发布系统状态变化事件
+        this.eventBus.emit('systemStateChange', {
+            state: this.model.SystemState.POWERED_ON,
+            isOn: true
+        });
+        
         // 发布系统电源状态事件
         this.eventBus.emit('systemPowerChange', true);
+        
+        // 发布系统启动完成事件 - 这是关键修复
+        this.eventBus.emit('systemBootComplete', true);
 
         // 启动计算机音效
         setTimeout(() => {
@@ -475,56 +484,47 @@ class GameController {
     }
     
     processInput() {
-        const command = this.view.input.value;
+        const command = this.view.input.value.trim();
         this.view.input.value = '';
         
-        if (command.trim() !== '') {
-            // 显示用户输入
-            const inputText = `> ${command}`;
-            this.view.displayOutput(inputText);
-
-            // 命令预处理
-            let commandHandled = false;
+        if (command === "") return;
+        
+        // 显示用户输入
+        const inputText = `> ${command}`;
+        this.view.displayOutput(inputText);
+        
+        // 记录命令到历史
+        this.model.addToHistory(inputText);
+        
+        // 获取命令服务
+        const commandService = this.serviceLocator.get('command');
+        
+        if (commandService) {
+            // 使用命令服务执行命令
+            const result = commandService.executeCommand(command, {
+                controller: this,
+                model: this.model,
+                view: this.view
+            });
             
-            // 直接处理NPC聊天相关命令
-            if (command.startsWith('message ') || command.startsWith('msg ') || command === 'rerun') {
-                // 通过服务定位器获取NPC聊天服务
-                const npcChatService = this.serviceLocator.get('npcChat');
-                if (npcChatService) {
-                    // 发布命令事件由NPC聊天服务处理
-                    this.eventBus.emit('terminalCommand', { command });
-                    commandHandled = true;
-                    
-                    // 将命令添加到历史记录
-                    this.model.addToHistory(inputText);
-                    this.saveSettings();
-                    return;
+            // 处理命令执行结果
+            if (result) {
+                // 特殊处理清屏命令
+                if (result.message === "CLEAR_SCREEN") {
+                    this.view.displayOutput(result.message);
+                    // 清除历史记录
+                    this.model.clearHistory();
+                    // 添加空字符串作为历史记录占位符
+                    this.model.addToHistory('');
+                } else if (result.message) {
+                    // 显示命令输出
+                    this.view.displayOutput(result.message);
+                    // 添加到历史
+                    this.model.addToHistory(result.message);
                 }
             }
-            
-            // 检查其他命令预处理器
-            if (!commandHandled && window.commandPreprocessors) {
-                for (const processor of window.commandPreprocessors) {
-                    if (processor(command)) {
-                        commandHandled = true;
-                        break;
-                    }
-                }
-            }
-
-            // 如果命令已被预处理器处理，则不再继续处理
-            if (commandHandled) {
-                this.model.addToHistory(inputText);
-                this.saveSettings();
-                return;
-            }
-            
-            // 检查是否正在等待软盘读取响应
-            if (this.awaitingDiskReadResponse) {
-                this.handleDiskReadResponse(command, inputText);
-                return;
-            }
-            
+        } else {
+            // 命令服务不可用，回退到旧的处理方式
             try {
                 const response = this.model.processCommand(command);
                 
@@ -534,25 +534,23 @@ class GameController {
                     this.view.displayOutput(response);
                     // 完全清除历史记录
                     this.model.clearHistory();
-                    // 添加一个空字符串或特殊标记作为历史记录占位符
-                    this.model.addToHistory('');  // 添加空字符串作为占位符
+                    // 添加一个空字符串作为历史记录占位符
+                    this.model.addToHistory('');
                 } else {
                     // 处理普通命令
                     this.view.displayOutput(response);
-                    this.model.addToHistory(inputText);
                     this.model.addToHistory(response);
                 }
-                
-                // 保存当前状态
-                this.saveSettings();
             } catch (error) {
                 console.error("命令处理错误:", error);
                 const errorText = "错误: 命令处理失败。系统故障。";
                 this.view.displayOutput(errorText);
-                this.model.addToHistory(inputText);
                 this.model.addToHistory(errorText);
             }
         }
+        
+        // 保存当前状态
+        this.saveSettings();
     }
     
     // 处理等待软盘读取响应

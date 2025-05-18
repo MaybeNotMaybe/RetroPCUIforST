@@ -68,6 +68,11 @@ class GameCore {
                 serviceLocator.register('system', systemService);
                 this.registerComponent('systemService', systemService);
 
+                // 初始化指令行服务
+                const commandService = new CommandService(serviceLocator);
+                serviceLocator.register('command', commandService);
+                this.registerComponent('commandService', commandService);
+
                 // 5. 初始化音频服务
                 const audioService = window.audioManager || new AudioService();
                 serviceLocator.register('audio', audioService);

@@ -12,11 +12,6 @@ class NpcChatController {
         
         // 初始化NPC聊天系统
         this.initialize();
-        
-        // 收到命令响应事件
-        if (this.eventBus) {
-            this.eventBus.on('terminalCommand', this.handleCommand.bind(this));
-        }
     }
 
     /**
@@ -115,5 +110,35 @@ class NpcChatController {
             this.view.showErrorMessage(`重新生成失败: ${error.message}`);
             return false;
         }
+    }
+
+
+    /**
+     * 直接处理命令字符串
+     * 此方法可供CommandService调用，替代原来的handleCommand方法
+     * @param {string} commandString - 命令字符串
+     * @returns {Promise<boolean>} 处理结果
+     */
+    async processCommandString(commandString) {
+        if (commandString.startsWith('message ') || commandString.startsWith('msg ')) {
+            const parts = commandString.split(' ');
+            
+            // 至少需要命令名、NPC ID和消息内容
+            if (parts.length < 3) {
+                this.view.showErrorMessage("命令格式错误。正确格式: message [目标ID] [消息内容]");
+                return false;
+            }
+            
+            // 提取NPC ID和消息内容
+            const npcId = parts[1];
+            const message = parts.slice(2).join(' ');
+            
+            // 处理消息
+            return await this.sendMessageToNpc(npcId, message);
+        } else if (commandString === 'rerun') {
+            return await this.rerunLastMessage();
+        }
+        
+        return false;
     }
 }

@@ -37,11 +37,22 @@ class SystemService {
         eventBus.on('systemStateChange', (data) => {
             this.currentState = data.state;
             this.isPowered = data.isOn;
+            console.log(`SystemService: 系统状态已更新为 ${this.currentState}, 电源状态: ${this.isPowered}`);
         });
         
         // 监听测试模式变化
         eventBus.on('testModeChanged', (isTestMode) => {
             this.isTestMode = isTestMode;
+        });
+        
+        // 监听系统启动完成事件 - 新增
+        eventBus.on('systemBootComplete', (isComplete) => {
+            if (isComplete) {
+                // 确保系统状态设为已完全开机
+                this.currentState = 'POWERED_ON';
+                this.isPowered = true;
+                console.log("SystemService: 系统启动完成，状态已同步");
+            }
         });
     }
     
