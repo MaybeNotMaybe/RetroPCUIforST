@@ -19,13 +19,6 @@ class NpcChatService {
         // 订阅事件
         this.subscribeToEvents();
         
-        // 等待CommandService就绪再注册命令
-        if (this.eventBus) {
-            this.eventBus.on('commandSystemReady', (data) => {
-                this.registerCommands(data.service);
-            });
-        }
-        
         console.log("NPC聊天服务已初始化");
     }
     

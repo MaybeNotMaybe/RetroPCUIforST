@@ -524,7 +524,7 @@ class CommandService {
      * @returns {Object} 命令列表结果
      */
     getAllCommandsHelp() {
-        let message = "可用命令列表:\n\n";
+        let message = "可用命令列表:\n";
         
         // 按分类组织命令
         const categories = new Map([...this.commandCategories].sort());
@@ -542,7 +542,7 @@ class CommandService {
                 }
             });
             
-            message += '\n';
+            //message += '\n';
         }
         
         message += "输入 'help [命令名]' 获取特定命令的详细信息\n";
