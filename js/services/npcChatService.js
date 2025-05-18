@@ -131,4 +131,19 @@ class NpcChatService {
         
         return false;
     }
+
+    /**
+     * 清理服务资源
+     */
+    dispose() {
+        // 解除事件绑定
+        if (this.eventBus) {
+            this.eventBus.off('systemPowerChange');
+            this.eventBus.off('lorebookSystemInitialized');
+            this.eventBus.off('commandSystemReady');
+            this.eventBus.off('systemBootComplete');
+        }
+        
+        console.log("NPC聊天服务已清理");
+    }
 }
