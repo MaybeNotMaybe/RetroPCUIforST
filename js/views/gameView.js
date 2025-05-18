@@ -1,22 +1,31 @@
-// js/views/gameView.js
-// View - 处理界面显示
+// js/views/gameView.js - 重构版本
 class GameView {
     constructor() {
-        this.terminal = document.getElementById('terminal');
-        this.output = document.getElementById('output');
-        this.input = document.getElementById('commandInput');
-        this.cursor = document.getElementById('cursor');
-        this.screen = document.querySelector('.screen');
-        this.diskLight = document.getElementById('diskLight');
-        this.networkLight = document.getElementById('networkLight');
-        this.prompt = document.querySelector('.prompt');
+        // DOM元素
+        this.domUtils = window.DOMUtils || {
+            get: id => document.querySelector(id),
+            addClass: (el, cls) => el && el.classList.add(cls),
+            removeClass: (el, cls) => el && el.classList.remove(cls)
+        };
+        
+        this.terminal = this.domUtils.get('#terminal');
+        this.output = this.domUtils.get('#output');
+        this.input = this.domUtils.get('#commandInput');
+        this.cursor = this.domUtils.get('#cursor');
+        this.screen = this.domUtils.get('.screen');
+        this.diskLight = this.domUtils.get('#diskLight');
+        this.networkLight = this.domUtils.get('#networkLight');
+        this.prompt = this.domUtils.get('.prompt');
         
         // 添加屏幕关闭效果的类
-        this.screen.classList.add('screen-off');
+        this.domUtils.addClass(this.screen, 'screen-off');
 
         // 设置打字速度（毫秒/字符）
         this.bootTypingSpeed = 1;     // 开机序列打字速度
         this.commandTypingSpeed = 10; // 命令行打字速度
+
+        // 音频服务
+        this.audio = window.ServiceLocator && window.ServiceLocator.get('audio') || window.audioManager;
 
         // 添加键盘音效
         this.setupKeyboardSounds();
@@ -47,7 +56,7 @@ class GameView {
         lineElement.className = 'typed-line';
         element.appendChild(lineElement);
         
-        function typeChar() {
+        const typeChar = () => {
             if (i < chars.length) {
                 lineElement.textContent += chars[i];
                 i++;
@@ -60,25 +69,25 @@ class GameView {
                 // 完成后调用回调
                 if (callback) callback();
             }
-        }
+        };
         
         typeChar();
     }
     
     powerOn() {
         // 屏幕开启效果
-        this.screen.classList.add('screen-on');
+        this.domUtils.addClass(this.screen, 'screen-on');
         this.clear();
         this.input.disabled = true;
         
         // 根据当前设置应用正确的颜色模式
-        const colorToggle = document.getElementById('colorToggle');
+        const colorToggle = this.domUtils.get('#colorToggle');
         if (colorToggle.classList.contains('amber')) {
-            this.screen.classList.remove('green-mode');
-            this.screen.classList.add('amber-mode');
+            this.domUtils.removeClass(this.screen, 'green-mode');
+            this.domUtils.addClass(this.screen, 'amber-mode');
         } else {
-            this.screen.classList.remove('amber-mode');
-            this.screen.classList.add('green-mode');
+            this.domUtils.removeClass(this.screen, 'amber-mode');
+            this.domUtils.addClass(this.screen, 'green-mode');
         }
     }
     
@@ -102,7 +111,6 @@ class GameView {
             }
             
             if (index < bootSequence.length) {
-                // 原有的启动序列显示代码...
                 const item = bootSequence[index];
                 
                 switch(item.type) {
@@ -131,7 +139,7 @@ class GameView {
                         this.typeWriterEffect(item.content, centerTextDiv, () => {
                             index++;
                             setTimeout(displayNext, 300);
-                        }, this.bootTypingSpeed); // 使用开机序列速度
+                        }, this.bootTypingSpeed);
                         break;
                     
                     case 'box':
@@ -165,7 +173,7 @@ class GameView {
                                         index++;
                                         setTimeout(displayNext, 300);
                                     }
-                                }, this.bootTypingSpeed); // 使用开机序列速度
+                                }, this.bootTypingSpeed);
                             }
                         };
                         
@@ -183,7 +191,7 @@ class GameView {
                         this.typeWriterEffect(item.content, defaultContainer, () => {
                             index++;
                             setTimeout(displayNext, 300);
-                        }, this.bootTypingSpeed); // 使用开机序列速度
+                        }, this.bootTypingSpeed);
                 }
             } else {
                 // 启动序列完成后增加一个空行
@@ -202,7 +210,7 @@ class GameView {
     }
     
     powerOff() {
-        this.screen.classList.remove('screen-on');
+        this.domUtils.removeClass(this.screen, 'screen-on');
         this.clear();
     }
     
@@ -216,7 +224,7 @@ class GameView {
         this.typeWriterEffect(text, this.output, () => {
             // 完成后确保滚动到底部
             this.output.scrollTop = this.output.scrollHeight;
-        }, this.commandTypingSpeed); // 使用命令行速度
+        }, this.commandTypingSpeed);
     }
 
     // 恢复完整历史记录
@@ -257,21 +265,21 @@ class GameView {
     }
     
     flashDiskLight() {
-        this.diskLight.classList.add('active');
+        this.domUtils.addClass(this.diskLight, 'active');
         setTimeout(() => {
-            this.diskLight.classList.remove('active');
+            this.domUtils.removeClass(this.diskLight, 'active');
             
             // 如果系统开机中，则恢复绿色常亮状态
-            if (document.getElementById('powerButton').classList.contains('on')) {
-                this.diskLight.classList.add('active-green');
+            if (this.domUtils.get('#powerButton').classList.contains('on')) {
+                this.domUtils.addClass(this.diskLight, 'active-green');
             }
         }, 1000);
     }
     
     flashNetworkLight() {
-        this.networkLight.classList.add('active');
+        this.domUtils.addClass(this.networkLight, 'active');
         setTimeout(() => {
-            this.networkLight.classList.remove('active');
+            this.domUtils.removeClass(this.networkLight, 'active');
         }, 1000);
     }
 
@@ -279,7 +287,7 @@ class GameView {
     setupCursor() {
         const input = this.input;
         const cursor = this.cursor;
-        const promptSymbol = document.querySelector('.prompt-symbol');
+        const promptSymbol = this.domUtils.get('.prompt-symbol');
         
         // 计算并更新光标位置的函数
         const updateCursorPosition = () => {
@@ -312,23 +320,23 @@ class GameView {
         };
         
         // 添加焦点事件监听器
-        input.addEventListener('focus', () => {
+        this.domUtils.on(input, 'focus', () => {
             // 输入框获得焦点时，显示光标并添加闪烁动画
             cursor.style.display = 'block';
-            cursor.classList.add('blink');
+            this.domUtils.addClass(cursor, 'blink');
             updateCursorPosition();
         });
         
-        input.addEventListener('blur', () => {
+        this.domUtils.on(input, 'blur', () => {
             // 输入框失去焦点时，隐藏光标
             cursor.style.display = 'none';
         });
         
         // 监听各种事件以更新光标位置
-        input.addEventListener('input', updateCursorPosition);
-        input.addEventListener('click', updateCursorPosition);
-        input.addEventListener('keyup', updateCursorPosition);
-        input.addEventListener('keydown', updateCursorPosition);
+        this.domUtils.on(input, 'input', updateCursorPosition);
+        this.domUtils.on(input, 'click', updateCursorPosition);
+        this.domUtils.on(input, 'keyup', updateCursorPosition);
+        this.domUtils.on(input, 'keydown', updateCursorPosition);
         
         // 初始状态下，根据输入框是否有焦点设置光标可见性
         cursor.style.display = document.activeElement === input ? 'block' : 'none';
@@ -337,23 +345,19 @@ class GameView {
         setTimeout(updateCursorPosition, 100);
     }
 
+    // 添加键盘音效
     setupKeyboardSounds() {
-    const input = this.input;
-    
-    // 添加键盘按键音效
-    input.addEventListener('keydown', (e) => {
-        // 避免特殊键产生声音
-        if (!e.ctrlKey && !e.altKey && !e.metaKey && 
-            e.key !== 'Shift' && e.key !== 'Control' && 
-            e.key !== 'Alt' && e.key !== 'Meta') {
-            
-            // 对 Enter 键使用不同的音效
-            if (e.key === 'Enter') {
-                window.audioManager.play('keypress');
-            } else {
-                window.audioManager.play('keypress');
+        if (!this.audio) return;
+        
+        this.domUtils.on(this.input, 'keydown', (e) => {
+            // 避免特殊键产生声音
+            if (!e.ctrlKey && !e.altKey && !e.metaKey && 
+                e.key !== 'Shift' && e.key !== 'Control' && 
+                e.key !== 'Alt' && e.key !== 'Meta') {
+                
+                // 播放按键音效
+                this.audio.play('keypress');
             }
-        }
-    });
-}
+        });
+    }
 }

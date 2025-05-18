@@ -1,7 +1,6 @@
-// js/managers/audioManager.js
+// js/managers/audioManager.js - 与AudioService兼容的版本
 class AudioManager {
     constructor() {
-
         // 音效库
         this.sounds = {
             // UI音效
@@ -25,7 +24,6 @@ class AudioManager {
             diskActivity: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/floppy_read.mp3', volume: 0.5 },
             systemBeep: { src: 'https://cdn.example.com/sounds/system_beep.mp3', volume: 0.7 },
             keypress: { src: 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/sounds/crt-switch.mp3', volume: 0.3 }
-            
         };
 
         // 循环播放的音效对象
@@ -61,6 +59,11 @@ class AudioManager {
 
         // 监听页面可见性变化
         this.setupVisibilityHandler();
+        
+        // 将实例注册到服务定位器
+        if (window.ServiceLocator) {
+            window.ServiceLocator.register('audio', this);
+        }
     }
     
     // 预加载音效以提高响应速度
@@ -97,12 +100,12 @@ class AudioManager {
     
     // 播放指定音效
     play(soundId) {
-        if (!this.soundEnabled) return false;
+        if (!this.soundEnabled) return Promise.resolve(false);
         
         try {
             if (!this.audioObjects[soundId] || this.audioObjects[soundId].length === 0) {
                 console.warn(`找不到音效: ${soundId}`);
-                return false;
+                return Promise.resolve(false);
             }
             
             // 查找一个当前未播放的音频实例
@@ -129,7 +132,7 @@ class AudioManager {
                 });
         } catch (error) {
             console.error(`播放音效 ${soundId} 时出错:`, error);
-            return false;
+            return Promise.resolve(false);
         }
     }
 
@@ -294,9 +297,10 @@ class AudioManager {
         if (!this.soundEnabled) return;
         
         // 检查系统是否开机
-        const isSystemOn = window.gameController && 
-                        window.gameController.model && 
-                        window.gameController.model.isOn;
+        const systemService = window.ServiceLocator && window.ServiceLocator.get('system');
+        const isSystemOn = systemService ? 
+            systemService.isPowerOn() : 
+            (window.gameController && window.gameController.model && window.gameController.model.isOn);
         
         if (isSystemOn && this.loopStates && this.loopStates.computerRunning) {
             this.startComputerSound();
@@ -361,8 +365,12 @@ class AudioManager {
         // 如果从禁用变为启用，检查是否需要恢复电脑运行声音
         else if (!wasEnabled && this.soundEnabled) {
             // 检查系统是否开机
-            if (window.gameController && window.gameController.model && 
-                window.gameController.model.isOn) {
+            const systemService = window.ServiceLocator && window.ServiceLocator.get('system');
+            const isSystemOn = systemService ? 
+                systemService.isPowerOn() : 
+                (window.gameController && window.gameController.model && window.gameController.model.isOn);
+                
+            if (isSystemOn) {
                 this.startComputerSound();
             }
         }
@@ -378,7 +386,13 @@ class AudioManager {
                 masterVolume: this.masterVolume,
                 soundEnabled: this.soundEnabled
             };
-            localStorage.setItem('audioSettings', JSON.stringify(settings));
+            
+            // 使用StorageUtils如果可用
+            if (window.StorageUtils) {
+                window.StorageUtils.save('audioSettings', settings);
+            } else {
+                localStorage.setItem('audioSettings', JSON.stringify(settings));
+            }
         } catch (error) {
             console.warn('保存音频设置失败:', error);
         }
@@ -387,9 +401,19 @@ class AudioManager {
     // 从localStorage加载音效设置
     loadSettings() {
         try {
-            const savedSettings = localStorage.getItem('audioSettings');
-            if (savedSettings) {
-                const settings = JSON.parse(savedSettings);
+            let settings;
+            
+            // 使用StorageUtils如果可用
+            if (window.StorageUtils) {
+                settings = window.StorageUtils.load('audioSettings');
+            } else {
+                const savedSettings = localStorage.getItem('audioSettings');
+                if (savedSettings) {
+                    settings = JSON.parse(savedSettings);
+                }
+            }
+            
+            if (settings) {
                 this.masterVolume = settings.masterVolume !== undefined ? settings.masterVolume : 1.0;
                 this.soundEnabled = settings.soundEnabled !== undefined ? settings.soundEnabled : true;
                 

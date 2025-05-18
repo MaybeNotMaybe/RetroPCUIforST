@@ -369,15 +369,23 @@
 
     <!-- 通过CDN引入JavaScript文件 -->
 
-    <!-- 管理器类 -->
+    <!-- 工具类和核心服务 -->
+    <script src="js/utils/domUtils.js"></script>
+    <script src="js/utils/storageUtils.js"></script>
+    <script src="js/eventBus.js"></script>
+    <script src="js/core/serviceLocator.js"></script>
+    <script src="js/core/gameCore.js"></script>
+
+    <!-- 服务层 -->
+    <script src="js/services/systemService.js"></script>
+    <script src="js/services/interfaceService.js"></script>
     <script src="js/managers/audioManager.js"></script>
-    <script src="js/managers/interfaceManager.js"></script>
+
+    <!-- 接口类 -->
+    <script src="js/interfaces/systemStateProvider.js"></script>
 
     <!-- 基础工具类 -->
     <script src="js/eventBus.js"></script>
-
-    <!-- 接口 -->
-    <script src="js/interfaces/systemStateProvider.js"></script>
 
     <!-- 模型层 -->
     <script src="js/models/gameModel.js"></script>

@@ -1,5 +1,4 @@
-// js/models/gameModel.js
-// Model - 处理游戏状态和数据
+// js/models/gameModel.js - 重构版本
 class GameModel {
     constructor() {
         this.isOn = false;
@@ -33,6 +32,9 @@ class GameModel {
                 description: "显示区域地图和位置信息"
             }
         };
+        
+        // 事件总线
+        this.eventBus = window.ServiceLocator && window.ServiceLocator.get('eventBus') || EventBus;
         
         // IBM SVG Logo路径
         this.ibmLogoPath = 'https://cdn.jsdelivr.net/gh/MaybeNotMaybe/RetroPCUIforST@main/assets/images/imb-logo.svg';
@@ -82,6 +84,9 @@ class GameModel {
         
         // 初始系统状态
         this.systemState = this.SystemState.POWERED_OFF;
+        
+        // 音频服务
+        this.audio = window.ServiceLocator && window.ServiceLocator.get('audio') || window.audioManager;
     }
 
     // 添加输出到历史记录
@@ -113,7 +118,7 @@ class GameModel {
         this.systemState = this.SystemState.POWERING_ON;
         
         // 广播系统状态变化
-        EventBus.emit('systemStateChange', {
+        this.eventBus.emit('systemStateChange', {
             state: this.systemState,
             isOn: false  // 尚未完全开机
         });
@@ -127,7 +132,7 @@ class GameModel {
         this.systemState = this.SystemState.POWERING_OFF;
         
         // 广播系统状态变化
-        EventBus.emit('systemStateChange', {
+        this.eventBus.emit('systemStateChange', {
             state: this.systemState,
             isOn: true  // 尚未完全关机
         });
@@ -142,7 +147,7 @@ class GameModel {
         this.systemState = this.SystemState.POWERED_ON;
         
         // 广播系统状态变化
-        EventBus.emit('systemStateChange', {
+        this.eventBus.emit('systemStateChange', {
             state: this.systemState,
             isOn: true  // 完全开机
         });
@@ -153,7 +158,7 @@ class GameModel {
         this.systemState = this.SystemState.POWERED_OFF;
         
         // 广播系统状态变化
-        EventBus.emit('systemStateChange', {
+        this.eventBus.emit('systemStateChange', {
             state: this.systemState,
             isOn: false  // 完全关机
         });
@@ -178,7 +183,7 @@ class GameModel {
             case "test mode":
                 this.isTestMode = !this.isTestMode;
                 // 通知其他组件测试模式状态变化
-                EventBus.emit('testModeChanged', this.isTestMode);
+                this.eventBus.emit('testModeChanged', this.isTestMode);
                 return `测试模式已${this.isTestMode ? '启用' : '禁用'}。\n` +
                     `- 界面切换闪屏效果: ${this.isTestMode ? '关闭' : '开启'}\n` +
                     `- 用于开发和测试用途`;
@@ -246,7 +251,7 @@ RAM空间: 12.4MB/20MB
         if (!query) return "请指定搜索关键词。使用格式: search [关键词]";
         
         // 触发磁盘活动指示灯
-        EventBus.emit('diskActivity');
+        this.eventBus.emit('diskActivity');
         
         return `正在搜索 "${query}"...\n\n` +
             `搜索结果:\n` +
@@ -261,7 +266,7 @@ RAM空间: 12.4MB/20MB
         if (!target) return "请指定连接目标。使用格式: connect [目标ID]";
         
         // 触发网络活动指示灯
-        EventBus.emit('networkActivity');
+        this.eventBus.emit('networkActivity');
         
         return `尝试连接到 "${target}"...\n\n` +
             `建立加密通道...\n` +
@@ -282,7 +287,7 @@ RAM空间: 12.4MB/20MB
         }
         
         // 触发磁盘活动指示灯
-        EventBus.emit('diskActivity');
+        this.eventBus.emit('diskActivity');
         
         // 对于 A 驱动器，显示系统盘信息
         if (drive === "A") {
@@ -301,7 +306,7 @@ RAM空间: 12.4MB/20MB
         // 对于 B 驱动器，检查是否有软盘并触发读取
         if (drive === "B") {
             // 通过发布事件来请求读取 B 驱动器
-            EventBus.emit('requestReadDriveB');
+            this.eventBus.emit('requestReadDriveB');
             return "正在读取驱动器 B...";
         }
     }
@@ -317,11 +322,11 @@ RAM空间: 12.4MB/20MB
         // 检查是否为已知程序
         if (programName === "map") {
             // 触发硬盘活动指示灯
-            EventBus.emit('diskActivity');
+            this.eventBus.emit('diskActivity');
             
             // 发布运行地图程序事件
             setTimeout(() => {
-                EventBus.emit('runProgram', { program: 'map' });
+                this.eventBus.emit('runProgram', { program: 'map' });
             }, 800); // 短暂延迟，模拟程序加载
             
             return `正在加载程序: 地理信息系统...\n\n执行中...`;
@@ -334,30 +339,34 @@ RAM空间: 12.4MB/20MB
 
     // 处理声音设置命令
     handleSoundCommand(args) {
+        if (!this.audio) {
+            return "错误: 音频系统不可用";
+        }
+        
         const params = args.trim().split(' ');
         
         if (params[0] === 'on' || params[0] === 'enable') {
-            window.audioManager.toggleSound(true);
+            this.audio.toggleSound(true);
             
             // 播放一个短音效以确认音效已启用
-            setTimeout(() => window.audioManager.play('systemBeep'), 100);
+            setTimeout(() => this.audio.play('systemBeep'), 100);
             
             return "系统音效已启用。";
         }
         
         if (params[0] === 'off' || params[0] === 'disable') {
-            window.audioManager.toggleSound(false);
+            this.audio.toggleSound(false);
             return "系统音效已禁用。";
         }
         
         if (params[0] === 'volume' && params[1]) {
             const volume = parseFloat(params[1]);
             if (!isNaN(volume) && volume >= 0 && volume <= 100) {
-                window.audioManager.setMasterVolume(volume / 100);
+                this.audio.setMasterVolume(volume / 100);
                 
                 // 如果音效已启用，播放一个短音效作为音量示例
-                if (window.audioManager.soundEnabled) {
-                    setTimeout(() => window.audioManager.play('systemBeep'), 100);
+                if (this.audio.soundEnabled) {
+                    setTimeout(() => this.audio.play('systemBeep'), 100);
                 }
                 
                 return `系统音量已设置为 ${volume}%。`;
@@ -417,5 +426,4 @@ RAM空间: 12.4MB/20MB
                 return `未知命令: "${command}"\n输入 "help" 获取可用命令列表。`;
         }
     }
-    
 }
