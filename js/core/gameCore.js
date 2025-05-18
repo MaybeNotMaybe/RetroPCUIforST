@@ -83,9 +83,15 @@ class GameCore {
                 const gameView = new GameView();
                 const gameController = new GameController(gameModel, gameView);
 
+                // 注册为组件
                 this.registerComponent('gameModel', gameModel);
                 this.registerComponent('gameView', gameView);
                 this.registerComponent('gameController', gameController);
+
+                // 同时注册为服务
+                serviceLocator.register('gameModel', gameModel);
+                serviceLocator.register('gameView', gameView);
+                serviceLocator.register('gameController', gameController);
 
                 // 为向后兼容保留全局引用
                 window.gameController = gameController;

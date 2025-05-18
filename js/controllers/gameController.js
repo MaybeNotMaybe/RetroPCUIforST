@@ -485,7 +485,25 @@ class GameController {
 
             // 命令预处理
             let commandHandled = false;
-            if (window.commandPreprocessors) {
+            
+            // 直接处理NPC聊天相关命令
+            if (command.startsWith('message ') || command.startsWith('msg ') || command === 'rerun') {
+                // 通过服务定位器获取NPC聊天服务
+                const npcChatService = this.serviceLocator.get('npcChat');
+                if (npcChatService) {
+                    // 发布命令事件由NPC聊天服务处理
+                    this.eventBus.emit('terminalCommand', { command });
+                    commandHandled = true;
+                    
+                    // 将命令添加到历史记录
+                    this.model.addToHistory(inputText);
+                    this.saveSettings();
+                    return;
+                }
+            }
+            
+            // 检查其他命令预处理器
+            if (!commandHandled && window.commandPreprocessors) {
                 for (const processor of window.commandPreprocessors) {
                     if (processor(command)) {
                         commandHandled = true;

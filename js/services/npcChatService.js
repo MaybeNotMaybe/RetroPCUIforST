@@ -54,10 +54,16 @@ class NpcChatService {
         const commandHandler = (input) => {
             // 处理message命令和rerun命令
             if (input.startsWith('message ') || input.startsWith('msg ') || input === 'rerun') {
-                // 仅当系统处于可操作状态时处理命令
-                if (this.system && this.system.isOperational()) {
+                // 检查系统是否可操作
+                const systemService = this.serviceLocator.get('system');
+                if (systemService && systemService.isOperational()) {
+                    // 通过事件总线发布命令事件
                     this.eventBus.emit('terminalCommand', { command: input });
                     return true; // 命令已处理
+                } else {
+                    // 系统不可操作时，记录而不处理
+                    console.log("系统不可操作，无法处理NPC聊天命令");
+                    return false;
                 }
             }
             return false; // 命令未处理
@@ -69,6 +75,7 @@ class NpcChatService {
         }
         
         window.commandPreprocessors.push(commandHandler);
+        console.log("NPC聊天命令预处理器已注册");
     }
     
     /**
