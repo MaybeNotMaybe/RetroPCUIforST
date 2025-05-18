@@ -1,4 +1,4 @@
-// js/models/gameModel.js - 重构版本
+// js/models/gameModel.js
 class GameModel {
     constructor() {
         this.isOn = false;

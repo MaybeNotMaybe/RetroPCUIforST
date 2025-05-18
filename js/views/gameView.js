@@ -1,4 +1,4 @@
-// js/views/gameView.js - 重构版本
+// js/views/gameView.js
 class GameView {
     constructor() {
         // DOM元素

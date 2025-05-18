@@ -1,4 +1,4 @@
-// js/controllers/gameController.js - 重构版本
+// js/controllers/gameController.js
 class GameController {
     constructor(model, view) {
         this.model = model;
