@@ -87,10 +87,33 @@ class GameCore {
                 this.registerComponent('gameView', gameView);
                 this.registerComponent('gameController', gameController);
 
-                // 将gameController绑定到window，保持与现有代码兼容
+                // 为向后兼容保留全局引用
                 window.gameController = gameController;
+
+                // 8. 初始化Lorebook系统
+                console.log("初始化世界书系统...");
                 
-                // 8. 初始化地图MVC
+                // 创建API服务
+                const apiService = new APIService();
+                serviceLocator.register('api', apiService);
+                
+                // 创建Lorebook Model和Controller
+                const lorebookModel = new LorebookModel(serviceLocator);
+                const lorebookController = new LorebookController(lorebookModel, serviceLocator);
+                
+                // 注册到GameCore
+                this.registerComponent('lorebookModel', lorebookModel);
+                this.registerComponent('lorebookController', lorebookController);
+                
+                // 为向后兼容保留全局引用
+                window.lorebookController = lorebookController;
+                
+                // 初始化Lorebook控制器
+                lorebookController.initialize().catch(error => {
+                    console.error("Lorebook控制器初始化失败:", error);
+                });
+                
+                // 9. 初始化地图MVC
                 const mapModel = new MapModel(serviceLocator);
                 const mapView = new MapView(serviceLocator);
                 const mapController = new MapController(mapModel, mapView, serviceLocator);
@@ -107,6 +130,10 @@ class GameCore {
 
                 console.log("游戏核心初始化完成");
                 this.initialized = true;
+
+                // 发布初始化完成事件
+                this.eventBus.emit('gameCoreInitialized', this);
+                
                 resolve(this);
             } catch (error) {
                 console.error("游戏核心初始化失败:", error);
