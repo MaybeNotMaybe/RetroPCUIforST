@@ -1,6 +1,15 @@
 // js/models/npcChatModel.js
+/**
+ * NPC聊天模型
+ * 管理NPC对话数据和业务逻辑
+ */
 class NpcChatModel {
-    constructor() {
+    constructor(serviceLocator) {
+        // 服务依赖
+        this.serviceLocator = serviceLocator;
+        this.eventBus = serviceLocator.get('eventBus');
+        this.storage = serviceLocator.get('storage');
+        
         // 最小化存储的状态
         this.isGenerating = false;
         
@@ -14,17 +23,32 @@ class NpcChatModel {
             npcReply: null,
             lastDialogueId: null
         };
+        
+        // 初始化状态
+        this.initialized = false;
     }
 
-    // 初始化方法
+    /**
+     * 初始化聊天模型
+     * @returns {Promise<boolean>} 初始化结果
+     */
     async initialize() {
+        if (this.initialized) {
+            return true;
+        }
+        
         try {
-            // 确保世界书系统已初始化
-            if (!window.lorebookController || !window.lorebookController.initialized) {
-                console.log("等待世界书系统初始化...");
+            // 等待Lorebook服务
+            let lorebookService = this.serviceLocator.get('lorebook');
+            
+            if (!lorebookService) {
+                console.log("等待Lorebook服务初始化...");
+                
+                // 等待Lorebook服务可用
                 await new Promise(resolve => {
                     const checkInterval = setInterval(() => {
-                        if (window.lorebookController && window.lorebookController.initialized) {
+                        lorebookService = this.serviceLocator.get('lorebook');
+                        if (lorebookService) {
                             clearInterval(checkInterval);
                             resolve();
                         }
@@ -32,27 +56,38 @@ class NpcChatModel {
                 });
             }
             
-            console.log("NPC聊天系统初始化完成");
+            console.log("NPC聊天模型初始化完成");
+            this.initialized = true;
             
             // 发布初始化完成事件
-            EventBus.emit('npcChatInitialized', true);
+            if (this.eventBus) {
+                this.eventBus.emit('npcChatInitialized', true);
+            }
+            
             return true;
         } catch (error) {
-            console.error("NPC聊天系统初始化失败:", error);
+            console.error("NPC聊天模型初始化失败:", error);
             return false;
         }
     }
 
-    // 格式化聊天记录为发送给AI的格式
+    /**
+     * 格式化聊天历史为发送给AI的格式
+     * @param {string} npcId - NPC ID
+     * @param {number} maxRounds - 最大对话轮数
+     * @returns {Promise<string>} 格式化的历史记录
+     */
     async formatChatHistoryForAI(npcId, maxRounds = 10) {
         try {
+            const lorebookService = this.serviceLocator.get('lorebook');
+            
             // 获取聊天历史
-            const { chatHistoryEntry } = await window.lorebookController.ensureChatHistory(npcId);
+            const { chatHistoryEntry } = await lorebookService.ensureChatHistory(npcId);
             const chatData = JSON.parse(chatHistoryEntry.content);
             const chat_history = chatData.chat_history || [];
             
             // 获取总结
-            const { summaryEntry } = await window.lorebookController.ensureSummary(npcId);
+            const { summaryEntry } = await lorebookService.ensureSummary(npcId);
             const summaryData = JSON.parse(summaryEntry.content);
             const summaries = summaryData.summaries || [];
             
@@ -60,12 +95,12 @@ class NpcChatModel {
             const lastSummary = summaries.length > 0 ? summaries[summaries.length - 1] : null;
             
             // 查找最后一个标记为总结轮次的对话
-            const lastSummaryRound = window.lorebookController.findLastSummaryRound(chat_history);
+            const lastSummaryRound = lorebookService.findLastSummaryRound(chat_history);
             const lastSummaryRoundId = lastSummaryRound ? lastSummaryRound.id : 0;
             
             // 只获取最后总结轮次之后的对话
             const relevantHistory = lastSummaryRoundId > 0 
-                ? chat_history.filter(item => item.id > lastSummaryRoundId)
+                ? chat_history.filter(e => e.id > lastSummaryRoundId)
                 : chat_history;
             
             // 如果对话数量超过maxRounds，则只保留最近的maxRounds轮
@@ -95,14 +130,21 @@ class NpcChatModel {
         }
     }
 
-    // 生成聊天总结
+    /**
+     * 生成聊天总结
+     * @param {string} npcId - NPC ID
+     * @param {number} currentDialogueId - 当前对话ID
+     * @returns {Promise<boolean>} 生成结果
+     */
     async generateChatSummary(npcId, currentDialogueId) {
         try {
+            const lorebookService = this.serviceLocator.get('lorebook');
+            
             // 确保总结条目存在
-            const { summaryEntry } = await window.lorebookController.ensureSummary(npcId);
+            const { summaryEntry } = await lorebookService.ensureSummary(npcId);
             
             // 获取聊天历史数据
-            const { chatHistoryEntry } = await window.lorebookController.ensureChatHistory(npcId);
+            const { chatHistoryEntry } = await lorebookService.ensureChatHistory(npcId);
             const chatData = JSON.parse(chatHistoryEntry.content);
             const chat_history = chatData.chat_history || [];
             
@@ -124,7 +166,7 @@ class NpcChatModel {
             );
             
             // 获取总结提示词
-            const { promptEntry } = await window.lorebookController.getSummaryPromptEntry();
+            const { promptEntry } = await lorebookService.getSummaryPromptEntry();
             const summaryPromptContent = promptEntry.content;
             
             // 格式化需要总结的对话
@@ -154,7 +196,7 @@ class NpcChatModel {
                 should_scan: true
             }];
 
-            // 生成总结
+            // 生成总结 - 使用全局的generate函数
             const aiResponse = await generate({
                 user_input: userPrompt,
                 should_stream: false,
@@ -175,13 +217,22 @@ class NpcChatModel {
             summaries.push(newSummary);
             
             // 更新总结条目
-            const chatLorebook = await window.lorebookController.getOrCreateChatLorebook();
-            await window.lorebookController.model.setLorebookEntries(chatLorebook, [{
+            const chatLorebook = await lorebookService.getOrCreateChatLorebook();
+            await lorebookService.model.setLorebookEntries(chatLorebook, [{
                 uid: summaryEntry.uid,
                 content: JSON.stringify({summaries: summaries}, null, 2)
             }]);
             
             console.log(`已为NPC ${npcId}生成新的总结，关联对话ID: ${currentDialogueId}`);
+            
+            // 发布事件
+            if (this.eventBus) {
+                this.eventBus.emit('chatSummaryGenerated', {
+                    npcId,
+                    dialogueId: currentDialogueId
+                });
+            }
+            
             return true;
         } catch (error) {
             console.error(`生成NPC ${npcId}聊天总结失败:`, error);
@@ -189,7 +240,12 @@ class NpcChatModel {
         }
     }
 
-    // 查找当前对话之前的最后一个标记为总结轮次的对话
+    /**
+     * 查找当前对话之前的最后一个标记为总结轮次的对话
+     * @param {Array} chat_history - 聊天历史记录
+     * @param {number} currentDialogueId - 当前对话ID
+     * @returns {Object|null} 上一个总结轮次对话
+     */
     findPreviousSummaryRound(chat_history, currentDialogueId) {
         // 反向遍历，找到当前ID之前的第一个标记为总结轮次的对话
         for (let i = chat_history.length - 1; i >= 0; i--) {
@@ -200,7 +256,12 @@ class NpcChatModel {
         return null; // 没有找到之前的总结轮次
     }
 
-    // 处理用户消息并生成NPC回复
+    /**
+     * 处理用户消息并生成NPC回复
+     * @param {string} npcId - NPC ID
+     * @param {string} message - 用户消息
+     * @returns {Promise<string>} NPC回复
+     */
     async processMessage(npcId, message) {
         if (this.isGenerating) {
             return "系统繁忙，正在处理上一条消息，请稍后再试。";
@@ -209,15 +270,17 @@ class NpcChatModel {
         this.isGenerating = true;
         
         try {
+            const lorebookService = this.serviceLocator.get('lorebook');
+            
             // 1. 确保聊天历史和总结条目存在
-            await window.lorebookController.ensureChatHistory(npcId);
-            await window.lorebookController.ensureSummary(npcId);
+            await lorebookService.ensureChatHistory(npcId);
+            await lorebookService.ensureSummary(npcId);
             
             // 2. 获取NPC信息
-            const { infoA, infoB, primaryLorebook } = await window.lorebookController.getNpcInfo(npcId);
+            const { infoA, infoB, primaryLorebook } = await lorebookService.getNpcInfo(npcId);
             
             // 3. 获取提示词条目内容
-            const { promptEntry } = await window.lorebookController.getPromptMessageEntry();
+            const { promptEntry } = await lorebookService.getPromptMessageEntry();
             const promptContent = promptEntry.content;
             
             // 4. 格式化聊天历史为AI可理解的格式
@@ -248,7 +311,7 @@ class NpcChatModel {
                 }
             ];
             
-            // 生成NPC回复
+            // 生成NPC回复 - 使用全局generate函数
             const response = await generate({
                 user_input: `用户发送给你的消息: ${message}\n\n请根据角色设定和对话历史，生成一个符合你角色身份的回复。只输出角色回复内容，不要输出思考过程。将最终回复放在<npc_reply></npc_reply>标签中。`,
                 should_stream: false,
@@ -259,7 +322,7 @@ class NpcChatModel {
             const npcReply = this.extractNpcReply(response);
             
             // 添加对话到聊天记录，并检查是否需要总结
-            const { dialogueId, needSummary } = await window.lorebookController.addDialogue(npcId, message, npcReply);
+            const { dialogueId, needSummary } = await lorebookService.addDialogue(npcId, message, npcReply);
             
             // 记录最后一次交互
             this.lastInteraction = {
@@ -282,6 +345,17 @@ class NpcChatModel {
             }
 
             this.isGenerating = false;
+            
+            // 发布消息生成完成事件
+            if (this.eventBus) {
+                this.eventBus.emit('npcMessageGenerated', {
+                    npcId,
+                    dialogueId,
+                    message,
+                    reply: npcReply
+                });
+            }
+            
             return npcReply;
         } catch (error) {
             console.error(`处理NPC ${npcId}消息失败:`, error);
@@ -298,18 +372,22 @@ class NpcChatModel {
         }
     }
 
-    // 重新生成最后一条回复
+    /**
+     * 重新生成最后一条回复
+     * @returns {Promise<string>} 新的NPC回复
+     */
     async rerun() {
         if (!this.lastInteraction.npcId || !this.lastInteraction.userMessage) {
             return "错误：没有找到上一次的交互记录，无法重新生成。";
         }
         
         try {
+            const lorebookService = this.serviceLocator.get('lorebook');
             const npcId = this.lastInteraction.npcId;
             const lastDialogueId = this.lastInteraction.lastDialogueId;
             
             // 1. 获取聊天历史数据
-            const { chatLorebook, chatHistoryEntry } = await window.lorebookController.ensureChatHistory(npcId);
+            const { chatLorebook, chatHistoryEntry } = await lorebookService.ensureChatHistory(npcId);
             const chatData = JSON.parse(chatHistoryEntry.content);
             const chat_history = chatData.chat_history || [];
             
@@ -325,7 +403,7 @@ class NpcChatModel {
                 // 3. 如果是总结轮次，需要删除相关总结
                 if (wasSummaryRound) {
                     // 获取总结数据
-                    const { summaryEntry } = await window.lorebookController.ensureSummary(npcId);
+                    const { summaryEntry } = await lorebookService.ensureSummary(npcId);
                     const summaryData = JSON.parse(summaryEntry.content);
                     const summaries = summaryData.summaries || [];
                     
@@ -333,7 +411,7 @@ class NpcChatModel {
                     const updatedSummaries = summaries.filter(s => s.summary_round_id !== lastDialogueId);
                     
                     // 更新总结条目
-                    await window.lorebookController.model.setLorebookEntries(chatLorebook, [{
+                    await lorebookService.model.setLorebookEntries(chatLorebook, [{
                         uid: summaryEntry.uid,
                         content: JSON.stringify({summaries: updatedSummaries}, null, 2)
                     }]);
@@ -345,7 +423,7 @@ class NpcChatModel {
                 chat_history.pop();
                 
                 // 保存更新
-                await window.lorebookController.model.setLorebookEntries(chatLorebook, [{
+                await lorebookService.model.setLorebookEntries(chatLorebook, [{
                     uid: chatHistoryEntry.uid,
                     content: JSON.stringify({...chatData, chat_history}, null, 2)
                 }]);
@@ -356,6 +434,14 @@ class NpcChatModel {
             // 5. 重新生成回复
             const npcReply = await this.processMessage(npcId, this.lastInteraction.userMessage);
             
+            // 发布重新生成事件
+            if (this.eventBus) {
+                this.eventBus.emit('npcMessageRegenerated', {
+                    npcId,
+                    reply: npcReply
+                });
+            }
+            
             // 完成后返回新的回复
             return npcReply;
         } catch (error) {
@@ -364,7 +450,11 @@ class NpcChatModel {
         }
     }
 
-    // 从AI回复中提取NPC回复内容
+    /**
+     * 从AI回复中提取NPC回复内容
+     * @param {string} aiResponse - AI回复
+     * @returns {string} 提取的NPC回复
+     */
     extractNpcReply(aiResponse) {
         // 移除思维链
         let processedResponse = aiResponse;
@@ -390,7 +480,11 @@ class NpcChatModel {
         return processedResponse.trim();
     }
 
-    // 从AI回复中提取摘要内容
+    /**
+     * 从AI回复中提取摘要内容
+     * @param {string} aiResponse - AI回复
+     * @returns {string} 提取的摘要内容
+     */
     extractSummary(aiResponse) {
         // 移除思维链
         let processedResponse = aiResponse;
@@ -416,11 +510,22 @@ class NpcChatModel {
         return processedResponse.trim();
     }
 
-    // 强制重置生成状态（用于恢复被卡住的请求）
+    /**
+     * 强制重置生成状态（用于恢复被卡住的请求）
+     * @returns {boolean} 是否重置了状态
+     */
     resetGeneratingState() {
         if (this.isGenerating) {
             console.log("手动重置NPC消息生成状态");
             this.isGenerating = false;
+            
+            // 发布状态重置事件
+            if (this.eventBus) {
+                this.eventBus.emit('npcGeneratingStateReset', {
+                    lastNpcId: this.lastInteraction.npcId
+                });
+            }
+            
             return true;
         }
         return false;

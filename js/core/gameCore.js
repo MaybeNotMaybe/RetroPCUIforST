@@ -98,6 +98,11 @@ class GameCore {
                 this.registerComponent('lorebookModel', lorebookModel);
                 this.registerComponent('lorebookController', lorebookController);
 
+                // 初始化Lorebook服务
+                const lorebookService = new LorebookService();
+                serviceLocator.register('lorebook', lorebookService);
+                this.registerComponent('lorebookService', lorebookService)
+
                 // 为向后兼容保留全局引用
                 window.lorebookController = lorebookController;
 
@@ -105,8 +110,13 @@ class GameCore {
                 lorebookController.initialize().catch(error => {
                     console.error("世界书控制器初始化失败:", error);
                 });
+
+                // 9. 初始化NPC聊天服务
+                const npcChatService = new NpcChatService();
+                serviceLocator.register('npcChat', npcChatService);
+                this.registerComponent('npcChatService', npcChatService);
                 
-                // 9. 初始化地图MVC
+                // 10. 初始化地图MVC
                 const mapModel = new MapModel(serviceLocator);
                 const mapView = new MapView(serviceLocator);
                 const mapController = new MapController(mapModel, mapView, serviceLocator);
