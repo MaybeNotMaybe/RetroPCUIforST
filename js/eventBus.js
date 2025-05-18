@@ -1,4 +1,4 @@
-// js/eventBus.js
+// js/eventBus.js - 总线
 
 const EventBus = {
     events: {},
