@@ -1,4 +1,4 @@
-// js/controllers/floppyController.js - 重构版本
+// js/controllers/floppyController.js
 class FloppyController {
     constructor(systemStateProvider) {
         // 使用服务定位器获取依赖
@@ -42,9 +42,27 @@ class FloppyController {
         this.loadingLine = null;
         this.loadingAnimationInterval = null;
         
+        // 跟踪软盘是否已被读取
+        this.diskHasBeenRead = false;
+        
+        // 跟踪系统是否完全初始化
+        this.isInitialized = false;
+        
         // 初始化
         this.setupEventListeners();
         this.initializeFloppyState();
+        
+        // 用于确保在系统恢复后更新驱动器状态
+        setTimeout(() => {
+            // 发布一次系统状态检查事件，确保在刷新页面后正确应用状态
+            const isOn = this.isSystemOn();
+            if (isOn) {
+                this.updateDriveStateBySysStatus(isOn);
+            }
+            
+            // 标记为已初始化
+            this.isInitialized = true;
+        }, 500);
         
         console.log("软盘控制器已初始化");
     }
@@ -55,20 +73,20 @@ class FloppyController {
     isSystemOn() {
         // 尝试不同的方法获取系统状态
         try {
-            // 1. 首先尝试直接调用提供的systemStateProvider
+            // 1. 首先尝试直接检查GameController
+            if (window.gameController && window.gameController.model) {
+                return window.gameController.model.isOn;
+            }
+            
+            // 2. 尝试直接调用提供的systemStateProvider
             if (this.systemStateProvider && typeof this.systemStateProvider.isSystemOn === 'function') {
                 return this.systemStateProvider.isSystemOn();
             }
             
-            // 2. 尝试使用SystemService
+            // 3. 尝试使用SystemService
             const systemService = this.serviceLocator && this.serviceLocator.get('system');
             if (systemService && typeof systemService.isPowerOn === 'function') {
                 return systemService.isPowerOn();
-            }
-            
-            // 3. 回退到直接检查GameController
-            if (window.gameController && window.gameController.model) {
-                return window.gameController.model.isOn;
             }
             
             return false;
@@ -83,21 +101,22 @@ class FloppyController {
      */
     isSystemOperational() {
         try {
-            // 1. 尝试使用SystemService
+            // 1. 直接检查GameController
+            if (window.gameController && window.gameController.model) {
+                const gameModel = window.gameController.model;
+                return gameModel.isOn && 
+                       gameModel.getSystemState() === gameModel.SystemState.POWERED_ON;
+            }
+            
+            // 2. 尝试使用SystemService
             const systemService = this.serviceLocator && this.serviceLocator.get('system');
             if (systemService && typeof systemService.isOperational === 'function') {
                 return systemService.isOperational();
             }
             
-            // 2. 尝试使用全局函数
+            // 3. 尝试使用全局函数
             if (typeof window.isSystemOperational === 'function') {
                 return window.isSystemOperational();
-            }
-            
-            // 3. 回退到直接检查GameController
-            if (window.gameController && window.gameController.model) {
-                return window.gameController.model.isOn && 
-                       window.gameController.model.getSystemState() === window.gameController.model.SystemState.POWERED_ON;
             }
             
             return false;
@@ -111,7 +130,12 @@ class FloppyController {
      * 提供获取当前软盘状态的方法（用于保存设置）
      */
     getFloppyState() {
-        return this.model.getAllDriveStates();
+        return {
+            diskInserted: this.model.drives.B.diskInserted,
+            isProcessing: this.model.drives.B.isProcessing,
+            isReading: this.model.drives.B.isReading,
+            hasBeenRead: this.diskHasBeenRead
+        };
     }
     
     /**
@@ -130,29 +154,50 @@ class FloppyController {
             let bDriveState = {
                 diskInserted: false,
                 isProcessing: false,
-                isReading: false
+                isReading: false,
+                hasBeenRead: false
             };
             
             if (settings && settings.floppyDriveState) {
                 // 从设置中获取状态
                 bDriveState.diskInserted = settings.floppyDriveState.diskInserted || false;
+                bDriveState.hasBeenRead = settings.floppyDriveState.hasBeenRead || false;
                 
-                // 更新模型状态
+                // 更新模型状态和已读标志
                 if (bDriveState.diskInserted) {
                     this.model.drives.B.diskInserted = true;
+                    this.diskHasBeenRead = bDriveState.hasBeenRead;
                 }
             }
             
-            // 更新视图
-            this.view.updateDriveState('A', this.model.getDriveState('A'), isSystemOn);
-            this.view.updateDriveState('B', this.model.getDriveState('B'), isSystemOn);
-            
-            // 视图初始化特殊处理
+            // 更新视图 - 确保UI元素正确显示
             if (bDriveState.diskInserted) {
-                this.domUtils.addClass('#floppyDiskB', 'fully-inserted');
-            } else {
+                this.view.updateDriveState('B', this.model.getDriveState('B'), isSystemOn);
+                
+                // 确保软盘边缘正确显示
+                const diskB = this.domUtils.get('#floppyDiskB');
+                if (diskB) {
+                    diskB.style.display = 'block';
+                    this.domUtils.addClass(diskB, 'fully-inserted');
+                }
+                
+                // 确保插槽状态正确
+                this.domUtils.addClass('#floppySlotB', 'disk-inserted');
+                
+                // 启用弹出按钮
+                this.domUtils.removeClass('#ejectButtonB', 'disabled');
+                
+                // 隐藏完整软盘
+                this.domUtils.addClass('#fullFloppyB', 'hide-full-floppy');
                 this.domUtils.removeClass('#fullFloppyB', 'init-hidden');
+            } else {
+                // 如果没有软盘，确保显示完整软盘图像
+                this.domUtils.removeClass('#fullFloppyB', ['init-hidden', 'hide-full-floppy']);
+                this.domUtils.addClass('#fullFloppyB', 'floppy-hoverable');
             }
+            
+            // 同时更新A驱动器状态
+            this.view.updateDriveState('A', this.model.getDriveState('A'), isSystemOn);
         } catch (error) {
             console.error("初始化软盘状态失败:", error);
         }
@@ -199,6 +244,34 @@ class FloppyController {
     }
     
     /**
+     * 根据系统状态更新驱动器状态
+     * @param {boolean} isOn - 系统是否开机
+     */
+    updateDriveStateBySysStatus(isOn) {
+        // 如果系统已开机，更新指示灯
+        if (isOn) {
+            // A驱动器始终点亮
+            this.view.turnOnDriveLight('A');
+            
+            // 如果B驱动器有软盘，点亮它的指示灯
+            if (this.model.drives.B.diskInserted) {
+                this.view.turnOnDriveLight('B');
+                
+                // 如果软盘未被读取过且系统已完全初始化，询问是否读取
+                if (!this.diskHasBeenRead && this.isInitialized && this.isSystemOperational()) {
+                    // 延迟显示，确保界面已完全加载
+                    setTimeout(() => {
+                        this.promptForDiskRead();
+                    }, 500);
+                }
+            }
+        } else {
+            // 系统关机时，关闭所有指示灯
+            this.view.turnOffAllDriveLights();
+        }
+    }
+    
+    /**
      * 插入软盘到B驱动器
      */
     insertFloppyDisk() {
@@ -211,6 +284,9 @@ class FloppyController {
         if (!this.model.insertDisk('B')) {
             return false;
         }
+        
+        // 插入新软盘时，重置已读取标志
+        this.diskHasBeenRead = false;
         
         // 开始插入动画
         const isSystemOn = this.isSystemOn();
@@ -284,7 +360,7 @@ class FloppyController {
         // 更新模型
         this.model.completeEjection('B', isSystemOn);
         
-        // 保存设置
+        // 保存设置（包括已读标志）
         this.saveSettings();
         
         return true;
@@ -364,18 +440,8 @@ class FloppyController {
      */
     handleSystemBootComplete(isBooted) {
         if (isBooted) {
-            // 系统启动完成，打开A驱动器灯
-            this.view.turnOnDriveLight('A');
-            
-            // 如果B驱动器已插入软盘，打开B驱动器灯并询问用户
-            if (this.model.drives.B.diskInserted) {
-                this.view.turnOnDriveLight('B');
-                
-                // 短暂延迟后显示询问提示
-                setTimeout(() => {
-                    this.promptForDiskRead();
-                }, 1000);
-            }
+            // 更新驱动器状态
+            this.updateDriveStateBySysStatus(true);
         }
     }
 
@@ -384,12 +450,8 @@ class FloppyController {
      * @param {boolean} isOn - 系统是否开机
      */
     handleSystemPowerChange(isOn) {
-        // 关键：电源关闭时，所有指示灯立即熄灭
-        if (!isOn) {
-            this.view.turnOffAllDriveLights();
-        }
-        
-        // 注意：电源打开时，不立即亮灯，等待启动完成事件
+        // 更新驱动器状态
+        this.updateDriveStateBySysStatus(isOn);
     }
 
     /**
@@ -397,7 +459,7 @@ class FloppyController {
      */
     handleReadDriveB() {
         // 检查系统是否开机
-        if (!this.isSystemOn()) {
+        if (!this.isSystemOperational()) {
             const gameController = window.gameController;
             if (gameController && gameController.view) {
                 gameController.view.displayOutput("\n系统当前未开机，无法读取驱动器。\n");
@@ -584,6 +646,9 @@ class FloppyController {
         this.view.setReadingVisualState(true);
         
         if (content) {
+            // 标记软盘已被读取
+            this.diskHasBeenRead = true;
+            
             // 启动打字机效果，结束后恢复绿色指示灯
             gameController.view.typeWriterEffect(content, document.getElementById('output'), () => {
                 // 关键：将完整的软盘内容添加到历史记录中
@@ -611,7 +676,7 @@ class FloppyController {
                     this.domUtils.removeClass('#ejectButtonB', 'disabled');
                 }
                 
-                // 保存设置
+                // 保存设置（包括已读标志）
                 this.saveSettings();
             }, 10); // 打字机效果速度
         } else {
@@ -704,6 +769,11 @@ class FloppyController {
      * 询问用户是否读取软盘
      */
     promptForDiskRead() {
+        // 如果软盘已经被读取过，不再询问
+        if (this.diskHasBeenRead) {
+            return;
+        }
+        
         const gameController = window.gameController;
         if (gameController && gameController.view) {
             // 显示询问信息
