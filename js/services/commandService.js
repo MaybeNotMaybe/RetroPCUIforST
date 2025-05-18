@@ -113,12 +113,12 @@ class CommandService {
         });
         
         // 测试模式命令
-        this.registerCommand('test mode', this.handleTestModeCommand.bind(this), {
-            category: 'debug',
-            description: '切换测试模式',
-            usage: 'test mode',
-            examples: ['test mode']
-        });
+        // this.registerCommand('test mode', this.handleTestModeCommand.bind(this), {
+        //     category: 'debug',
+        //     description: '切换测试模式',
+        //     usage: 'test mode',
+        //     examples: ['test mode']
+        // });
         
         // 发布命令系统就绪事件
         if (this.eventBus) {
