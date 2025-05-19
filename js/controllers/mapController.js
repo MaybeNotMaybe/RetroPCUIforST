@@ -362,25 +362,36 @@ class MapController {
     }
     
     // 切换地图视图
-    toggleMapView() {
+    toggleMapView(targetVisible = null) {
         // 检查系统是否可操作
         const isSystemOperational = this.systemService ? 
             this.systemService.isOperational() : 
             window.isSystemOperational();
-            
+                
         if (!isSystemOperational) {
             console.log("系统未开机，无法切换到地图视图");
             return false;
         }
         
+        // 如果没有指定目标状态，则执行反向切换
+        const desiredVisible = targetVisible !== null ? targetVisible : !this.model.isVisible;
+        
         // 优先使用界面服务
         if (this.interfaceService) {
-            this.interfaceService.switchTo(this.model.isVisible ? 'terminal' : 'map');
+            // 直接根据目标状态决定切换到哪个界面
+            this.interfaceService.switchTo(desiredVisible ? 'map' : 'terminal');
+            
+            // 确保模型状态与界面状态同步
+            if (this.model.isVisible !== desiredVisible) {
+                this.model.setVisibility(desiredVisible);
+            }
+            
             return true;
         }
         
-        // 如果界面服务不可用，使用传统方法
-        const isVisible = this.model.toggleVisibility();
+        // 如果界面服务不可用，使用传统方法（保留原有逻辑）
+        this.model.setVisibility(desiredVisible);
+        const isVisible = this.model.isVisible;
         
         if (isVisible) {
             // 显示地图

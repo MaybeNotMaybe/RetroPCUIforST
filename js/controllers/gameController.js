@@ -255,8 +255,8 @@ class GameController {
         setTimeout(() => {
             // 确保地图控制器已初始化
             if (window.mapController && settings.mapVisible) {
-                // 如果地图应该可见，切换到地图视图
-                window.mapController.toggleMapView();
+                // 使用明确的目标状态调用toggleMapView
+                window.mapController.toggleMapView(true);
             }
         }, 50);
     }
