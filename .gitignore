@@ -13,3 +13,6 @@ map-tool.html
 .gitignore
 121.md
 重构说明.md
+接口说明文档/domUtils.js
+接口说明文档/eventBus.js
+接口说明文档/storageUtils.js
