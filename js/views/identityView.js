@@ -7,8 +7,14 @@ class IdentityView {
         this.eventBus = serviceLocator.get('eventBus');
         this.audio = serviceLocator.get('audio');
         
-        // DOM元素引用
-        this.statusInterface = null;
+        // DOM元素引用 - 主容器现在从HTML静态获取
+        this.statusInterface = this.domUtils.get('#statusInterface'); 
+
+        // 子元素的引用将在 initializeInternalUI 中获取或创建并附加
+        this.statusHeader = null;
+        this.statusContent = null;
+        this.statusFooter = null;
+
         this.basicInfoPage = null;
         this.disguisePage = null;
         
@@ -16,12 +22,12 @@ class IdentityView {
         this.playerAvatar = null;
         this.playerStats = null;
         
-        // 身份显示区域
-        this.realIdentityDisplay = null;
-        this.coverIdentityDisplay = null;
-        this.disguiseIdentityDisplay = null;
+        // 身份显示区域 (这些将在子页面创建后获取)
+        // this.realIdentityDisplay = null; // 将在 basicInfoPage 内部创建和获取
+        // this.coverIdentityDisplay = null; // 将在 basicInfoPage 内部创建和获取
+        this.disguiseIdentityDisplay = null; // 将在 disguisePage 内部创建和获取
         
-        // 伪装表单元素
+        // 伪装表单元素 (这些将在 disguisePage 创建后获取)
         this.nationalitySelect = null;
         this.typeSelect = null;
         this.functionSelect = null;
@@ -32,91 +38,71 @@ class IdentityView {
     
     // 初始化视图
     initialize() {
-        // 如果界面不存在，创建它
-        if (!this.domUtils.get('#statusInterface')) {
-            this.createStatusInterface();
+        if (!this.statusInterface) {
+            console.error("档案界面 (#statusInterface) 未在HTML中找到! 请确保已在index.html中定义。");
+            return; 
         }
         
-        // 获取DOM元素引用
-        this.statusInterface = this.domUtils.get('#statusInterface');
-        this.basicInfoPage = this.domUtils.get('#basicInfoPage');
-        this.disguisePage = this.domUtils.get('#disguisePage');
+        // 构建或获取 statusInterface 内部的UI元素
+        this.initializeInternalUI(); 
         
-        this.playerAvatar = this.domUtils.get('#playerAvatar');
-        this.playerStats = this.domUtils.get('#playerStats');
+        // 在内部UI构建完毕后，获取对关键子元素的引用
+        // 注意：这些选择器现在是相对于已经存在的 #statusInterface
+        this.basicInfoPage = this.domUtils.get('#statusInterface #basicInfoPage');
+        this.disguisePage = this.domUtils.get('#statusInterface #disguisePage');
         
-        this.realIdentityDisplay = this.domUtils.get('#realIdentityDisplay');
-        this.coverIdentityDisplay = this.domUtils.get('#coverIdentityDisplay');
-        this.disguiseIdentityDisplay = this.domUtils.get('#currentDisguiseDisplay');
+        this.playerAvatar = this.domUtils.get('#statusInterface #playerAvatar');
+        this.playerStats = this.domUtils.get('#statusInterface #playerStats');
         
-        this.nationalitySelect = this.domUtils.get('#nationalitySelect');
-        this.typeSelect = this.domUtils.get('#typeSelect');
-        this.functionSelect = this.domUtils.get('#functionSelect');
-        this.organizationSelect = this.domUtils.get('#organizationSelect');
-        this.applyDisguiseButton = this.domUtils.get('#applyDisguiseButton');
-        this.clearDisguiseButton = this.domUtils.get('#clearDisguiseButton');
+        // 伪装表单相关的元素获取也需要确保在它们被创建之后
+        this.nationalitySelect = this.domUtils.get('#statusInterface #nationalitySelect');
+        this.typeSelect = this.domUtils.get('#statusInterface #typeSelect');
+        this.functionSelect = this.domUtils.get('#statusInterface #functionSelect');
+        this.organizationSelect = this.domUtils.get('#statusInterface #organizationSelect');
+        this.applyDisguiseButton = this.domUtils.get('#statusInterface #applyDisguiseButton');
+        this.clearDisguiseButton = this.domUtils.get('#statusInterface #clearDisguiseButton');
+        this.disguiseIdentityDisplay = this.domUtils.get('#statusInterface #currentDisguiseDisplay');
+
+
+        // 初始显示基础信息页 (如果元素都已正确获取)
+        if (this.basicInfoPage && this.disguisePage) {
+             // 默认显示伪装页面，因为基础信息页依赖于伪装页的点击事件来切换
+            this.showDisguisePage();
+        } else {
+            console.warn("IdentityView: basicInfoPage 或 disguisePage 未能正确初始化。");
+        }
         
-        // 初始显示基础信息页
-        this.showDisguisePage();
-        
-        // 设置事件订阅
         this.setupEventSubscriptions();
     }
-    
-    // 设置事件订阅
-    setupEventSubscriptions() {
-        if (this.eventBus) {
-            // 订阅颜色模式变更事件
-            this.eventBus.on('colorModeChanged', (isAmber) => {
-                this.updateColorMode(isAmber);
-            });
-            
-            // 订阅身份变更事件
-            this.eventBus.on('playerIdentityChanged', (eventData) => {
-                console.log("View接收到身份变更事件:", eventData);
-            });
-            
-            // 订阅伪装变更事件
-            this.eventBus.on('disguiseChanged', (eventData) => {
-                this.updateDisguiseIdentity(eventData.identityData);
-            });
-            
-            // 订阅伪装失败事件
-            this.eventBus.on('disguiseBlown', () => {
-                // 可以在这里添加一些视觉提示，如屏幕闪烁等
-                if (this.audio) {
-                    this.audio.play('systemBeep');
-                }
-            });
+
+    initializeInternalUI() {
+        // 获取HTML中定义的骨架
+        this.statusHeader = this.domUtils.get('#statusInterface .status-header');
+        this.statusContent = this.domUtils.get('#statusInterface .status-content');
+        this.statusFooter = this.domUtils.get('#statusInterface .status-footer');
+
+        if (!this.statusHeader || !this.statusContent || !this.statusFooter) {
+            console.error("档案界面的主要子容器 (.status-header, .status-content, .status-footer) 未在HTML中找到!");
+            // 可以选择在这里创建它们，如果HTML中没有定义
+            // 例如:
+            // if (!this.statusHeader) {
+            //     this.statusHeader = this.domUtils.create('div', { className: 'status-header' });
+            //     this.statusInterface.appendChild(this.statusHeader);
+            // }
+            // (类似地处理 statusContent 和 statusFooter)
+            // 但推荐的方式是在HTML中定义好这些骨架
+            return;
         }
-    }
-    
-    // 创建状态界面
-    createStatusInterface() {
-        const screen = this.domUtils.get('.screen');
-        
-        // 创建主容器
-        const statusInterface = this.domUtils.create('div', {
-            id: 'statusInterface',
-            className: 'status-interface',
-            style: { display: 'none' }
-        });
-        
-        // 创建页眉
-        const header = this.domUtils.create('div', {
-            className: 'status-header',
-            innerHTML: `
-                <div class="status-title">特工档案系统 v1.0</div>
-                <div class="status-security">安全级别: 最高机密</div>
-            `
-        });
-        
-        // 创建主内容区
-        const content = this.domUtils.create('div', {
-            className: 'status-content'
-        });
-        
-        // 左侧面板 - 基础信息
+
+        // 填充 Header 内容 (如果HTML中只是空壳)
+        this.statusHeader.innerHTML = `
+            <div class="status-title">特工档案系统 v1.0</div>
+            <div class="status-security">安全级别: 最高机密</div>
+        `;
+
+        // 清空并填充 Content 内容
+        this.statusContent.innerHTML = ''; // 清空，确保由JS完全控制内部
+
         const leftPanel = this.domUtils.create('div', {
             className: 'status-left-panel',
             innerHTML: `
@@ -133,44 +119,36 @@ class IdentityView {
             `
         });
         
-        // 右侧面板 - 身份信息
         const rightPanel = this.domUtils.create('div', {
             className: 'status-right-panel'
         });
         
-        // 基础信息页面
-        const basicInfoPage = this.domUtils.create('div', {
+        // 基础信息页面 (仍然动态创建其内部，但附加到 rightPanel)
+        const basicInfoPageElement = this.domUtils.create('div', {
             id: 'basicInfoPage',
             className: 'identity-page',
             innerHTML: `
                 <div class="identity-file-container">
-                    <div class="file-tabs">
-                        <div class="file-tab active" data-identity-type="cover">表面身份</div>
-                        <div class="file-tab" data-identity-type="real">真实身份</div>
-                    </div>
                     <div class="file-header-title">
                         <div class="file-header-text">人员档案</div>
                     </div>
                     <div class="identity-file" id="identityFile">
-                        <!-- 档案内容将在这里动态生成 -->
-                    </div>
+                        </div>
                 </div>
             `
         });
         
-        // 伪装页面
-        const disguisePage = this.domUtils.create('div', {
+        // 伪装页面 (仍然动态创建其内部，但附加到 rightPanel)
+        const disguisePageElement = this.domUtils.create('div', {
             id: 'disguisePage',
             className: 'identity-page',
-            style: { display: 'none' }
+            // style: { display: 'none' } // 初始显示由 showBasicInfoPage/showDisguisePage 控制
         });
 
-        // 创建伪装页面容器
         const disguiseContainer = this.domUtils.create('div', {
             className: 'disguise-page-container'
         });
 
-        // 创建顶部导航
         const disguiseNav = this.domUtils.create('div', {
             className: 'disguise-nav',
             innerHTML: `
@@ -183,7 +161,6 @@ class IdentityView {
             `
         });
 
-        // 当前伪装视图
         const currentView = this.domUtils.create('div', {
             className: 'disguise-current-view',
             id: 'disguiseCurrentView',
@@ -193,20 +170,17 @@ class IdentityView {
                         <div class="file-header-text">当前伪装</div>
                     </div>
                     <div class="identity-file" id="currentDisguiseDisplay">
-                        <!-- 伪装档案内容将在这里动态生成 -->
-                    </div>
+                        </div>
                 </div>
             `
         });
 
-        // 更改伪装视图
         const editView = this.domUtils.create('div', {
             className: 'disguise-edit-view',
             id: 'disguiseEditView',
             style: { display: 'none' }
         });
 
-        // 伪装表单容器
         const formContainer = this.domUtils.create('div', {
             className: 'disguise-form-container',
             innerHTML: `
@@ -233,169 +207,158 @@ class IdentityView {
             `
         });
 
-        // 组装伪装页面
         editView.appendChild(formContainer);
         disguiseContainer.appendChild(disguiseNav);
         disguiseContainer.appendChild(currentView);
         disguiseContainer.appendChild(editView);
-        disguisePage.appendChild(disguiseContainer);
-
-        // 页脚
-        const footer = this.domUtils.create('div', {
-            className: 'status-footer',
-            innerHTML: `
-                <div class="status-nav">
-                    <button id="basicInfoButton" class="terminal-button active">基本档案</button>
-                    <button id="disguiseButton" class="terminal-button">伪装系统</button>
-                </div>
-                <div class="status-exit">按 F1 返回终端</div>
-            `
-        });
+        disguisePageElement.appendChild(disguiseContainer);
         
-        // 组装所有部分
-        content.appendChild(leftPanel);
-        content.appendChild(rightPanel);
-        rightPanel.appendChild(basicInfoPage);
-        rightPanel.appendChild(disguisePage);
-        statusInterface.appendChild(header);
-        statusInterface.appendChild(content);
-        statusInterface.appendChild(footer);
+        this.statusContent.appendChild(leftPanel);
+        this.statusContent.appendChild(rightPanel);
+        rightPanel.appendChild(basicInfoPageElement);
+        rightPanel.appendChild(disguisePageElement);
         
-        // 添加到屏幕
-        screen.appendChild(statusInterface);
+        // 填充 Footer 内容 (如果HTML中只是空壳)
+        this.statusFooter.innerHTML = `
+            <div class="status-nav">
+                <button id="basicInfoButton" class="terminal-button active">基本档案</button>
+                <button id="disguiseButton" class="terminal-button">伪装系统</button>
+            </div>
+            <div class="status-exit">按 F1 返回终端</div>
+        `;
     }
     
-    // 显示界面
+    // 设置事件订阅
+    setupEventSubscriptions() {
+        if (this.eventBus) {
+            this.eventBus.on('colorModeChanged', (isAmber) => {
+                this.updateColorMode(isAmber);
+            });
+            this.eventBus.on('playerIdentityChanged', (eventData) => {
+                console.log("View接收到身份变更事件:", eventData);
+            });
+            this.eventBus.on('disguiseChanged', (eventData) => {
+                this.updateDisguiseIdentity(eventData.identityData);
+            });
+            this.eventBus.on('disguiseBlown', () => {
+                if (this.audio) {
+                    this.audio.play('systemBeep');
+                }
+            });
+        }
+    }
+    
     show() {
         if (this.statusInterface) {
             this.domUtils.toggle(this.statusInterface, true, 'flex');
         }
     }
     
-    // 隐藏界面
     hide() {
         if (this.statusInterface) {
             this.domUtils.toggle(this.statusInterface, false);
         }
     }
     
-    // 切换页面
     showBasicInfoPage() {
-        this.domUtils.toggle(this.basicInfoPage, true, 'flex');
-        this.domUtils.toggle(this.disguisePage, false);
-        
-        // 更新按钮状态
-        this.domUtils.addClass('#basicInfoButton', 'active');
-        this.domUtils.removeClass('#disguiseButton', 'active');
+        if(this.basicInfoPage && this.disguisePage) {
+            this.domUtils.toggle(this.basicInfoPage, true, 'flex');
+            this.domUtils.toggle(this.disguisePage, false);
+            this.domUtils.addClass('#statusInterface #basicInfoButton', 'active');
+            this.domUtils.removeClass('#statusInterface #disguiseButton', 'active');
+        }
     }
     
     showDisguisePage() {
-        this.domUtils.toggle(this.basicInfoPage, false);
-        this.domUtils.toggle(this.disguisePage, true, 'flex');
-        
-        // 更新按钮状态
-        this.domUtils.removeClass('#basicInfoButton', 'active');
-        this.domUtils.addClass('#disguiseButton', 'active');
+        if(this.basicInfoPage && this.disguisePage) {
+            this.domUtils.toggle(this.basicInfoPage, false);
+            this.domUtils.toggle(this.disguisePage, true, 'flex');
+            this.domUtils.removeClass('#statusInterface #basicInfoButton', 'active');
+            this.domUtils.addClass('#statusInterface #disguiseButton', 'active');
+        }
     }
     
-    // 显示当前伪装视图
     showCurrentDisguiseView() {
-        this.domUtils.toggle('#disguiseCurrentView', true, 'flex');
-        this.domUtils.toggle('#disguiseEditView', false);
-        this.domUtils.toggle('#editDisguiseButton', true, 'block');
-        this.domUtils.toggle('#quickClearDisguiseButton', true, 'block');
-        this.domUtils.toggle('#backToCurrentButton', false);
+        this.domUtils.toggle('#statusInterface #disguiseCurrentView', true, 'flex');
+        this.domUtils.toggle('#statusInterface #disguiseEditView', false);
+        this.domUtils.toggle('#statusInterface #editDisguiseButton', true, 'block');
+        this.domUtils.toggle('#statusInterface #quickClearDisguiseButton', true, 'block');
+        this.domUtils.toggle('#statusInterface #backToCurrentButton', false);
     }
 
-    // 显示更改伪装视图
     showEditDisguiseView() {
-        this.domUtils.toggle('#disguiseCurrentView', false);
-        this.domUtils.toggle('#disguiseEditView', true, 'flex');
-        this.domUtils.toggle('#editDisguiseButton', false);
-        this.domUtils.toggle('#quickClearDisguiseButton', false);
-        this.domUtils.toggle('#backToCurrentButton', true, 'block');
+        this.domUtils.toggle('#statusInterface #disguiseCurrentView', false);
+        this.domUtils.toggle('#statusInterface #disguiseEditView', true, 'flex');
+        this.domUtils.toggle('#statusInterface #editDisguiseButton', false);
+        this.domUtils.toggle('#statusInterface #quickClearDisguiseButton', false);
+        this.domUtils.toggle('#statusInterface #backToCurrentButton', true, 'block');
     }
     
-    // 更新身份显示
     updateRealIdentity(identity) {
-        if (this.realIdentityDisplay) {
-            this.realIdentityDisplay.innerHTML = this.formatIdentityDisplay(identity);
+        // realIdentityDisplay 将在 basicInfoPage 内部的 #identityFile 中
+        const identityFileElement = this.domUtils.get('#statusInterface #identityFile');
+        if (identityFileElement && this.domUtils.get('#statusInterface .file-tab[data-identity-type="real"].active')) {
+             identityFileElement.innerHTML = this.formatFileDisplay(identity, true); // true for isSecret
+             this.updateIdentityFileNationalityClass(identityFileElement, identity);
         }
     }
     
     updateCoverIdentity(identity) {
-        if (this.coverIdentityDisplay) {
-            this.coverIdentityDisplay.innerHTML = this.formatIdentityDisplay(identity);
+        // coverIdentityDisplay 将在 basicInfoPage 内部的 #identityFile 中
+        const identityFileElement = this.domUtils.get('#statusInterface #identityFile');
+        if (identityFileElement && this.domUtils.get('#statusInterface .file-tab[data-identity-type="cover"].active')) {
+            identityFileElement.innerHTML = this.formatFileDisplay(identity, false); // false for isSecret
+            this.updateIdentityFileNationalityClass(identityFileElement, identity);
+        }
+    }
+
+    updateIdentityFileNationalityClass(element, identity) {
+        if (!element || !identity) return;
+        // 移除所有国籍类
+        this.domUtils.removeClass(element, 
+            'nationality-usa', 'nationality-uk', 
+            'nationality-france', 'nationality-soviet',
+            'nationality-西德', 'nationality-东德' // 假设有这些CSS类
+        );
+        
+        // 添加对应国籍类 (需要确保CSS中有这些类名)
+        let nationalityClass = '';
+        switch(identity.nationality) {
+            case "美国": nationalityClass = 'nationality-usa'; break;
+            case "英国": nationalityClass = 'nationality-uk'; break;
+            case "法国": nationalityClass = 'nationality-france'; break;
+            case "苏联": nationalityClass = 'nationality-soviet'; break;
+            case "西德": nationalityClass = 'nationality-西德'; break;
+            case "东德": nationalityClass = 'nationality-东德'; break;
+        }
+        if (nationalityClass) {
+            this.domUtils.addClass(element, nationalityClass);
         }
     }
     
     updateDisguiseIdentity(identity) {
-        const disguiseDisplay = this.domUtils.get('#currentDisguiseDisplay');
-        if (disguiseDisplay) {
-            // 使用与基本档案相同的格式化方法，但适当调整
-            disguiseDisplay.innerHTML = identity ? 
+        // disguiseIdentityDisplay 现在是 #currentDisguiseDisplay
+        if (this.disguiseIdentityDisplay) {
+            this.disguiseIdentityDisplay.innerHTML = identity ? 
                 this.formatDisguiseFileDisplay(identity) : 
                 '<p class="no-disguise">无伪装</p>';
-                
-            // 设置国籍特定样式
-            disguiseDisplay.className = 'identity-file';
-            if (identity) {
-                // 移除所有国籍类
-                this.domUtils.removeClass(disguiseDisplay, 
-                    'nationality-usa', 'nationality-uk', 
-                    'nationality-france', 'nationality-soviet'
-                );
-                
-                // 添加对应国籍类
-                switch(identity.nationality) {
-                    case "美国": this.domUtils.addClass(disguiseDisplay, 'nationality-usa'); break;
-                    case "英国": this.domUtils.addClass(disguiseDisplay, 'nationality-uk'); break;
-                    case "法国": this.domUtils.addClass(disguiseDisplay, 'nationality-france'); break;
-                    case "苏联": this.domUtils.addClass(disguiseDisplay, 'nationality-soviet'); break;
-                }
-            }
+            this.updateIdentityFileNationalityClass(this.disguiseIdentityDisplay, identity);
         }
     }
     
-    // 格式化身份显示
-    formatIdentityDisplay(identity) {
+    formatIdentityDisplay(identity) { // 这个方法可能不再直接用于渲染整个文件，而是作为 formatFileDisplay 的一部分
         if (!identity) return '<p class="no-identity">身份不明</p>';
-        
         let html = '<div class="identity-card">';
-        
-        html += `<div class="identity-item">
-            <span class="item-label">国籍:</span>
-            <span class="item-value">${identity.nationality}</span>
-        </div>`;
-        
-        html += `<div class="identity-item">
-            <span class="item-label">身份类型:</span>
-            <span class="item-value">${identity.type}</span>
-        </div>`;
-        
-        if (identity.function) {
-            html += `<div class="identity-item">
-                <span class="item-label">职能:</span>
-                <span class="item-value">${identity.function}</span>
-            </div>`;
-        }
-        
-        if (identity.organization) {
-            html += `<div class="identity-item">
-                <span class="item-label">机构:</span>
-                <span class="item-value">${identity.organization}</span>
-            </div>`;
-        }
-        
+        html += `<div class="identity-item"><span class="item-label">国籍:</span><span class="item-value">${identity.nationality}</span></div>`;
+        html += `<div class="identity-item"><span class="item-label">身份类型:</span><span class="item-value">${identity.type}</span></div>`;
+        if (identity.function) html += `<div class="identity-item"><span class="item-label">职能:</span><span class="item-value">${identity.function}</span></div>`;
+        if (identity.organization) html += `<div class="identity-item"><span class="item-label">机构:</span><span class="item-value">${identity.organization}</span></div>`;
         html += '</div>';
         return html;
     }
 
-    // 伪装档案格式化方法
     formatDisguiseFileDisplay(identity) {
         if (!identity) return '<p class="no-disguise">无伪装</p>';
-        
-        // 为伪装档案选择格式
         const headerTitle = '临时伪装档案';
         const headerSubtitle = '使用中';
         const stampText = '伪装身份';
@@ -408,73 +371,37 @@ class IdentityView {
         <div class="file-content">
             <div class="file-section">
                 <div class="section-title">基本信息</div>
-                <div class="file-row">
-                    <div class="file-label">国籍:</div>
-                    <div class="file-value">${identity.nationality}</div>
-                </div>
-                <div class="file-row">
-                    <div class="file-label">身份类型:</div>
-                    <div class="file-value">${identity.type}</div>
-                </div>`;
-        
-        if (identity.function) {
-            html += `
-                <div class="file-row">
-                    <div class="file-label">职能:</div>
-                    <div class="file-value">${identity.function}</div>
-                </div>`;
-        }
-        
-        if (identity.organization) {
-            html += `
-                <div class="file-row">
-                    <div class="file-label">隶属机构:</div>
-                    <div class="file-value">${identity.organization}</div>
-                </div>`;
-        }
-        
-        // 伪装特有信息
+                <div class="file-row"><div class="file-label">国籍:</div><div class="file-value">${identity.nationality}</div></div>
+                <div class="file-row"><div class="file-label">身份类型:</div><div class="file-value">${identity.type}</div></div>`;
+        if (identity.function) html += `<div class="file-row"><div class="file-label">职能:</div><div class="file-value">${identity.function}</div></div>`;
+        if (identity.organization) html += `<div class="file-row"><div class="file-label">隶属机构:</div><div class="file-value">${identity.organization}</div></div>`;
         html += `
             </div>
             <div class="file-section">
                 <div class="section-title">伪装信息</div>
-                <div class="file-row">
-                    <div class="file-label">启用时间:</div>
-                    <div class="file-value">${this.getCurrentTimeString()}</div>
-                </div>
-                <div class="file-row">
-                    <div class="file-label">状态:</div>
-                    <div class="file-value">有效</div>
-                </div>
+                <div class="file-row"><div class="file-label">启用时间:</div><div class="file-value">${this.getCurrentTimeString()}</div></div>
+                <div class="file-row"><div class="file-label">状态:</div><div class="file-value">有效</div></div>
             </div>
         </div>
         <div class="file-stamp">${stampText}</div>`;
-        
         return html;
     }
 
-    // 获取当前时间字符串的辅助方法
     getCurrentTimeString() {
-        // 使用固定的1983年，但保留当前的月份、日期和时间
         const now = new Date();
-        const year = 1983; // 固定为1983年
+        const year = 1983; 
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
-        
         return `${year}-${month}-${day} ${hours}:${minutes}`;
     }
     
-    // 填充下拉选择框
     populateNationalitySelect(nationalities) {
         if (this.nationalitySelect) {
             this.nationalitySelect.innerHTML = '';
             nationalities.forEach(nationality => {
-                const option = this.domUtils.create('option', {
-                    value: nationality,
-                    textContent: nationality
-                });
+                const option = this.domUtils.create('option', { value: nationality, textContent: nationality });
                 this.nationalitySelect.appendChild(option);
             });
         }
@@ -484,10 +411,7 @@ class IdentityView {
         if (this.typeSelect) {
             this.typeSelect.innerHTML = '';
             types.forEach(type => {
-                const option = this.domUtils.create('option', {
-                    value: type,
-                    textContent: type
-                });
+                const option = this.domUtils.create('option', { value: type, textContent: type });
                 this.typeSelect.appendChild(option);
             });
         }
@@ -496,20 +420,10 @@ class IdentityView {
     populateFunctionSelect(functions) {
         if (this.functionSelect) {
             this.functionSelect.innerHTML = '';
-            
-            // 添加空选项
-            const emptyOption = this.domUtils.create('option', {
-                value: '',
-                textContent: '-- 选择职能 --'
-            });
+            const emptyOption = this.domUtils.create('option', { value: '', textContent: '-- 选择职能 --' });
             this.functionSelect.appendChild(emptyOption);
-            
-            // 添加可用职能
             functions.forEach(func => {
-                const option = this.domUtils.create('option', {
-                    value: func,
-                    textContent: func
-                });
+                const option = this.domUtils.create('option', { value: func, textContent: func });
                 this.functionSelect.appendChild(option);
             });
         }
@@ -518,89 +432,38 @@ class IdentityView {
     populateOrganizationSelect(organizations) {
         if (this.organizationSelect) {
             this.organizationSelect.innerHTML = '';
-            
-            // 检查是否有可用机构
             if (organizations.length === 0) {
-                // 没有可用机构时，显示"无机构"选项
-                const noOrgOption = this.domUtils.create('option', {
-                    value: '',
-                    textContent: '-- 无机构 --',
-                    disabled: true,
-                    selected: true
-                });
+                const noOrgOption = this.domUtils.create('option', { value: '', textContent: '-- 无机构 --', disabled: true, selected: true });
                 this.organizationSelect.appendChild(noOrgOption);
-                
-                // 可以选择禁用整个选择框
                 this.organizationSelect.disabled = true;
             } else {
-                // 有可用机构时，启用选择框
                 this.organizationSelect.disabled = false;
-                
-                // 添加空选项
-                const emptyOption = this.domUtils.create('option', {
-                    value: '',
-                    textContent: '-- 选择机构 --'
-                });
+                const emptyOption = this.domUtils.create('option', { value: '', textContent: '-- 选择机构 --' });
                 this.organizationSelect.appendChild(emptyOption);
-                
-                // 添加可用机构
                 organizations.forEach(org => {
-                    const option = this.domUtils.create('option', {
-                        value: org,
-                        textContent: org
-                    });
+                    const option = this.domUtils.create('option', { value: org, textContent: org });
                     this.organizationSelect.appendChild(option);
                 });
             }
         }
     }
     
-    // 更新颜色模式
     updateColorMode(isAmber) {
         if (this.statusInterface) {
-            if (isAmber) {
-                this.domUtils.removeClass(this.statusInterface, 'green-mode');
-                this.domUtils.addClass(this.statusInterface, 'amber-mode');
-            } else {
-                this.domUtils.removeClass(this.statusInterface, 'amber-mode');
-                this.domUtils.addClass(this.statusInterface, 'green-mode');
-            }
+            this.domUtils.removeClass(this.statusInterface, 'green-mode', 'amber-mode');
+            this.domUtils.addClass(this.statusInterface, isAmber ? 'amber-mode' : 'green-mode');
         }
     }
 
     formatFileDisplay(identity, isSecret = false) {
         if (!identity) return '<p class="no-identity">身份不明</p>';
-        
-        // 根据国籍选择不同的文档格式和文本
-        let headerTitle = '';
-        let headerSubtitle = '';
-        let stampText = '';
-        
+        let headerTitle = '', headerSubtitle = '', stampText = '';
         switch(identity.nationality) {
-            case "美国":
-                headerTitle = "联邦调查局";
-                headerSubtitle = "人员档案";
-                stampText = isSecret ? "最高机密" : "官方档案";
-                break;
-            case "英国":
-                headerTitle = "秘密情报局";
-                headerSubtitle = "档案编号: " + this.generateRandomCode(8);
-                stampText = isSecret ? "绝密" : "机密";
-                break;
-            case "法国":
-                headerTitle = "对外安全总局";
-                headerSubtitle = "特工档案";
-                stampText = isSecret ? "国家机密" : "限制传阅";
-                break;
-            case "苏联":
-                headerTitle = "国家安全委员会";
-                headerSubtitle = "人员档案 " + this.generateRandomCode(5);
-                stampText = isSecret ? "绝密档案" : "登记档案";
-                break;
-            default:
-                headerTitle = "档案记录";
-                headerSubtitle = "身份信息";
-                stampText = isSecret ? "机密" : "已登记";
+            case "美国": headerTitle = "联邦调查局"; headerSubtitle = "人员档案"; stampText = isSecret ? "最高机密" : "官方档案"; break;
+            case "英国": headerTitle = "秘密情报局"; headerSubtitle = "档案编号: " + this.generateRandomCode(8); stampText = isSecret ? "绝密" : "机密"; break;
+            case "法国": headerTitle = "对外安全总局"; headerSubtitle = "特工档案"; stampText = isSecret ? "国家机密" : "限制传阅"; break;
+            case "苏联": headerTitle = "国家安全委员会"; headerSubtitle = "人员档案 " + this.generateRandomCode(5); stampText = isSecret ? "绝密档案" : "登记档案"; break;
+            default: headerTitle = "档案记录"; headerSubtitle = "身份信息"; stampText = isSecret ? "机密" : "已登记";
         }
         
         let html = `
@@ -611,81 +474,28 @@ class IdentityView {
         <div class="file-content">
             <div class="file-section">
                 <div class="section-title">基本信息</div>
-                <div class="file-row">
-                    <div class="file-label">国籍:</div>
-                    <div class="file-value">${identity.nationality}</div>
-                </div>
-                <div class="file-row">
-                    <div class="file-label">身份类型:</div>
-                    <div class="file-value">${identity.type}</div>
-                </div>`;
-        
-        if (identity.function) {
-            html += `
-                <div class="file-row">
-                    <div class="file-label">职能:</div>
-                    <div class="file-value">${identity.function}</div>
-                </div>`;
-        }
-        
-        if (identity.organization) {
-            html += `
-                <div class="file-row">
-                    <div class="file-label">隶属机构:</div>
-                    <div class="file-value">${identity.organization}</div>
-                </div>`;
-        }
-        
-        // 根据身份类型添加额外信息
-        html += `
-            </div>
-            <div class="file-section">
-                <div class="section-title">附加信息</div>`;
-        
-        // 根据身份类型生成不同的附加信息
+                <div class="file-row"><div class="file-label">国籍:</div><div class="file-value">${identity.nationality}</div></div>
+                <div class="file-row"><div class="file-label">身份类型:</div><div class="file-value">${identity.type}</div></div>`;
+        if (identity.function) html += `<div class="file-row"><div class="file-label">职能:</div><div class="file-value">${identity.function}</div></div>`;
+        if (identity.organization) html += `<div class="file-row"><div class="file-label">隶属机构:</div><div class="file-value">${identity.organization}</div></div>`;
+        html += `</div><div class="file-section"><div class="section-title">附加信息</div>`;
         if (identity.type === "情报人员") {
-            html += `
-                <div class="file-row">
-                    <div class="file-label">安全级别:</div>
-                    <div class="file-value">${isSecret ? "α" : "β"}</div>
-                </div>
-                <div class="file-row">
-                    <div class="file-label">行动许可:</div>
-                    <div class="file-value">${isSecret ? "无限制" : "有限"}</div>
-                </div>`;
+            html += `<div class="file-row"><div class="file-label">安全级别:</div><div class="file-value">${isSecret ? "α" : "β"}</div></div>
+                     <div class="file-row"><div class="file-label">行动许可:</div><div class="file-value">${isSecret ? "无限制" : "有限"}</div></div>`;
         } else if (identity.type === "外交人员") {
-            html += `
-                <div class="file-row">
-                    <div class="file-label">外交级别:</div>
-                    <div class="file-value">${isSecret ? "特级" : "普通"}</div>
-                </div>
-                <div class="file-row">
-                    <div class="file-label">外交豁免:</div>
-                    <div class="file-value">是</div>
-                </div>`;
+            html += `<div class="file-row"><div class="file-label">外交级别:</div><div class="file-value">${isSecret ? "特级" : "普通"}</div></div>
+                     <div class="file-row"><div class="file-label">外交豁免:</div><div class="file-value">是</div></div>`;
         } else {
-            html += `
-                <div class="file-row">
-                    <div class="file-label">备注:</div>
-                    <div class="file-value">${isSecret ? "此档案包含敏感信息" : "标准档案"}</div>
-                </div>`;
+            html += `<div class="file-row"><div class="file-label">备注:</div><div class="file-value">${isSecret ? "此档案包含敏感信息" : "标准档案"}</div></div>`;
         }
-        
-        html += `
-            </div>
-        </div>
-        <div class="file-stamp">${stampText}</div>`;
-        
+        html += `</div></div><div class="file-stamp">${stampText}</div>`;
         return html;
     }
 
-    // 辅助方法 - 生成随机代码
     generateRandomCode(length) {
         const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         let result = "";
-        for (let i = 0; i < length; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
+        for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
         return result;
     }
 }
