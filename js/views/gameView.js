@@ -25,7 +25,7 @@ class GameView {
         this.commandTypingSpeed = 10; // 命令行打字速度
 
         // 音频服务
-        this.audio = window.ServiceLocator && window.ServiceLocator.get('audio') || window.audioManager;
+        this.audio = window.ServiceLocator && window.ServiceLocator.get('audio');
 
         // 添加键盘音效
         this.setupKeyboardSounds();

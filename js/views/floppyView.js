@@ -36,7 +36,7 @@ class FloppyView {
         this.domUtils.removeClass(this.driveB.light, ['active', 'blinking']);
         
         // 音频服务
-        this.audio = window.ServiceLocator && window.ServiceLocator.get('audio') || window.audioManager;
+        this.audio = window.ServiceLocator && window.ServiceLocator.get('audio');
     }
     
     /**

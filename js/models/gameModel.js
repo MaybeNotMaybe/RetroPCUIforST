@@ -86,7 +86,7 @@ class GameModel {
         this.systemState = this.SystemState.POWERED_OFF;
         
         // 音频服务
-        this.audio = window.ServiceLocator && window.ServiceLocator.get('audio') || window.audioManager;
+        this.audio = window.ServiceLocator && window.ServiceLocator.get('audio');
     }
 
     // 添加输出到历史记录

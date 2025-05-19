@@ -2,10 +2,10 @@
 class MapView {
     constructor(serviceLocator = null) {
         // 依赖注入
-        this.serviceLocator = serviceLocator || window.ServiceLocator;
-        this.domUtils = this.serviceLocator?.get('domUtils') || window.DOMUtils;
-        this.eventBus = this.serviceLocator?.get('eventBus') || window.EventBus || EventBus;
-        this.audio = this.serviceLocator?.get('audio') || window.audioManager;
+        this.serviceLocator = serviceLocator;
+        this.domUtils = this.serviceLocator?.get('domUtils');
+        this.eventBus = this.serviceLocator?.get('eventBus');
+        this.audio = this.serviceLocator?.get('audio');
         
         // 获取DOM元素 (使用domUtils)
         this.mapInterface = this.domUtils.get('#mapInterface');

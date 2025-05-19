@@ -73,10 +73,22 @@ class GameCore {
                 serviceLocator.register('command', commandService);
                 this.registerComponent('commandService', commandService);
 
-                // 5. 初始化音频服务
-                const audioService = window.audioManager || new AudioService();
+                // 5. 初始化音频服务 - 修改部分开始
+                const audioService = new AudioService();
                 serviceLocator.register('audio', audioService);
                 this.registerComponent('audioService', audioService);
+                
+                // 添加向后兼容支持和过渡警告
+                if (!window.audioManager) {
+                    console.warn('注意: 直接访问 window.audioManager 已废弃，请使用 ServiceLocator.get("audio")');
+                    Object.defineProperty(window, 'audioManager', {
+                        get: function() {
+                            console.warn('警告: window.audioManager 已废弃，请使用 ServiceLocator.get("audio")');
+                            return audioService;
+                        },
+                        configurable: true
+                    });
+                }
 
                 // 6. 初始化接口服务
                 const interfaceService = new InterfaceService();
