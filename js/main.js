@@ -22,11 +22,7 @@ function initializeGame() {
             const mapController = window.GameCore.getComponent('mapController');
 
             // 6. 初始化身份MVC
-            const identityModel = new IdentityModel();
-            const identityView = new IdentityView();
-            const identityController = new IdentityController(identityModel, identityView);
-            window.identityController = identityController;
-            identityController.initialize();
+            const identityController = window.GameCore.getComponent('identityController');
 
             // 8. 注册控制器到界面服务
             if (interfaceService) {

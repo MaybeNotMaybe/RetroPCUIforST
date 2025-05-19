@@ -1,6 +1,12 @@
 // js/views/identityView.js
 class IdentityView {
-    constructor() {
+    constructor(serviceLocator) {
+        // 服务依赖
+        this.serviceLocator = serviceLocator;
+        this.domUtils = serviceLocator.get('domUtils');
+        this.eventBus = serviceLocator.get('eventBus');
+        this.audio = serviceLocator.get('audio');
+        
         // DOM元素引用
         this.statusInterface = null;
         this.basicInfoPage = null;
@@ -27,199 +33,230 @@ class IdentityView {
     // 初始化视图
     initialize() {
         // 如果界面不存在，创建它
-        if (!document.getElementById('statusInterface')) {
+        if (!this.domUtils.get('#statusInterface')) {
             this.createStatusInterface();
         }
         
         // 获取DOM元素引用
-        this.statusInterface = document.getElementById('statusInterface');
-        this.basicInfoPage = document.getElementById('basicInfoPage');
-        this.disguisePage = document.getElementById('disguisePage');
+        this.statusInterface = this.domUtils.get('#statusInterface');
+        this.basicInfoPage = this.domUtils.get('#basicInfoPage');
+        this.disguisePage = this.domUtils.get('#disguisePage');
         
-        this.playerAvatar = document.getElementById('playerAvatar');
-        this.playerStats = document.getElementById('playerStats');
+        this.playerAvatar = this.domUtils.get('#playerAvatar');
+        this.playerStats = this.domUtils.get('#playerStats');
         
-        this.realIdentityDisplay = document.getElementById('realIdentityDisplay');
-        this.coverIdentityDisplay = document.getElementById('coverIdentityDisplay');
-        this.disguiseIdentityDisplay = document.getElementById('currentDisguiseDisplay');
+        this.realIdentityDisplay = this.domUtils.get('#realIdentityDisplay');
+        this.coverIdentityDisplay = this.domUtils.get('#coverIdentityDisplay');
+        this.disguiseIdentityDisplay = this.domUtils.get('#currentDisguiseDisplay');
         
-        this.nationalitySelect = document.getElementById('nationalitySelect');
-        this.typeSelect = document.getElementById('typeSelect');
-        this.functionSelect = document.getElementById('functionSelect');
-        this.organizationSelect = document.getElementById('organizationSelect');
-        this.applyDisguiseButton = document.getElementById('applyDisguiseButton');
-        this.clearDisguiseButton = document.getElementById('clearDisguiseButton');
+        this.nationalitySelect = this.domUtils.get('#nationalitySelect');
+        this.typeSelect = this.domUtils.get('#typeSelect');
+        this.functionSelect = this.domUtils.get('#functionSelect');
+        this.organizationSelect = this.domUtils.get('#organizationSelect');
+        this.applyDisguiseButton = this.domUtils.get('#applyDisguiseButton');
+        this.clearDisguiseButton = this.domUtils.get('#clearDisguiseButton');
         
         // 初始显示基础信息页
         this.showDisguisePage();
+        
+        // 设置事件订阅
+        this.setupEventSubscriptions();
+    }
+    
+    // 设置事件订阅
+    setupEventSubscriptions() {
+        if (this.eventBus) {
+            // 订阅颜色模式变更事件
+            this.eventBus.on('colorModeChanged', (isAmber) => {
+                this.updateColorMode(isAmber);
+            });
+            
+            // 订阅身份变更事件
+            this.eventBus.on('playerIdentityChanged', (eventData) => {
+                console.log("View接收到身份变更事件:", eventData);
+            });
+            
+            // 订阅伪装变更事件
+            this.eventBus.on('disguiseChanged', (eventData) => {
+                this.updateDisguiseIdentity(eventData.identityData);
+            });
+            
+            // 订阅伪装失败事件
+            this.eventBus.on('disguiseBlown', () => {
+                // 可以在这里添加一些视觉提示，如屏幕闪烁等
+                if (this.audio) {
+                    this.audio.play('systemBeep');
+                }
+            });
+        }
     }
     
     // 创建状态界面
     createStatusInterface() {
-        const screen = document.querySelector('.screen');
+        const screen = this.domUtils.get('.screen');
         
         // 创建主容器
-        const statusInterface = document.createElement('div');
-        statusInterface.id = 'statusInterface';
-        statusInterface.className = 'status-interface';
-        statusInterface.style.display = 'none';
+        const statusInterface = this.domUtils.create('div', {
+            id: 'statusInterface',
+            className: 'status-interface',
+            style: { display: 'none' }
+        });
         
         // 创建页眉
-        const header = document.createElement('div');
-        header.className = 'status-header';
-        header.innerHTML = `
-            <div class="status-title">特工档案系统 v1.0</div>
-            <div class="status-security">安全级别: 最高机密</div>
-        `;
+        const header = this.domUtils.create('div', {
+            className: 'status-header',
+            innerHTML: `
+                <div class="status-title">特工档案系统 v1.0</div>
+                <div class="status-security">安全级别: 最高机密</div>
+            `
+        });
         
         // 创建主内容区
-        const content = document.createElement('div');
-        content.className = 'status-content';
+        const content = this.domUtils.create('div', {
+            className: 'status-content'
+        });
         
         // 左侧面板 - 基础信息
-        const leftPanel = document.createElement('div');
-        leftPanel.className = 'status-left-panel';
-        leftPanel.innerHTML = `
-            <div id="playerAvatar" class="player-avatar">
-                <div class="avatar-placeholder">档案照片</div>
-            </div>
-            <div id="playerStats" class="player-stats">
-                <div class="stat-item">调查能力: <span class="stat-value">78</span></div>
-                <div class="stat-item">伪装技巧: <span class="stat-value">65</span></div>
-                <div class="stat-item">情报分析: <span class="stat-value">72</span></div>
-                <div class="stat-item">社交能力: <span class="stat-value">81</span></div>
-                <div class="stat-item">技术能力: <span class="stat-value">59</span></div>
-            </div>
-        `;
+        const leftPanel = this.domUtils.create('div', {
+            className: 'status-left-panel',
+            innerHTML: `
+                <div id="playerAvatar" class="player-avatar">
+                    <div class="avatar-placeholder">档案照片</div>
+                </div>
+                <div id="playerStats" class="player-stats">
+                    <div class="stat-item">调查能力: <span class="stat-value">78</span></div>
+                    <div class="stat-item">伪装技巧: <span class="stat-value">65</span></div>
+                    <div class="stat-item">情报分析: <span class="stat-value">72</span></div>
+                    <div class="stat-item">社交能力: <span class="stat-value">81</span></div>
+                    <div class="stat-item">技术能力: <span class="stat-value">59</span></div>
+                </div>
+            `
+        });
         
         // 右侧面板 - 身份信息
-        const rightPanel = document.createElement('div');
-        rightPanel.className = 'status-right-panel';
+        const rightPanel = this.domUtils.create('div', {
+            className: 'status-right-panel'
+        });
         
         // 基础信息页面
-        const basicInfoPage = document.createElement('div');
-        basicInfoPage.id = 'basicInfoPage';
-        basicInfoPage.className = 'identity-page';
-        basicInfoPage.innerHTML = `
-            <div class="identity-file-container">
-                <div class="file-header-title">
-                    <div class="file-header-text">人员档案</div>
+        const basicInfoPage = this.domUtils.create('div', {
+            id: 'basicInfoPage',
+            className: 'identity-page',
+            innerHTML: `
+                <div class="identity-file-container">
+                    <div class="file-tabs">
+                        <div class="file-tab active" data-identity-type="cover">表面身份</div>
+                        <div class="file-tab" data-identity-type="real">真实身份</div>
+                    </div>
+                    <div class="file-header-title">
+                        <div class="file-header-text">人员档案</div>
+                    </div>
+                    <div class="identity-file" id="identityFile">
+                        <!-- 档案内容将在这里动态生成 -->
+                    </div>
                 </div>
-                <div class="identity-file" id="identityFile">
-                    <!-- 档案内容将在这里动态生成 -->
-                </div>
-            </div>
-        `;
+            `
+        });
         
         // 伪装页面
-        const disguisePage = document.createElement('div');
-        disguisePage.id = 'disguisePage';
-        disguisePage.className = 'identity-page';
-        disguisePage.style.display = 'none';
+        const disguisePage = this.domUtils.create('div', {
+            id: 'disguisePage',
+            className: 'identity-page',
+            style: { display: 'none' }
+        });
 
         // 创建伪装页面容器
-        const disguiseContainer = document.createElement('div');
-        disguiseContainer.className = 'disguise-page-container';
+        const disguiseContainer = this.domUtils.create('div', {
+            className: 'disguise-page-container'
+        });
 
         // 创建顶部导航
-        const disguiseNav = document.createElement('div');
-        disguiseNav.className = 'disguise-nav';
-        disguiseNav.innerHTML = `
-            <h3>伪装系统</h3>
-            <div class="disguise-control-buttons">
-                <button id="quickClearDisguiseButton" class="terminal-button">清除伪装</button>
-                <button id="editDisguiseButton" class="edit-disguise-button">更改伪装</button>
-                <button id="backToCurrentButton" class="back-button" style="display: none;">返回</button>
-            </div>
-        `;
+        const disguiseNav = this.domUtils.create('div', {
+            className: 'disguise-nav',
+            innerHTML: `
+                <h3>伪装系统</h3>
+                <div class="disguise-control-buttons">
+                    <button id="quickClearDisguiseButton" class="terminal-button">清除伪装</button>
+                    <button id="editDisguiseButton" class="edit-disguise-button">更改伪装</button>
+                    <button id="backToCurrentButton" class="back-button" style="display: none;">返回</button>
+                </div>
+            `
+        });
 
         // 当前伪装视图
-        const currentView = document.createElement('div');
-        currentView.className = 'disguise-current-view';
-        currentView.id = 'disguiseCurrentView';
-
-        // 使用与基本档案页面一致的结构
-        currentView.innerHTML = `
-            <div class="identity-file-container">
-                <div class="file-header-title">
-                    <div class="file-header-text">当前伪装</div>
+        const currentView = this.domUtils.create('div', {
+            className: 'disguise-current-view',
+            id: 'disguiseCurrentView',
+            innerHTML: `
+                <div class="identity-file-container">
+                    <div class="file-header-title">
+                        <div class="file-header-text">当前伪装</div>
+                    </div>
+                    <div class="identity-file" id="currentDisguiseDisplay">
+                        <!-- 伪装档案内容将在这里动态生成 -->
+                    </div>
                 </div>
-                <div class="identity-file" id="currentDisguiseDisplay">
-                    <!-- 伪装档案内容将在这里动态生成 -->
-                </div>
-            </div>
-        `;
-
-        // 当前伪装显示区域
-        const currentDisguiseDisplay = document.createElement('div');
-        currentDisguiseDisplay.id = 'currentDisguiseDisplay';
-        currentDisguiseDisplay.className = 'identity-display';
-
-        // 组装当前伪装视图
-        currentView.appendChild(currentDisguiseDisplay);
+            `
+        });
 
         // 更改伪装视图
-        const editView = document.createElement('div');
-        editView.className = 'disguise-edit-view';
-        editView.id = 'disguiseEditView';
+        const editView = this.domUtils.create('div', {
+            className: 'disguise-edit-view',
+            id: 'disguiseEditView',
+            style: { display: 'none' }
+        });
 
         // 伪装表单容器
-        const formContainer = document.createElement('div');
-        formContainer.className = 'disguise-form-container';
+        const formContainer = this.domUtils.create('div', {
+            className: 'disguise-form-container',
+            innerHTML: `
+                <div class="form-group">
+                    <label for="nationalitySelect">国籍:</label>
+                    <select id="nationalitySelect"></select>
+                </div>
+                <div class="form-group">
+                    <label for="typeSelect">身份类型:</label>
+                    <select id="typeSelect"></select>
+                </div>
+                <div class="form-group">
+                    <label for="functionSelect">职能:</label>
+                    <select id="functionSelect"></select>
+                </div>
+                <div class="form-group">
+                    <label for="organizationSelect">机构:</label>
+                    <select id="organizationSelect"></select>
+                </div>
+                <div class="disguise-buttons">
+                    <button id="applyDisguiseButton" class="terminal-button">应用伪装</button>
+                    <button id="clearDisguiseButton" class="terminal-button">清除伪装</button>
+                </div>
+            `
+        });
 
-        // 伪装表单
-        formContainer.innerHTML = `
-            <div class="form-group">
-                <label for="nationalitySelect">国籍:</label>
-                <select id="nationalitySelect"></select>
-            </div>
-            <div class="form-group">
-                <label for="typeSelect">身份类型:</label>
-                <select id="typeSelect"></select>
-            </div>
-            <div class="form-group">
-                <label for="functionSelect">职能:</label>
-                <select id="functionSelect"></select>
-            </div>
-            <div class="form-group">
-                <label for="organizationSelect">机构:</label>
-                <select id="organizationSelect"></select>
-            </div>
-            <div class="disguise-buttons">
-                <button id="applyDisguiseButton" class="terminal-button">应用伪装</button>
-                <button id="clearDisguiseButton" class="terminal-button">清除伪装</button>
-            </div>
-        `;
-
-        // 组装更改伪装视图
+        // 组装伪装页面
         editView.appendChild(formContainer);
-
-        // 将导航和两个视图添加到伪装页面容器
         disguiseContainer.appendChild(disguiseNav);
         disguiseContainer.appendChild(currentView);
         disguiseContainer.appendChild(editView);
-
-        // 将容器添加到伪装页面
         disguisePage.appendChild(disguiseContainer);
 
-        // 将两个页面添加到右侧面板
-        rightPanel.appendChild(basicInfoPage);
-        rightPanel.appendChild(disguisePage);
-        
         // 页脚
-        const footer = document.createElement('div');
-        footer.className = 'status-footer';
-        footer.innerHTML = `
-            <div class="status-nav">
-                <button id="basicInfoButton" class="terminal-button active">基本档案</button>
-                <button id="disguiseButton" class="terminal-button">伪装系统</button>
-            </div>
-            <div class="status-exit">按 F1 返回终端</div>
-        `;
+        const footer = this.domUtils.create('div', {
+            className: 'status-footer',
+            innerHTML: `
+                <div class="status-nav">
+                    <button id="basicInfoButton" class="terminal-button active">基本档案</button>
+                    <button id="disguiseButton" class="terminal-button">伪装系统</button>
+                </div>
+                <div class="status-exit">按 F1 返回终端</div>
+            `
+        });
         
         // 组装所有部分
         content.appendChild(leftPanel);
         content.appendChild(rightPanel);
+        rightPanel.appendChild(basicInfoPage);
+        rightPanel.appendChild(disguisePage);
         statusInterface.appendChild(header);
         statusInterface.appendChild(content);
         statusInterface.appendChild(footer);
@@ -230,58 +267,53 @@ class IdentityView {
     
     // 显示界面
     show() {
-        // 不再处理其他界面的显示/隐藏
-        // 只处理自己的状态
         if (this.statusInterface) {
-            this.statusInterface.style.display = 'flex';
+            this.domUtils.toggle(this.statusInterface, true, 'flex');
         }
     }
-
     
     // 隐藏界面
     hide() {
-        // 只处理自己的隐藏，不切换到其他界面
         if (this.statusInterface) {
-            this.statusInterface.style.display = 'none';
+            this.domUtils.toggle(this.statusInterface, false);
         }
     }
     
     // 切换页面
     showBasicInfoPage() {
-        this.basicInfoPage.style.display = 'flex';
-        this.disguisePage.style.display = 'none';
+        this.domUtils.toggle(this.basicInfoPage, true, 'flex');
+        this.domUtils.toggle(this.disguisePage, false);
         
         // 更新按钮状态
-        document.getElementById('basicInfoButton').classList.add('active');
-        document.getElementById('disguiseButton').classList.remove('active');
+        this.domUtils.addClass('#basicInfoButton', 'active');
+        this.domUtils.removeClass('#disguiseButton', 'active');
     }
     
     showDisguisePage() {
-        this.basicInfoPage.style.display = 'none';
-        this.disguisePage.style.display = 'flex';
+        this.domUtils.toggle(this.basicInfoPage, false);
+        this.domUtils.toggle(this.disguisePage, true, 'flex');
         
         // 更新按钮状态
-        document.getElementById('basicInfoButton').classList.remove('active');
-        document.getElementById('disguiseButton').classList.add('active');
+        this.domUtils.removeClass('#basicInfoButton', 'active');
+        this.domUtils.addClass('#disguiseButton', 'active');
     }
-
     
     // 显示当前伪装视图
     showCurrentDisguiseView() {
-        document.getElementById('disguiseCurrentView').style.display = 'flex';
-        document.getElementById('disguiseEditView').style.display = 'none';
-        document.getElementById('editDisguiseButton').style.display = 'block';
-        document.getElementById('quickClearDisguiseButton').style.display = 'block';
-        document.getElementById('backToCurrentButton').style.display = 'none';
+        this.domUtils.toggle('#disguiseCurrentView', true, 'flex');
+        this.domUtils.toggle('#disguiseEditView', false);
+        this.domUtils.toggle('#editDisguiseButton', true, 'block');
+        this.domUtils.toggle('#quickClearDisguiseButton', true, 'block');
+        this.domUtils.toggle('#backToCurrentButton', false);
     }
 
     // 显示更改伪装视图
     showEditDisguiseView() {
-        document.getElementById('disguiseCurrentView').style.display = 'none';
-        document.getElementById('disguiseEditView').style.display = 'flex';
-        document.getElementById('editDisguiseButton').style.display = 'none';
-        document.getElementById('quickClearDisguiseButton').style.display = 'none';
-        document.getElementById('backToCurrentButton').style.display = 'block';
+        this.domUtils.toggle('#disguiseCurrentView', false);
+        this.domUtils.toggle('#disguiseEditView', true, 'flex');
+        this.domUtils.toggle('#editDisguiseButton', false);
+        this.domUtils.toggle('#quickClearDisguiseButton', false);
+        this.domUtils.toggle('#backToCurrentButton', true, 'block');
     }
     
     // 更新身份显示
@@ -298,7 +330,7 @@ class IdentityView {
     }
     
     updateDisguiseIdentity(identity) {
-        const disguiseDisplay = document.getElementById('currentDisguiseDisplay');
+        const disguiseDisplay = this.domUtils.get('#currentDisguiseDisplay');
         if (disguiseDisplay) {
             // 使用与基本档案相同的格式化方法，但适当调整
             disguiseDisplay.innerHTML = identity ? 
@@ -308,20 +340,18 @@ class IdentityView {
             // 设置国籍特定样式
             disguiseDisplay.className = 'identity-file';
             if (identity) {
-                // 映射国籍到CSS类
+                // 移除所有国籍类
+                this.domUtils.removeClass(disguiseDisplay, 
+                    'nationality-usa', 'nationality-uk', 
+                    'nationality-france', 'nationality-soviet'
+                );
+                
+                // 添加对应国籍类
                 switch(identity.nationality) {
-                    case "美国":
-                        disguiseDisplay.classList.add('nationality-usa');
-                        break;
-                    case "英国":
-                        disguiseDisplay.classList.add('nationality-uk');
-                        break;
-                    case "法国":
-                        disguiseDisplay.classList.add('nationality-france');
-                        break;
-                    case "苏联":
-                        disguiseDisplay.classList.add('nationality-soviet');
-                        break;
+                    case "美国": this.domUtils.addClass(disguiseDisplay, 'nationality-usa'); break;
+                    case "英国": this.domUtils.addClass(disguiseDisplay, 'nationality-uk'); break;
+                    case "法国": this.domUtils.addClass(disguiseDisplay, 'nationality-france'); break;
+                    case "苏联": this.domUtils.addClass(disguiseDisplay, 'nationality-soviet'); break;
                 }
             }
         }
@@ -361,7 +391,7 @@ class IdentityView {
         return html;
     }
 
-    // 添装档案格式化方法
+    // 伪装档案格式化方法
     formatDisguiseFileDisplay(identity) {
         if (!identity) return '<p class="no-disguise">无伪装</p>';
         
@@ -441,9 +471,10 @@ class IdentityView {
         if (this.nationalitySelect) {
             this.nationalitySelect.innerHTML = '';
             nationalities.forEach(nationality => {
-                const option = document.createElement('option');
-                option.value = nationality;
-                option.textContent = nationality;
+                const option = this.domUtils.create('option', {
+                    value: nationality,
+                    textContent: nationality
+                });
                 this.nationalitySelect.appendChild(option);
             });
         }
@@ -453,9 +484,10 @@ class IdentityView {
         if (this.typeSelect) {
             this.typeSelect.innerHTML = '';
             types.forEach(type => {
-                const option = document.createElement('option');
-                option.value = type;
-                option.textContent = type;
+                const option = this.domUtils.create('option', {
+                    value: type,
+                    textContent: type
+                });
                 this.typeSelect.appendChild(option);
             });
         }
@@ -466,16 +498,18 @@ class IdentityView {
             this.functionSelect.innerHTML = '';
             
             // 添加空选项
-            const emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = '-- 选择职能 --';
+            const emptyOption = this.domUtils.create('option', {
+                value: '',
+                textContent: '-- 选择职能 --'
+            });
             this.functionSelect.appendChild(emptyOption);
             
             // 添加可用职能
             functions.forEach(func => {
-                const option = document.createElement('option');
-                option.value = func;
-                option.textContent = func;
+                const option = this.domUtils.create('option', {
+                    value: func,
+                    textContent: func
+                });
                 this.functionSelect.appendChild(option);
             });
         }
@@ -488,11 +522,12 @@ class IdentityView {
             // 检查是否有可用机构
             if (organizations.length === 0) {
                 // 没有可用机构时，显示"无机构"选项
-                const noOrgOption = document.createElement('option');
-                noOrgOption.value = '';
-                noOrgOption.textContent = '-- 无机构 --';
-                noOrgOption.disabled = true;
-                noOrgOption.selected = true;
+                const noOrgOption = this.domUtils.create('option', {
+                    value: '',
+                    textContent: '-- 无机构 --',
+                    disabled: true,
+                    selected: true
+                });
                 this.organizationSelect.appendChild(noOrgOption);
                 
                 // 可以选择禁用整个选择框
@@ -502,16 +537,18 @@ class IdentityView {
                 this.organizationSelect.disabled = false;
                 
                 // 添加空选项
-                const emptyOption = document.createElement('option');
-                emptyOption.value = '';
-                emptyOption.textContent = '-- 选择机构 --';
+                const emptyOption = this.domUtils.create('option', {
+                    value: '',
+                    textContent: '-- 选择机构 --'
+                });
                 this.organizationSelect.appendChild(emptyOption);
                 
                 // 添加可用机构
                 organizations.forEach(org => {
-                    const option = document.createElement('option');
-                    option.value = org;
-                    option.textContent = org;
+                    const option = this.domUtils.create('option', {
+                        value: org,
+                        textContent: org
+                    });
                     this.organizationSelect.appendChild(option);
                 });
             }
@@ -522,11 +559,11 @@ class IdentityView {
     updateColorMode(isAmber) {
         if (this.statusInterface) {
             if (isAmber) {
-                this.statusInterface.classList.remove('green-mode');
-                this.statusInterface.classList.add('amber-mode');
+                this.domUtils.removeClass(this.statusInterface, 'green-mode');
+                this.domUtils.addClass(this.statusInterface, 'amber-mode');
             } else {
-                this.statusInterface.classList.remove('amber-mode');
-                this.statusInterface.classList.add('green-mode');
+                this.domUtils.removeClass(this.statusInterface, 'amber-mode');
+                this.domUtils.addClass(this.statusInterface, 'green-mode');
             }
         }
     }

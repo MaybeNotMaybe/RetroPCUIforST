@@ -1,6 +1,12 @@
 // js/models/identityModel.js
 class IdentityModel {
-    constructor() {
+    constructor(serviceLocator) {
+        // 服务依赖
+        this.serviceLocator = serviceLocator;
+        this.storage = serviceLocator.get('storage');
+        this.eventBus = serviceLocator.get('eventBus');
+        this.lorebookService = serviceLocator.get('lorebook');
+        
         // 身份属性常量
         this.NATIONALITIES = [
             "美国", "苏联", "英国", "法国", "西德", "东德"
@@ -27,15 +33,8 @@ class IdentityModel {
             // 其他国家默认单一机构，无需指定
         };
         
-        // 玩家身份不再直接存储在此，将通过 lorebookController 获取
-        // this.realIdentity = null;      // 真实身份
-        // this.coverIdentity = null;     // 表面身份
-        // this.disguiseIdentity = null;  // 伪装身份
-        
-        // NPC身份列表 (这部分逻辑如果存在，保持不变)
+        // NPC身份列表 (如果存在，保持不变)
         this.knownIdentities = [];
-        
-        // 不再调用 this.initializeIdentities(); 身份将在需要时从世界书加载或使用默认值创建
     }
     
     // --- 默认身份获取方法 ---
@@ -61,124 +60,194 @@ class IdentityModel {
         return null; // 默认没有伪装身份
     }
 
+    // --- 获取Lorebook控制器的安全方法 ---
+    _getLorebookController() {
+        // 首先尝试从全局变量获取
+        if (window.lorebookController) {
+            return window.lorebookController;
+        }
+        
+        // 如果没有，尝试从serviceLocator获取组件
+        if (this.serviceLocator) {
+            return this.serviceLocator.getComponent 
+                ? this.serviceLocator.getComponent('lorebookController') 
+                : null;
+        }
+        
+        return null;
+    }
+
     // --- 异步身份获取方法 ---
     async getRealIdentity() {
-        if (!window.lorebookController) {
-            console.error("LorebookController 未初始化，无法获取真实身份。");
-            return this.getDefaultRealIdentity(); // Fallback
-        }
         try {
-            return await window.lorebookController.getPlayerIdentity(
-                window.lorebookController.model.PLAYER_IDENTITY_SUFFIX_REAL,
-                this.getDefaultRealIdentity()
-            );
+            const controller = this._getLorebookController();
+            
+            if (controller && controller.getPlayerIdentity) {
+                const suffix = controller.model 
+                    ? controller.model.PLAYER_IDENTITY_SUFFIX_REAL 
+                    : 'real';
+                    
+                return await controller.getPlayerIdentity(
+                    suffix,
+                    this.getDefaultRealIdentity()
+                );
+            }
         } catch (error) {
             console.error("从世界书获取真实身份失败:", error);
-            return this.getDefaultRealIdentity(); // 出现错误时返回默认值
         }
+        
+        // 失败时返回默认值
+        return this.getDefaultRealIdentity();
     }
 
     async getCoverIdentity() {
-        if (!window.lorebookController) {
-            console.error("LorebookController 未初始化，无法获取表面身份。");
-            return this.getDefaultCoverIdentity(); // Fallback
-        }
         try {
-            return await window.lorebookController.getPlayerIdentity(
-                window.lorebookController.model.PLAYER_IDENTITY_SUFFIX_COVER,
-                this.getDefaultCoverIdentity()
-            );
+            const controller = this._getLorebookController();
+            
+            if (controller && controller.getPlayerIdentity) {
+                const suffix = controller.model 
+                    ? controller.model.PLAYER_IDENTITY_SUFFIX_COVER 
+                    : 'cover';
+                    
+                return await controller.getPlayerIdentity(
+                    suffix,
+                    this.getDefaultCoverIdentity()
+                );
+            }
         } catch (error) {
             console.error("从世界书获取表面身份失败:", error);
-            return this.getDefaultCoverIdentity(); // 出现错误时返回默认值
         }
+        
+        // 失败时返回默认值
+        return this.getDefaultCoverIdentity();
     }
 
     async getDisguiseIdentity() {
-        if (!window.lorebookController) {
-            console.error("LorebookController 未初始化，无法获取伪装身份。");
-            return this.getDefaultDisguiseIdentity(); // Fallback
-        }
         try {
-            // 对于伪装身份，如果条目不存在，getPlayerIdentity 应该返回 null (defaultDisguiseIdentity)
-            return await window.lorebookController.getPlayerIdentity(
-                window.lorebookController.model.PLAYER_IDENTITY_SUFFIX_DISGUISE,
-                this.getDefaultDisguiseIdentity() 
-            );
+            const controller = this._getLorebookController();
+            
+            if (controller && controller.getPlayerIdentity) {
+                const suffix = controller.model 
+                    ? controller.model.PLAYER_IDENTITY_SUFFIX_DISGUISE 
+                    : 'disguise';
+                    
+                return await controller.getPlayerIdentity(
+                    suffix,
+                    this.getDefaultDisguiseIdentity()
+                );
+            }
         } catch (error) {
             console.error("从世界书获取伪装身份失败:", error);
-            return this.getDefaultDisguiseIdentity(); // 出现错误时返回默认值 (null)
         }
+        
+        // 失败时返回默认值
+        return this.getDefaultDisguiseIdentity();
     }
 
     // --- 异步身份设置方法 ---
     async setRealIdentity(nationality, type, func, organization = null) {
         const identityData = { nationality, type, function: func, organization };
-        this.validateIdentity(identityData); // 本地验证仍然有用
-        if (!window.lorebookController) {
-            console.error("LorebookController 未初始化，无法设置真实身份。");
-            return false; 
-        }
+        this.validateIdentity(identityData); // 本地验证
+        
         try {
-            return await window.lorebookController.setPlayerIdentity(
-                window.lorebookController.model.PLAYER_IDENTITY_SUFFIX_REAL,
-                identityData
-            );
+            const controller = this._getLorebookController();
+            
+            if (controller && controller.setPlayerIdentity) {
+                const suffix = controller.model 
+                    ? controller.model.PLAYER_IDENTITY_SUFFIX_REAL 
+                    : 'real';
+                    
+                return await controller.setPlayerIdentity(
+                    suffix,
+                    identityData
+                );
+            }
         } catch (error) {
             console.error("向世界书设置真实身份失败:", error);
-            return false;
         }
+        
+        return false;
     }
 
     async setCoverIdentity(nationality, type, func, organization = null) {
         const identityData = { nationality, type, function: func, organization };
         this.validateIdentity(identityData);
-        if (!window.lorebookController) {
-            console.error("LorebookController 未初始化，无法设置表面身份。");
-            return false;
-        }
+        
         try {
-            return await window.lorebookController.setPlayerIdentity(
-                window.lorebookController.model.PLAYER_IDENTITY_SUFFIX_COVER,
-                identityData
-            );
+            const controller = this._getLorebookController();
+            
+            if (controller && controller.setPlayerIdentity) {
+                const suffix = controller.model 
+                    ? controller.model.PLAYER_IDENTITY_SUFFIX_COVER 
+                    : 'cover';
+                    
+                return await controller.setPlayerIdentity(
+                    suffix,
+                    identityData
+                );
+            }
         } catch (error) {
             console.error("向世界书设置表面身份失败:", error);
-            return false;
         }
+        
+        return false;
     }
 
     async setDisguiseIdentity(nationality, type, func, organization = null) {
         const identityData = { nationality, type, function: func, organization };
         this.validateIdentity(identityData);
-        if (!window.lorebookController) {
-            console.error("LorebookController 未初始化，无法设置伪装身份。");
-            return false;
-        }
+        
         try {
-            return await window.lorebookController.setPlayerIdentity(
-                window.lorebookController.model.PLAYER_IDENTITY_SUFFIX_DISGUISE,
-                identityData
-            );
+            const controller = this._getLorebookController();
+            
+            if (controller && controller.setPlayerIdentity) {
+                const suffix = controller.model 
+                    ? controller.model.PLAYER_IDENTITY_SUFFIX_DISGUISE 
+                    : 'disguise';
+                    
+                const result = await controller.setPlayerIdentity(
+                    suffix,
+                    identityData
+                );
+                
+                // 发布身份更新事件
+                if (this.eventBus && result) {
+                    this.eventBus.emit('disguiseChanged', {
+                        identityData: identityData
+                    });
+                }
+                
+                return result;
+            }
         } catch (error) {
             console.error("向世界书设置伪装身份失败:", error);
-            return false;
         }
+        
+        return false;
     }
     
     // 清除伪装
     async clearDisguise() {
-        if (!window.lorebookController) {
-            console.error("LorebookController 未初始化，无法清除伪装身份。");
-            return false;
-        }
         try {
-            // LorebookController 的 clearPlayerDisguiseIdentity 会处理将条目内容设为 null
-            return await window.lorebookController.clearPlayerDisguiseIdentity();
+            const controller = this._getLorebookController();
+            
+            if (controller && controller.clearPlayerDisguiseIdentity) {
+                const result = await controller.clearPlayerDisguiseIdentity();
+                
+                // 发布身份更新事件
+                if (this.eventBus && result) {
+                    this.eventBus.emit('disguiseChanged', {
+                        identityData: null
+                    });
+                }
+                
+                return result;
+            }
         } catch (error) {
             console.error("清除世界书中的伪装身份失败:", error);
-            return false;
         }
+        
+        return false;
     }
     
     // 获取当前有效身份(有伪装则为伪装，否则为表面身份)
@@ -195,12 +264,13 @@ class IdentityModel {
         }
     }
     
-    // 验证身份合法性 (保持不变，用于本地验证)
+    // 验证身份合法性
     validateIdentity(identity) {
         if (!identity) {
             console.warn("尝试验证一个空的身份对象。");
             return;
         }
+        
         // 验证国籍
         if (!this.NATIONALITIES.includes(identity.nationality)) {
             console.error(`无效的国籍: ${identity.nationality}`);
@@ -217,7 +287,7 @@ class IdentityModel {
                 console.error(`无效的职能 ${identity.function} (类型 ${identity.type})`);
             }
         } else if (identity.function && !this.FUNCTIONS[identity.type]) {
-             console.error(`类型 ${identity.type} 没有预定义的职能列表，但提供了职能 ${identity.function}`);
+            console.error(`类型 ${identity.type} 没有预定义的职能列表，但提供了职能 ${identity.function}`);
         }
         
         // 验证机构(仅美国情报人员需要)
@@ -226,9 +296,6 @@ class IdentityModel {
                 if (!this.ORGANIZATIONS["美国"]["情报人员"].includes(identity.organization)) {
                     console.error(`无效的机构: ${identity.organization} 对于美国情报人员`);
                 }
-            } else {
-                // 对于其他国家或其他身份类型，如果指定了机构，可以是一个警告或根据游戏逻辑处理
-                // console.warn(`为非美国情报人员或非特定类型指定了机构: ${identity.organization}`);
             }
         }
     }
@@ -257,12 +324,16 @@ class IdentityModel {
     
     // 伪装被识破，恢复为表面身份
     async blowDisguise() {
-        await this.clearDisguise(); // 清除伪装身份（将其在世界书中设为null）
-        // 不需要返回 coverIdentity，因为 getCurrentIdentity 会自动处理
-        // UI 更新应该由 controller 在调用此方法后，重新获取当前身份并更新视图
-        console.log("伪装已被识破，已清除。");
-        EventBus.emit('playerIdentityChanged', { type: window.lorebookController.model.PLAYER_IDENTITY_SUFFIX_DISGUISE, data: null }); // 通知伪装已清除
-        return true; // 表示操作完成
+        const result = await this.clearDisguise(); // 清除伪装身份
+        
+        // 发布伪装被识破事件
+        if (this.eventBus && result) {
+            this.eventBus.emit('disguiseBlown', {
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        return result;
     }
     
     // 获取指定类型可用的职能列表
@@ -275,8 +346,9 @@ class IdentityModel {
         if (this.ORGANIZATIONS[nationality] && this.ORGANIZATIONS[nationality][type]) {
             return this.ORGANIZATIONS[nationality][type];
         }
-        // 特殊处理美国情报人员，因为原始逻辑是这样
-        if (nationality === "美国" && type === "情报人员" && this.ORGANIZATIONS["美国"] && this.ORGANIZATIONS["美国"]["情报人员"]) {
+        // 特殊处理美国情报人员
+        if (nationality === "美国" && type === "情报人员" && 
+            this.ORGANIZATIONS["美国"] && this.ORGANIZATIONS["美国"]["情报人员"]) {
             return this.ORGANIZATIONS["美国"]["情报人员"];
         }
         return [];

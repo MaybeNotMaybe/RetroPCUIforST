@@ -142,6 +142,36 @@ class GameCore {
                 // 注册到界面服务
                 interfaceService.registerController('map', mapController);
 
+                // 11. 初始化身份MVC
+                console.log("初始化身份系统...");
+                const identityModel = new IdentityModel(serviceLocator);
+                const identityView = new IdentityView(serviceLocator);
+                const identityController = new IdentityController(identityModel, identityView, serviceLocator);
+
+                // 注册为组件
+                this.registerComponent('identityModel', identityModel);
+                this.registerComponent('identityView', identityView);
+                this.registerComponent('identityController', identityController);
+
+                // 注册为服务 - 注意:不要注册控制器为服务
+                // serviceLocator.register('identityController', identityController);
+
+                // 为向后兼容保留全局引用
+                window.identityController = identityController;
+
+                // 初始化身份控制器
+                identityController.initialize().catch(error => {
+                    console.error("身份控制器初始化失败:", error);
+                });
+
+                // 初始化并注册身份服务
+                const identityService = new IdentityService();
+                serviceLocator.register('identity', identityService);
+                this.registerComponent('identityService', identityService);
+
+                // 注册到界面服务
+                interfaceService.registerController('identity', identityController);
+
                 console.log("游戏核心初始化完成");
                 this.initialized = true;
 
