@@ -33,34 +33,49 @@ class IdentityModel {
             // 其他国家默认单一机构，无需指定
         };
         
-        // NPC身份列表 (如果存在，保持不变)
+        // NPC身份列表
         this.knownIdentities = [];
+        
+        // 单一存储键名
+        this.STORAGE_KEY = 'player_identities';
+        
+        // 身份类型
+        this.IDENTITY_TYPES_KEY = {
+            REAL: 'real',
+            COVER: 'cover',
+            DISGUISE: 'disguise'
+        };
+        
+        // 只有在storage存在时才初始化本地身份
+        if (this.storage) {
+            this.initLocalIdentities();
+        }
     }
     
-    // --- 默认身份获取方法 ---
+    // 默认身份获取方法
     getDefaultRealIdentity() {
         return {
-            nationality: "苏联", // 默认真实国籍
-            type: "情报人员",   // 默认真实身份类型
-            function: "间谍",     // 默认真实职能
-            organization: "KGB" // 默认真实组织
+            nationality: "苏联", 
+            type: "情报人员",  
+            function: "间谍",    
+            organization: "KGB" 
         };
     }
 
     getDefaultCoverIdentity() {
         return {
-            nationality: "美国", // 默认表面国籍
-            type: "情报人员",   // 默认表面身份类型
-            function: "外勤特工", // 默认表面职能
-            organization: "CIA"  // 默认表面组织
+            nationality: "美国", 
+            type: "情报人员",  
+            function: "外勤特工", 
+            organization: "CIA"  
         };
     }
 
     getDefaultDisguiseIdentity() {
         return null; // 默认没有伪装身份
     }
-
-    // --- 获取Lorebook控制器的安全方法 ---
+    
+    // 从Lorebook控制器获取的安全方法
     _getLorebookController() {
         // 首先尝试从全局变量获取
         if (window.lorebookController) {
@@ -76,8 +91,79 @@ class IdentityModel {
         
         return null;
     }
-
-    // --- 异步身份获取方法 ---
+    
+    // 获取本地存储的所有身份数据
+    _getLocalIdentities() {
+        if (!this.storage) return null;
+        
+        const identities = this.storage.load(this.STORAGE_KEY, null);
+        if (!identities) {
+            return {
+                [this.IDENTITY_TYPES_KEY.REAL]: null,
+                [this.IDENTITY_TYPES_KEY.COVER]: null,
+                [this.IDENTITY_TYPES_KEY.DISGUISE]: null
+            };
+        }
+        return identities;
+    }
+    
+    // 保存单个身份到本地存储
+    _saveLocalIdentity(type, identityData) {
+        if (!this.storage) return false;
+        
+        // 获取当前存储的所有身份
+        const identities = this._getLocalIdentities();
+        
+        // 更新指定类型的身份
+        identities[type] = identityData;
+        
+        // 保存回存储
+        this.storage.save(this.STORAGE_KEY, identities);
+        console.log(`身份系统: 已将${type}身份保存到本地存储`);
+        return true;
+    }
+    
+    // 从本地存储获取指定类型的身份
+    _getLocalIdentity(type) {
+        if (!this.storage) return null;
+        
+        const identities = this._getLocalIdentities();
+        return identities ? identities[type] : null;
+    }
+    
+    // 初始化本地存储中的身份信息
+    initLocalIdentities() {
+        if (!this.storage) return;
+        
+        try {
+            // 获取当前存储
+            let identities = this._getLocalIdentities();
+            let needsUpdate = false;
+            
+            // 如果本地没有真实身份，初始化
+            if (!identities[this.IDENTITY_TYPES_KEY.REAL]) {
+                identities[this.IDENTITY_TYPES_KEY.REAL] = this.getDefaultRealIdentity();
+                needsUpdate = true;
+            }
+            
+            // 如果本地没有表面身份，初始化
+            if (!identities[this.IDENTITY_TYPES_KEY.COVER]) {
+                identities[this.IDENTITY_TYPES_KEY.COVER] = this.getDefaultCoverIdentity();
+                needsUpdate = true;
+            }
+            
+            // 如果需要更新，保存回存储
+            if (needsUpdate) {
+                this.storage.save(this.STORAGE_KEY, identities);
+            }
+            
+            console.log("身份系统: 本地存储身份数据初始化完成");
+        } catch (error) {
+            console.error("身份系统: 初始化本地身份数据时出错:", error);
+        }
+    }
+    
+    // 异步身份获取方法
     async getRealIdentity() {
         try {
             const controller = this._getLorebookController();
@@ -86,17 +172,32 @@ class IdentityModel {
                 const suffix = controller.model 
                     ? controller.model.PLAYER_IDENTITY_SUFFIX_REAL 
                     : 'real';
-                    
-                return await controller.getPlayerIdentity(
+                
+                // 尝试从世界书获取身份
+                const identity = await controller.getPlayerIdentity(
                     suffix,
-                    this.getDefaultRealIdentity()
+                    null  // 失败时不使用默认值，而是继续回退链
                 );
+                
+                // 如果成功获取，同步到本地存储
+                if (identity) {
+                    this._saveLocalIdentity(this.IDENTITY_TYPES_KEY.REAL, identity);
+                    return identity;
+                }
             }
         } catch (error) {
-            console.error("从世界书获取真实身份失败:", error);
+            console.warn("从世界书获取真实身份失败，尝试从本地存储获取:", error);
         }
         
-        // 失败时返回默认值
+        // 从本地存储获取
+        const localIdentity = this._getLocalIdentity(this.IDENTITY_TYPES_KEY.REAL);
+        if (localIdentity) {
+            console.log("身份系统: 从本地存储获取真实身份");
+            return localIdentity;
+        }
+        
+        // 都失败时才使用默认值
+        console.log("身份系统: 使用默认真实身份");
         return this.getDefaultRealIdentity();
     }
 
@@ -108,17 +209,32 @@ class IdentityModel {
                 const suffix = controller.model 
                     ? controller.model.PLAYER_IDENTITY_SUFFIX_COVER 
                     : 'cover';
-                    
-                return await controller.getPlayerIdentity(
+                
+                // 尝试从世界书获取身份
+                const identity = await controller.getPlayerIdentity(
                     suffix,
-                    this.getDefaultCoverIdentity()
+                    null  // 失败时不使用默认值，而是继续回退链
                 );
+                
+                // 如果成功获取，同步到本地存储
+                if (identity) {
+                    this._saveLocalIdentity(this.IDENTITY_TYPES_KEY.COVER, identity);
+                    return identity;
+                }
             }
         } catch (error) {
-            console.error("从世界书获取表面身份失败:", error);
+            console.warn("从世界书获取表面身份失败，尝试从本地存储获取:", error);
         }
         
-        // 失败时返回默认值
+        // 从本地存储获取
+        const localIdentity = this._getLocalIdentity(this.IDENTITY_TYPES_KEY.COVER);
+        if (localIdentity) {
+            console.log("身份系统: 从本地存储获取表面身份");
+            return localIdentity;
+        }
+        
+        // 都失败时才使用默认值
+        console.log("身份系统: 使用默认表面身份");
         return this.getDefaultCoverIdentity();
     }
 
@@ -130,25 +246,42 @@ class IdentityModel {
                 const suffix = controller.model 
                     ? controller.model.PLAYER_IDENTITY_SUFFIX_DISGUISE 
                     : 'disguise';
-                    
-                return await controller.getPlayerIdentity(
+                
+                // 尝试从世界书获取身份
+                const identity = await controller.getPlayerIdentity(
                     suffix,
-                    this.getDefaultDisguiseIdentity()
+                    null  // 失败时不使用默认值，而是继续回退链
                 );
+                
+                // 如果有伪装，同步到本地存储
+                if (identity) {
+                    this._saveLocalIdentity(this.IDENTITY_TYPES_KEY.DISGUISE, identity);
+                    return identity;
+                }
             }
         } catch (error) {
-            console.error("从世界书获取伪装身份失败:", error);
+            console.warn("从世界书获取伪装身份失败，尝试从本地存储获取:", error);
         }
         
-        // 失败时返回默认值
+        // 从本地存储获取
+        const localIdentity = this._getLocalIdentity(this.IDENTITY_TYPES_KEY.DISGUISE);
+        if (localIdentity) {
+            console.log("身份系统: 从本地存储获取伪装身份");
+            return localIdentity;
+        }
+        
+        // 都失败时返回null（伪装默认为空）
         return this.getDefaultDisguiseIdentity();
     }
 
-    // --- 异步身份设置方法 ---
+    // 异步身份设置方法
     async setRealIdentity(nationality, type, func, organization = null) {
         const identityData = { nationality, type, function: func, organization };
-        this.validateIdentity(identityData); // 本地验证
+        this.validateIdentity(identityData);
         
+        let success = false;
+        
+        // 1. 尝试保存到世界书
         try {
             const controller = this._getLorebookController();
             
@@ -156,23 +289,38 @@ class IdentityModel {
                 const suffix = controller.model 
                     ? controller.model.PLAYER_IDENTITY_SUFFIX_REAL 
                     : 'real';
-                    
-                return await controller.setPlayerIdentity(
-                    suffix,
-                    identityData
-                );
+                
+                success = await controller.setPlayerIdentity(suffix, identityData);
+                if (success) {
+                    console.log("身份系统: 成功保存真实身份到世界书");
+                }
             }
         } catch (error) {
-            console.error("向世界书设置真实身份失败:", error);
+            console.warn("向世界书保存真实身份失败，将仅使用本地存储:", error);
         }
         
-        return false;
+        // 2. 无论世界书成功与否，都保存到本地存储
+        const localSuccess = this._saveLocalIdentity(this.IDENTITY_TYPES_KEY.REAL, identityData);
+        success = success || localSuccess;
+        
+        // 3. 如果任一保存成功，触发事件
+        if (success && this.eventBus) {
+            this.eventBus.emit('playerIdentityChanged', {
+                type: 'real',
+                identityData
+            });
+        }
+        
+        return success;
     }
 
     async setCoverIdentity(nationality, type, func, organization = null) {
         const identityData = { nationality, type, function: func, organization };
         this.validateIdentity(identityData);
         
+        let success = false;
+        
+        // 1. 尝试保存到世界书
         try {
             const controller = this._getLorebookController();
             
@@ -180,23 +328,38 @@ class IdentityModel {
                 const suffix = controller.model 
                     ? controller.model.PLAYER_IDENTITY_SUFFIX_COVER 
                     : 'cover';
-                    
-                return await controller.setPlayerIdentity(
-                    suffix,
-                    identityData
-                );
+                
+                success = await controller.setPlayerIdentity(suffix, identityData);
+                if (success) {
+                    console.log("身份系统: 成功保存表面身份到世界书");
+                }
             }
         } catch (error) {
-            console.error("向世界书设置表面身份失败:", error);
+            console.warn("向世界书保存表面身份失败，将仅使用本地存储:", error);
         }
         
-        return false;
+        // 2. 无论世界书成功与否，都保存到本地存储
+        const localSuccess = this._saveLocalIdentity(this.IDENTITY_TYPES_KEY.COVER, identityData);
+        success = success || localSuccess;
+        
+        // 3. 如果任一保存成功，触发事件
+        if (success && this.eventBus) {
+            this.eventBus.emit('playerIdentityChanged', {
+                type: 'cover',
+                identityData
+            });
+        }
+        
+        return success;
     }
 
     async setDisguiseIdentity(nationality, type, func, organization = null) {
         const identityData = { nationality, type, function: func, organization };
         this.validateIdentity(identityData);
         
+        let success = false;
+        
+        // 1. 尝试保存到世界书
         try {
             const controller = this._getLorebookController();
             
@@ -204,50 +367,70 @@ class IdentityModel {
                 const suffix = controller.model 
                     ? controller.model.PLAYER_IDENTITY_SUFFIX_DISGUISE 
                     : 'disguise';
-                    
-                const result = await controller.setPlayerIdentity(
-                    suffix,
-                    identityData
-                );
                 
-                // 发布身份更新事件
-                if (this.eventBus && result) {
-                    this.eventBus.emit('disguiseChanged', {
-                        identityData: identityData
-                    });
+                success = await controller.setPlayerIdentity(suffix, identityData);
+                if (success) {
+                    console.log("身份系统: 成功保存伪装身份到世界书");
                 }
-                
-                return result;
             }
         } catch (error) {
-            console.error("向世界书设置伪装身份失败:", error);
+            console.warn("向世界书保存伪装身份失败，将仅使用本地存储:", error);
         }
         
-        return false;
+        // 2. 无论世界书成功与否，都保存到本地存储
+        const localSuccess = this._saveLocalIdentity(this.IDENTITY_TYPES_KEY.DISGUISE, identityData);
+        success = success || localSuccess;
+        
+        // 3. 如果任一保存成功，触发事件
+        if (success && this.eventBus) {
+            this.eventBus.emit('disguiseChanged', {
+                identityData
+            });
+            
+            this.eventBus.emit('playerIdentityChanged', {
+                type: 'disguise',
+                identityData
+            });
+        }
+        
+        return success;
     }
     
     // 清除伪装
     async clearDisguise() {
+        let success = false;
+        
+        // 1. 尝试在世界书中清除
         try {
             const controller = this._getLorebookController();
             
             if (controller && controller.clearPlayerDisguiseIdentity) {
-                const result = await controller.clearPlayerDisguiseIdentity();
-                
-                // 发布身份更新事件
-                if (this.eventBus && result) {
-                    this.eventBus.emit('disguiseChanged', {
-                        identityData: null
-                    });
+                success = await controller.clearPlayerDisguiseIdentity();
+                if (success) {
+                    console.log("身份系统: 成功在世界书中清除伪装身份");
                 }
-                
-                return result;
             }
         } catch (error) {
-            console.error("清除世界书中的伪装身份失败:", error);
+            console.warn("在世界书中清除伪装身份失败，将仅在本地存储中清除:", error);
         }
         
-        return false;
+        // 2. 无论世界书成功与否，都在本地存储中清除
+        const localSuccess = this._saveLocalIdentity(this.IDENTITY_TYPES_KEY.DISGUISE, null);
+        success = success || localSuccess;
+        
+        // 3. 如果任一操作成功，触发事件
+        if (success && this.eventBus) {
+            this.eventBus.emit('disguiseChanged', {
+                identityData: null
+            });
+            
+            this.eventBus.emit('playerIdentityChanged', {
+                type: 'disguise',
+                identityData: null
+            });
+        }
+        
+        return success;
     }
     
     // 获取当前有效身份(有伪装则为伪装，否则为表面身份)

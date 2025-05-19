@@ -399,7 +399,7 @@ class LorebookController {
                 }
                 return identityData;
             } else if (defaultIdentityData !== undefined) {
-                console.log(`玩家身份条目 (${identityTypeSuffix}) 未找到，使用默认数据创建。`);
+                console.log(`玩家身份条目 (${identityTypeSuffix}) 未找到，执行回退。`);
                 await this.setPlayerIdentity(identityTypeSuffix, defaultIdentityData);
                 return defaultIdentityData;
             }

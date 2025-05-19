@@ -19,6 +19,7 @@
     justify-content: space-between;
     padding: 10px 15px;
     border-bottom: 1px solid #33ff33;
+    flex: 0 0 auto; /* 不伸缩、不收缩、自动高度 */
 }
 
 .status-title {
@@ -33,8 +34,9 @@
 /* 主内容区 */
 .status-content {
     display: flex;
-    flex-grow: 1;
-    overflow: hidden;
+    flex: 1; /* 使用flex: 1代替flex-grow: 1 */
+    overflow: hidden; /* 防止整体溢出 */
+    min-height: 0; /* 关键修复: 允许flex子项收缩到最小高度 */
 }
 
 /* 左侧面板 - 头像和统计 */
@@ -44,6 +46,13 @@
     display: flex;
     flex-direction: column;
     padding: 15px;
+    overflow-y: auto; /* 允许左侧面板滚动 */
+    scrollbar-width: none;
+}
+
+.status-left-panel::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
 }
 
 .player-avatar {
@@ -53,6 +62,7 @@
     align-items: center;
     border: 1px solid #33ff33;
     margin-bottom: 15px;
+    min-height: 150px; /* 确保最小高度 */
 }
 
 .avatar-placeholder {
@@ -62,7 +72,7 @@
 }
 
 .player-stats {
-    flex-grow: 1;
+    flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: space-around;
@@ -84,6 +94,10 @@
     width: 66.7%;
     padding: 15px;
     position: relative;
+    display: flex; /* 修复：添加flex布局 */
+    flex-direction: column; /* 修复：设置为列方向 */
+    overflow: hidden; /* 修复：防止内容溢出 */
+    min-height: 0; /* 修复：允许内容收缩 */
 }
 
 /* 身份页面通用样式 */
@@ -91,11 +105,14 @@
     width: 100%;
     height: 100%;
     display: flex;
+    overflow: hidden; /* 修复：防止内容溢出 */
+    min-height: 0; /* 修复：允许内容收缩 */
 }
 
 /* 基础信息页面区块 */
 #basicInfoPage {
     justify-content: space-between;
+    overflow: hidden; /* 修复：防止内容溢出 */
 }
 
 .identity-section {
@@ -115,17 +132,18 @@
 /* 伪装页面区块 */
 #disguisePage {
     flex-direction: column;
-    max-height: 100%;
-    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* 修复：防止内容溢出 */
 }
 
 /* 伪装页面容器 */
 .disguise-page-container {
     width: 100%;
     height: 100%;
-    position: relative;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* 修复：防止内容溢出 */
 }
 
 /* 伪装导航栏 */
@@ -136,6 +154,7 @@
     padding-bottom: 10px;
     margin-bottom: 15px;
     border-bottom: 1px solid #33ff33;
+    flex: 0 0 auto; /* 修复：导航栏高度固定 */
 }
 
 .disguise-nav h3 {
@@ -149,29 +168,28 @@
 }
 
 /* 伪装视图 */
- .disguise-edit-view {
-    flex-grow: 1;
+.disguise-edit-view {
+    flex: 1;
     display: flex;
     flex-direction: column;
-}
-.disguise-current-view {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
+    overflow: hidden; /* 修复：防止内容溢出 */
+    min-height: 0; /* 修复：允许内容收缩 */
 }
 
-/* Webkit 浏览器隐藏滚动条 */
-.disguise-current-view::-webkit-scrollbar {
-    width: 0;
-    background: transparent;
+.disguise-current-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* 修复：防止整体溢出 */
+    min-height: 0; /* 修复：允许内容收缩 */
 }
 
 /* 确保伪装档案容器填充整个可滚动区域 */
 .disguise-current-view .identity-file-container {
-    width: 100%;
-    min-height: 100%;
+    flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* 修复：防止内容溢出 */
 }
 
 .disguise-edit-view {
@@ -180,12 +198,12 @@
 
 /* 伪装表单容器 */
 .disguise-form-container {
-    flex-grow: 1;
-    overflow-y: auto;
+    flex: 1;
+    overflow-y: auto !important; /* 修复：强制启用垂直滚动 */
     scrollbar-width: none;
-    overflow-y: auto; /* 启用垂直滚动 */
-    scrollbar-width: none; /* Firefox 隐藏滚动条 */
-    -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
+    -ms-overflow-style: none;
+    min-height: 0; /* 修复：允许内容收缩 */
+    padding-right: 5px; /* 增加一点右侧边距 */
 }
 
 .disguise-form-container::-webkit-scrollbar {
@@ -265,6 +283,7 @@
     display: flex;
     justify-content: space-between;
     margin-top: 20px;
+    margin-bottom: 15px; /* 修复：底部增加边距，防止按钮被截断 */
 }
 
 /* 按钮样式 */
@@ -304,6 +323,7 @@
     align-items: center;
     padding: 10px 15px;
     border-top: 1px solid #33ff33;
+    flex: 0 0 auto; /* 修复：页脚高度固定 */
 }
 
 .status-nav {
@@ -373,6 +393,7 @@
 .file-tab-container {
     display: flex;
     border-bottom: 1px solid #33ff33;
+    flex: 0 0 auto; /* 修复：标签栏高度固定 */
 }
 
 .file-tab {
@@ -392,15 +413,15 @@
 
 /* 档案内容区域 */
 .identity-file {
-    flex-grow: 1;
+    flex: 1;
     border: 1px solid #33ff33;
     padding: 15px;
     position: relative;
     cursor: pointer;
     transition: background-color 0.2s;
-    overflow-y: auto; /* 启用垂直滚动 */
-    scrollbar-width: none; /* Firefox 隐藏滚动条 */
-    -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
+    overflow-y: auto !important; /* 修复：强制启用垂直滚动 */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 /* Webkit 浏览器(Chrome/Safari)隐藏滚动条 */
@@ -419,6 +440,7 @@
     padding: 8px 15px;
     background-color: rgba(51, 255, 51, 0.2);
     text-align: center;
+    flex: 0 0 auto; /* 修复：标题高度固定 */
 }
 
 .file-header-text {
@@ -541,21 +563,23 @@
 
 /* 伪装当前视图样式 */
 .disguise-current-view .identity-file-container {
-    width: 100%;
-    height: 100%;
+    flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* 修复：防止内容溢出 */
+    min-height: 0; /* 修复：允许内容收缩 */
 }
 
 /* 确保伪装系统使用相同的档案样式 */
 #currentDisguiseDisplay {
-    flex-grow: 1;
+    flex: 1;
     border: 1px solid #33ff33;
     padding: 15px;
     position: relative;
-    overflow-y: auto; /* 启用垂直滚动 */
-    scrollbar-width: none; /* Firefox 隐藏滚动条 */
-    -ms-overflow-style: none; /* IE/Edge 隐藏滚动条 */
+    overflow-y: auto !important; /* 修复：强制启用垂直滚动 */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    min-height: 0; /* 修复：允许内容收缩 */
 }
 
 #currentDisguiseDisplay::-webkit-scrollbar {

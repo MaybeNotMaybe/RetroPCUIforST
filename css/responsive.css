@@ -46,3 +46,77 @@
         height: 40px;
     }
 }
+
+/* 添加宽屏设备的等比例放大 */
+@media (min-width: 1280px) {
+    body {
+        height: 800px !important; /* 增加body高度以容纳更大的界面 */
+        min-height: 50vh; /* 确保至少占满视口高度 */
+    }
+    
+    .computer-wrapper {
+        width: 960px;
+    }
+    
+    .computer-case {
+        width: 960px;
+        height: 720px;
+    }
+    
+    .floppy-drive {
+        height: 60px;
+    }
+    
+    .imb-logo {
+        max-width: 380px;
+        height: 95px;
+    }
+    
+    .function-button {
+        height: 54px;
+    }
+}
+
+/* 更大屏幕的进一步放大 */
+@media (min-width: 1600px) {
+    body {
+        height: 900px !important; /* 进一步增加body高度 */
+        min-height: 50vh;
+    }
+    
+    .computer-wrapper {
+        width: 1120px;
+    }
+    
+    .computer-case {
+        width: 1120px;
+        height: 840px;
+    }
+    
+    .floppy-drive {
+        height: 70px;
+    }
+    
+    .imb-logo {
+        max-width: 440px;
+        height: 110px;
+    }
+    
+    .function-button {
+        height: 63px;
+    }
+}
+
+/* 增加更高屏幕的垂直调整 */
+@media (min-height: 900px) {
+    body {
+        padding-top: 20px; /* 在高屏幕上添加顶部内边距 */
+    }
+}
+
+/* 超高屏幕的垂直调整 */
+@media (min-height: 1080px) {
+    body {
+        padding-top: 80px; /* 在超高屏幕上添加更多顶部内边距 */
+    }
+}
