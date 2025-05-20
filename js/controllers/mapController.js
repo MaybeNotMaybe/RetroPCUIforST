@@ -53,32 +53,36 @@ class MapController {
             // 检查点击的是否是地图单元格
             const clickedElement = e.target;
             
-            // 忽略列表项和详情区域的点击
-            if (clickedElement.closest('.map-location-item') || 
-                clickedElement.closest('.map-details-area') ||
-                clickedElement.closest('.map-location-details')) {
-                console.log("忽略列表或详情区域的点击");
-                return;
-            }
-            
-            // 忽略位置标记的点击
-            if (clickedElement.classList.contains('location-marker') ||
-                clickedElement.closest('.location-marker')) {
-                console.log("忽略位置标记的点击");
-                return;
+            // 只在默认视图或区域视图中忽略详情区域的点击
+            // 在位置视图中不忽略，允许详情区域的点击事件正常执行
+            if (this.view.viewState !== 'location') {
+                // 忽略列表项和详情区域的点击
+                if (clickedElement.closest('.map-location-item') || 
+                    clickedElement.closest('.map-details-area') ||
+                    clickedElement.closest('.map-location-details')) {
+                    console.log("忽略列表或详情区域的点击 (非位置视图)");
+                    return;
+                }
             }
             
             // 根据当前视图状态处理空白区域点击
-            if (this.model.isVisible) {
-                if (this.view.viewState === 'location' && this.model.selectedLocation) {
-                    // 在位置视图中点击空白区域，清除选择回到区域视图
-                    console.log("从位置视图返回区域视图");
-                    this.clearSelection();
-                } else if (this.view.viewState === 'region') {
-                    // 在区域视图中点击空白区域，返回默认视图
-                    console.log("从区域视图返回默认视图");
-                    this._handleExitRegionView();
+            if (this.view.viewState === 'location' && this.model.selectedLocation) {
+                // 检查是否点击了详情区域
+                if (clickedElement.closest('.map-details-area') || 
+                    clickedElement.closest('.map-location-details') ||
+                    clickedElement.closest('#locationInfoFrame')) {
+                    // 在位置视图中点击详情区域，不做任何处理，让事件继续传播
+                    console.log("位置视图中点击了详情区域，允许事件传播");
+                    return;
                 }
+
+                // 在位置视图中点击空白区域，清除选择回到区域视图
+                console.log("从位置视图返回区域视图");
+                this.clearSelection();
+            } else if (this.view.viewState === 'region') {
+                // 在区域视图中点击空白区域，返回默认视图
+                console.log("从区域视图返回默认视图");
+                this._handleExitRegionView();
             }
         });
 

@@ -94,7 +94,7 @@ class MapView {
             </div>
         `;
 
-        const locationsContainer = this.domUtils.get('#mapLocationsContainer');
+            const locationsContainer = this.domUtils.get('#mapLocationsContainer');
         if (locationsContainer) {
             this.cursorElement = this.domUtils.create('div', {
                 className: 'map-cursor',
@@ -103,11 +103,71 @@ class MapView {
             locationsContainer.appendChild(this.cursorElement);
         }
         
+        // 添加：使用事件委托处理详情框的点击
+        const detailsArea = this.domUtils.get('#mapDetailsArea');
+        if (detailsArea) {
+            this.domUtils.on(detailsArea, 'click', (e) => {
+                // 检查点击的是否是详情框
+                const infoFrame = e.target.closest('#locationInfoFrame');
+                if (infoFrame) {
+                    this.handleLocationInfoClick(infoFrame);
+                }
+            });
+        }
+        
         this.updateMapBackground(this.domUtils.get('.screen').classList.contains('amber-mode'));
         
         // 初始化时应用默认的地图缩放和偏移
         this.applyMapTransform(this.defaultMapZoomScale, this.defaultMapOffsetX, this.defaultMapOffsetY);
         this.resetLocationLabelFonts(); // 初始时使用默认概览状态的字体
+    }
+
+    // 处理位置详情点击的方法
+    handleLocationInfoClick(infoFrame) {
+        // 获取当前选中的位置 - 从模型中获取最新数据
+        const locationData = window.mapController.model.getSelectedLocation();
+        if (!locationData) return;
+        
+        // 检查是否有隐藏内容或伪装可以显示
+        if ((locationData.knowsHidden || locationData.disguiseRevealed) && 
+            (locationData.hiddenDescription || locationData.isDisguised)) {
+            
+            // 获取当前是否显示隐藏内容
+            const isShowingHidden = infoFrame.dataset.showingHidden === 'true';
+            infoFrame.dataset.showingHidden = isShowingHidden ? 'false' : 'true';
+            
+            // 更新标题和位置图片
+            const titleElement = infoFrame.querySelector('.tui-title');
+            const locationImage = this.domUtils.get('#locationImage');
+            
+            if (titleElement && locationData.isDisguised && locationData.disguiseRevealed && !isShowingHidden) {
+                titleElement.textContent = locationData.realName;
+                if (locationImage) {
+                    locationImage.innerHTML = `<div class="map-location-placeholder">${locationData.realName}</div>`;
+                }
+            } else if (titleElement && isShowingHidden) {
+                titleElement.textContent = locationData.displayName;
+                if (locationImage) {
+                    locationImage.innerHTML = `<div class="map-location-placeholder">${locationData.displayName}</div>`;
+                }
+            }
+            
+            // 更新描述文本
+            const descElement = infoFrame.querySelector('.location-description');
+            if (descElement && locationData.knowsHidden) {
+                if (!isShowingHidden && locationData.hiddenDescription) {
+                    descElement.textContent = locationData.hiddenDescription;
+                    this.domUtils.addClass(descElement, 'revealed');
+                    if (this.audio) this.audio.play('dataReveal');
+                } else {
+                    descElement.textContent = locationData.description;
+                    this.domUtils.removeClass(descElement, 'revealed');
+                }
+            }
+            
+            // 更新访问状态
+            this.updateAccessStatus(locationData, !isShowingHidden);
+        }
     }
 
     renderMap(locations, currentLocation, onLocationClick = null) {
@@ -482,41 +542,6 @@ class MapView {
             </div>
         `;
         locationInfo.innerHTML = infoHTML;
-
-        const infoFrame = this.domUtils.get('#locationInfoFrame');
-        if (infoFrame) {
-            this.domUtils.on(infoFrame, 'click', () => {
-                if ((location.knowsHidden || location.disguiseRevealed) && 
-                    (location.hiddenDescription || location.isDisguised)) {
-                    
-                    const isShowingHidden = infoFrame.dataset.showingHidden === 'true';
-                    infoFrame.dataset.showingHidden = isShowingHidden ? 'false' : 'true';
-                    
-                    const titleElement = infoFrame.querySelector('.tui-title');
-                    if (titleElement && location.isDisguised && location.disguiseRevealed && !isShowingHidden) {
-                        titleElement.textContent = location.realName;
-                        locationImage.innerHTML = `<div class="map-location-placeholder">${location.realName}</div>`;
-                    } else if (titleElement && isShowingHidden) {
-                        titleElement.textContent = location.displayName;
-                        locationImage.innerHTML = `<div class="map-location-placeholder">${location.displayName}</div>`;
-                    }
-                    
-                    const descElement = infoFrame.querySelector('.location-description');
-                    if (descElement && location.knowsHidden) {
-                        if (!isShowingHidden && location.hiddenDescription) {
-                            descElement.textContent = location.hiddenDescription;
-                            this.domUtils.addClass(descElement, 'revealed');
-                            if (this.audio) this.audio.play('dataReveal');
-                        } else {
-                            descElement.textContent = location.description;
-                            this.domUtils.removeClass(descElement, 'revealed');
-                        }
-                    }
-                    
-                    this.updateAccessStatus(location, !isShowingHidden);
-                }
-            });
-        }
         
         this.updateAccessStatus(location, false);
     }
