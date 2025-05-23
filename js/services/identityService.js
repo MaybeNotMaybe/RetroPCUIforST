@@ -232,4 +232,63 @@ class IdentityService {
             return null;
         }
     }
+    /**
+     * 获取真实身份
+     * @returns {Promise<Object|null>} 真实身份数据
+     */
+    async getRealIdentity() {
+        if (!this.initialized) {
+            console.warn("身份服务尚未初始化，无法获取真实身份");
+            return null;
+        }
+        
+        try {
+            return await this.model.getRealIdentity();
+        } catch (error) {
+            console.error("获取真实身份失败:", error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取伪装身份数据
+     * @returns {Promise<Object|null>} 伪装身份数据
+     */
+    async getDisguiseIdentity() {
+        if (!this.initialized) {
+            console.warn("身份服务尚未初始化，无法获取伪装身份");
+            return null;
+        }
+        
+        try {
+            return await this.model.getDisguiseIdentity();
+        } catch (error) {
+            console.error("获取伪装身份失败:", error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取所有身份信息
+     * @returns {Promise<Object>} 包含所有身份的对象
+     */
+    async getAllIdentities() {
+        if (!this.initialized) {
+            console.warn("身份服务尚未初始化，无法获取所有身份");
+            return { real: null, cover: null, disguise: null };
+        }
+        
+        try {
+            const [real, cover, disguise] = await Promise.all([
+                this.model.getRealIdentity(),
+                this.model.getCoverIdentity(), 
+                this.model.getDisguiseIdentity()
+            ]);
+            
+            return { real, cover, disguise };
+        } catch (error) {
+            console.error("获取所有身份失败:", error);
+            return { real: null, cover: null, disguise: null };
+        }
+    }
 }
