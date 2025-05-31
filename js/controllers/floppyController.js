@@ -258,12 +258,12 @@ class FloppyController {
                 this.view.turnOnDriveLight('B');
                 
                 // 如果软盘未被读取过且系统已完全初始化，询问是否读取
-                if (!this.diskHasBeenRead && this.isInitialized && this.isSystemOperational()) {
-                    // 延迟显示，确保界面已完全加载
-                    setTimeout(() => {
-                        this.promptForDiskRead();
-                    }, 500);
-                }
+                // if (!this.diskHasBeenRead && this.isInitialized && this.isSystemOperational()) {
+                //     // 延迟显示，确保界面已完全加载
+                //     setTimeout(() => {
+                //         this.promptForDiskRead();
+                //     }, 500);
+                // }
             }
         } else {
             // 系统关机时，关闭所有指示灯
@@ -309,13 +309,13 @@ class FloppyController {
         // 保存设置
         this.saveSettings();
         
-        // 如果系统已开机，询问是否读取软盘
-        if (isSystemOn && this.isSystemOperational()) {
-            // 延迟显示询问，给动画一点时间
-            setTimeout(() => {
-                this.promptForDiskRead();
-            }, 500);
-        }
+        // // 如果系统已开机，询问是否读取软盘
+        // if (isSystemOn && this.isSystemOperational()) {
+        //     // 延迟显示询问，给动画一点时间
+        //     setTimeout(() => {
+        //         this.promptForDiskRead();
+        //     }, 500);
+        // }
         
         return true;
     }

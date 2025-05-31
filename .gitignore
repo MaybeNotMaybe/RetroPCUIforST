@@ -16,3 +16,8 @@ map-tool.html
 接口说明文档/domUtils.js
 接口说明文档/eventBus.js
 接口说明文档/storageUtils.js
+commit_mapping.txt
+
+接口说明文档/generate.d.ts
+接口说明文档/lorebook_entry.d.ts
+接口说明文档/lorebook.d.ts
