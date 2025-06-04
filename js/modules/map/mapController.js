@@ -225,6 +225,18 @@ class MapController {
             this.currentRegionIndex = this.regionPositions.findIndex(
                 pos => pos.name === exitedRegionName
             );
+            
+            // 同步更新列表选择索引
+            this.updateCurrentListItems();
+            const exitedRegionListIndex = this.currentListItems.findIndex(
+                item => item.name === exitedRegionName
+            );
+            
+            if (exitedRegionListIndex !== -1) {
+                this.selectedListIndex = exitedRegionListIndex;
+                // 更新列表高亮显示
+                this.view.highlightListItem(this.selectedListIndex);
+            }
         }
     }
     
@@ -286,7 +298,7 @@ class MapController {
                 // 渲染区域内的位置
                 this.view.renderMap(regionLocations, this.model.getCurrentLocation().name, (name, x, y) => {
                     this.handleLocationClick(name, x, y);
-                });
+                }, this.selectedListIndex);
                 
                 // 清除选中的位置
                 this.model.selectLocation(null);
@@ -296,16 +308,30 @@ class MapController {
                 // 初始化位置导航列表
                 this.initLocationPositions();
                 
+                // 更新当前列表项
+                this.updateCurrentListItems();
+                
                 // 查找光标应该移动到的位置
                 const currentLocation = this.model.getCurrentLocation().name;
                 let targetLocation = null;
+                let targetLocationIndex = -1;
                 
                 // 优先检查当前位置是否在区域内
                 if (regionLocations[currentLocation]) {
                     targetLocation = currentLocation;
+                    targetLocationIndex = this.currentListItems.findIndex(
+                        item => item.name === currentLocation
+                    );
                 } else {
                     // 否则使用第一个位置
                     targetLocation = Object.keys(regionLocations)[0];
+                    targetLocationIndex = 0;
+                }
+                
+                // 设置选择索引
+                if (targetLocationIndex !== -1) {
+                    this.selectedListIndex = targetLocationIndex;
+                    this.view.highlightListItem(this.selectedListIndex);
                 }
                 
                 // 如果找到目标位置，移动光标（但不选择）
@@ -420,8 +446,17 @@ class MapController {
             this.view.setViewState('default');
             this.model.setCurrentRegion(null);
             
+            // 重置选择索引
+            this.selectedListIndex = 0;
+            
             // 渲染地图
             this.renderMap();
+            
+            // 初始化列表项并更新高亮
+            this.updateCurrentListItems();
+            if (this.currentListItems.length > 0) {
+                this.view.highlightListItem(this.selectedListIndex);
+            }
             
             this.view.showLocationDetails(null);
         } else {
@@ -451,6 +486,9 @@ class MapController {
         const currentViewState = this.view.viewState;
         
         if (this.model.selectedLocation && currentViewState === 'location') {
+            // 记录当前选中的地点名称
+            const previousSelectedLocation = this.model.selectedLocation;
+            
             // 在位置视图中：清除选择并返回区域视图
             this.model.selectLocation(null);
             this.view.highlightLocation(null);
@@ -471,7 +509,34 @@ class MapController {
                     const regionLocations = this.model.getLocationsByRegion(currentRegion);
                     this.view.renderMap(regionLocations, this.model.getCurrentLocation().name, (name, x, y) => {
                         this.handleLocationClick(name, x, y);
-                    });
+                    }, this.selectedListIndex);
+                    
+                    // 更新当前列表项并找到之前选中地点的索引
+                    this.updateCurrentListItems();
+                    
+                    // 找到之前选中的地点在新列表中的索引
+                    const previousLocationIndex = this.currentListItems.findIndex(
+                        item => item.name === previousSelectedLocation
+                    );
+                    
+                    if (previousLocationIndex !== -1) {
+                        this.selectedListIndex = previousLocationIndex;
+                        // 更新列表高亮显示
+                        this.view.highlightListItem(this.selectedListIndex);
+                        
+                        // 将光标移动到之前选中的地点位置
+                        const selectedItem = this.currentListItems[this.selectedListIndex];
+                        if (selectedItem && selectedItem.coordinates) {
+                            this.cursorPosition = { 
+                                x: selectedItem.coordinates[0], 
+                                y: selectedItem.coordinates[1] 
+                            };
+                            this.view.updateCursorPosition(this.cursorPosition);
+                            
+                            // 高亮该地点但不选择
+                            this.view.highlightLocation(previousSelectedLocation);
+                        }
+                    }
                 }
             }
         } else if (currentViewState === 'region') {
@@ -612,6 +677,16 @@ class MapController {
             
             // 更新视图
             this.view.updateCursorPosition(this.cursorPosition);
+            
+            // 同步更新列表选择索引
+            this.updateCurrentListItems();
+            const regionIndex = this.currentListItems.findIndex(
+                item => item.name === newPos.name
+            );
+            if (regionIndex !== -1) {
+                this.selectedListIndex = regionIndex;
+                this.view.highlightListItem(this.selectedListIndex);
+            }
         } else {
             // 在区域视图或位置视图中，在位置之间导航
             if (this.locationPositions.length === 0) {
@@ -632,6 +707,16 @@ class MapController {
             
             // 更新视图
             this.view.updateCursorPosition(this.cursorPosition);
+            
+            // 同步更新列表选择索引
+            this.updateCurrentListItems();
+            const locationIndex = this.currentListItems.findIndex(
+                item => item.name === newPos.name
+            );
+            if (locationIndex !== -1) {
+                this.selectedListIndex = locationIndex;
+                this.view.highlightListItem(this.selectedListIndex);
+            }
 
             if (this.view.viewState === 'location' && newPos.name) {
                 this.handleLocationSelection(newPos.name);
@@ -732,7 +817,7 @@ class MapController {
             const regions = this.model.getAllVisibleRegions();
             this.view.renderRegions(regions, (name, x, y) => {
                 this.handleRegionClick(name, x, y);
-            });
+            }, this.selectedListIndex);
             
             // 初始化区域导航数组
             this.initRegionPositions();
@@ -749,10 +834,10 @@ class MapController {
                 locations = this.model.getAllVisibleLocations();
             }
             
-            // 传递当前位置和点击处理函数
+            // 传递当前位置和点击处理函数以及selectedIndex
             this.view.renderMap(locations, currentLocationName, (name, x, y) => {
                 this.handleLocationClick(name, x, y);
-            });
+            }, this.selectedListIndex);
             
             // 初始化位置导航数组
             this.initLocationPositions();

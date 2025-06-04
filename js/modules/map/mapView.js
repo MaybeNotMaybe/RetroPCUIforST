@@ -170,7 +170,7 @@ class MapView {
         }
     }
 
-    renderMap(locations, currentLocation, onLocationClick = null) {
+    renderMap(locations, currentLocation, onLocationClick = null, selectedIndex = 0) {
         const locationsContainer = this.domUtils.get('#mapLocationsContainer');
         if (!locationsContainer) return;
         
@@ -226,8 +226,8 @@ class MapView {
             this.mapCurrentLocation.textContent = "未知";
         }
 
-        // 渲染位置列表
-        this.renderLocationList(locations, currentLocation);
+        // 渲染位置列表，传递selectedIndex
+        this.renderLocationList(locations, currentLocation, selectedIndex);
         
         // 应用当前状态的标记物缩放
         this.applyMarkerScaling();
@@ -240,7 +240,7 @@ class MapView {
         }
     }
 
-    renderLocationList(locations, currentLocation) {
+    renderLocationList(locations, currentLocation, selectedIndex = 0) {
         const locationList = this.domUtils.get('#locationList');
         if (!locationList) return;
         
@@ -249,7 +249,7 @@ class MapView {
         let index = 0;
         for (const [name, data] of Object.entries(locations)) {
             const currentClass = name === currentLocation ? 'current' : '';
-            const selectedClass = index === 0 ? 'selected' : ''; // 默认选中第一项
+            const selectedClass = index === selectedIndex ? 'selected' : '';
             listHTML += `<div class="map-location-item ${currentClass} ${selectedClass}" data-location="${name}" data-index="${index}">${name}</div>`;
             index++;
         }
@@ -268,7 +268,7 @@ class MapView {
     }
 
     // 渲染区域的方法
-    renderRegions(regions, onRegionClick = null) {
+    renderRegions(regions, onRegionClick = null, selectedIndex = 0) {
         const locationsContainer = this.domUtils.get('#mapLocationsContainer');
         if (!locationsContainer) return;
         
@@ -326,13 +326,13 @@ class MapView {
             locationsContainer.appendChild(regionMarker);
         }
         
-        this.renderRegionList(regions);
+        this.renderRegionList(regions, selectedIndex);
         this.applyMarkerScaling();
         this.resetLocationLabelFonts();
     }
 
     // 渲染区域列表
-    renderRegionList(regions) {
+    renderRegionList(regions, selectedIndex = 0) {
         const locationList = this.domUtils.get('#locationList');
         if (!locationList) return;
         
@@ -340,7 +340,7 @@ class MapView {
         
         let index = 0;
         for (const [name, data] of Object.entries(regions)) {
-            const selectedClass = index === 0 ? 'selected' : ''; // 默认选中第一项
+            const selectedClass = index === selectedIndex ? 'selected' : '';
             listHTML += `<div class="map-location-item ${selectedClass}" data-region="${name}" data-index="${index}">${name}</div>`;
             index++;
         }
