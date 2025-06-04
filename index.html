@@ -299,31 +299,23 @@
 </mail>
 
 <drive_B>
-文件: BLUE-1.DOC
+文件: easter_egg.DOC
 分类: 最高机密
-日期: 1984-01-15
+日期: 2025-06-05
 
-蓝光计划 - 阶段1报告
+至玩家
 ==================
 
-项目概述:
-蓝光计划旨在研究量子纠缠现象及其在信息处理中的应用。初步实验表明，粒子间的纠缠状态可以用于传输信息，且不受传统物理限制。
+很感谢你愿意玩这个卡，目前游戏的只有一个基本框架，后续会不断更新。
 
-关键发现:
-1. 成功在实验室条件下维持了两个粒子的纠缠状态长达30秒
-2. 在分离距离达到100米的情况下观察到同步变化
-3. 信号传输尝试成功率: 37%
+游戏目前有以下几个功能：
+1. 终端
+2. 地图系统
+3. 档案系统
 
-团队成员:
-- 首席科学家: [数据已删除]
-- 量子物理专家: 李教授
-- 系统工程师: 马丁·科尔
-- 安全主管: [数据已删除]
+你可以通过在终端输入msg <角色> 来与角色对话，
 
-下一阶段计划:
-扩大实验规模，尝试在更远距离下测试信息传输可能性。
-
-注意: 所有实验必须在安全级别α设施内进行，未经授权不得将任何数据或设备移出。
+欢迎提出任何建议，或者你希望添加什么功能，都可以在帖子底下来告诉我。
 
 *该文档仅限授权人员查阅*
 </drive_B>
@@ -384,40 +376,48 @@
     <script src="js/core/serviceLocator.js"></script>
     <script src="js/core/gameCore.js"></script>
 
-    <!-- 服务层 -->
-    <script src="js/services/systemService.js"></script>
-    <script src="js/services/commandService.js"></script>
-    <script src="js/services/interfaceService.js"></script>
-    <script src="js/services/npcChatService.js"></script>
-    <script src="js/services/lorebookService.js"></script>
-    <script src="js/services/identityService.js"></script>
-    <script src="js/services/audioService.js"></script>
+    <!-- 游戏核心模块 -->
+    <script src="js/modules/game/systemService.js"></script>
+    <script src="js/modules/game/commandService.js"></script>
+    <script src="js/modules/game/interfaceService.js"></script>
 
     <!-- 基础工具类 -->
     <script src="js/eventBus.js"></script>
 
-    <!-- 模型层 -->
-    <script src="js/models/gameModel.js"></script>
-    <script src="js/models/floppyModel.js"></script>
-    <script src="js/models/mapModel.js"></script>
-    <script src="js/models/npcChatModel.js"></script>
-    <script src="js/models/identityModel.js"></script>
-    <script src="js/models/lorebookModel.js"></script>
+    <!-- 游戏核心模块 - 模型、视图、控制器 -->
+    <script src="js/modules/game/gameModel.js"></script>
+    <script src="js/modules/game/gameView.js"></script>
+    <script src="js/modules/game/gameController.js"></script>
 
-    <!-- 视图层 -->
-    <script src="js/views/gameView.js"></script>
-    <script src="js/views/floppyView.js"></script>
-    <script src="js/views/mapView.js"></script>
-    <script src="js/views/npcChatView.js"></script>
-    <script src="js/views/identityView.js"></script>
+    <!-- 身份系统模块 -->
+    <script src="js/modules/identity/identityService.js"></script>
+    <script src="js/modules/identity/identityModel.js"></script>
+    <script src="js/modules/identity/identityView.js"></script>
+    <script src="js/modules/identity/identityController.js"></script>
 
-    <!-- 控制器层 -->
-    <script src="js/controllers/gameController.js"></script>
-    <script src="js/controllers/floppyController.js"></script>
-    <script src="js/controllers/mapController.js"></script>
-    <script src="js/controllers/npcChatController.js"></script>
-    <script src="js/controllers/identityController.js"></script>
-    <script src="js/controllers/lorebookController.js"></script>
+    <!-- 地图系统模块 -->
+    <script src="js/modules/map/mapModel.js"></script>
+    <script src="js/modules/map/mapView.js"></script>
+    <script src="js/modules/map/mapController.js"></script>
+
+    <!-- 软盘系统模块 -->
+    <script src="js/modules/floppy/floppyModel.js"></script>
+    <script src="js/modules/floppy/floppyView.js"></script>
+    <script src="js/modules/floppy/floppyController.js"></script>
+
+    <!-- NPC对话模块 -->
+    <script src="js/modules/npcChat/npcChatService.js"></script>
+    <script src="js/modules/npcChat/npcChatModel.js"></script>
+    <script src="js/modules/npcChat/npcChatView.js"></script>
+    <script src="js/modules/npcChat/npcChatController.js"></script>
+
+    <!-- 档案系统模块 -->
+    <script src="js/modules/lorebook/lorebookService.js"></script>
+    <script src="js/modules/lorebook/lorebookModel.js"></script>
+    <script src="js/modules/lorebook/lorebookController.js"></script>
+
+    <!-- 音频系统模块 -->
+    <script src="js/modules/audio/audioService.js"></script>
 
     <!-- 主入口文件 -->
     <script src="js/main.js"></script>
