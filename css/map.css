@@ -393,3 +393,14 @@
 .location-marker.region-marker:hover {
     box-shadow: 0 0 15px currentColor, 0 0 25px currentColor;
 }
+
+.map-location-item.selected {
+    background-color: #00ff00; /* 80年代绿色高亮 */
+    color: #000000;
+}
+
+/* 琥珀模式下的选中样式 */
+.amber-mode .map-location-item.selected {
+    background-color: #ffb000;
+    color: #000000;
+}

@@ -19,6 +19,9 @@ class MapController {
         this.currentLocationIndex = -1;
         this.regionPositions = [];
         this.currentRegionIndex = -1;
+
+        this.selectedListIndex = 0;  // 当前在列表中选中的索引
+        this.currentListItems = [];  // 当前列表中的项目数组
         
         // 初始化UI
         this.view.initializeUI();
@@ -95,22 +98,22 @@ class MapController {
                 case 'w':
                 case 'ArrowUp':
                     e.preventDefault();
-                    this.moveCursor(0, -1);
+                    this.navigateList(-1); // 向上导航列表
                     break;
                 case 's':
                 case 'ArrowDown':
                     e.preventDefault();
-                    this.moveCursor(0, 1);
+                    this.navigateList(1); // 向下导航列表
                     break;
                 case 'a':
                 case 'ArrowLeft':
                     e.preventDefault();
-                    this.moveCursor(-1, 0);
+                    this.navigateViewBackward(); // 类似ESC，返回上一级视图
                     break;
                 case 'd':
                 case 'ArrowRight':
                     e.preventDefault();
-                    this.moveCursor(1, 0);
+                    this.navigateViewForward(); // 类似Enter，进入下一级视图
                     break;
                 
                 // 标签间导航
@@ -126,7 +129,7 @@ class MapController {
                 // 选择/取消选择
                 case 'Enter':
                     e.preventDefault();
-                    this.selectAtCursor();
+                    this.selectCurrentListItem(); // 选择当前列表项
                     break;
                 case 'Escape':
                     e.preventDefault();
@@ -839,5 +842,86 @@ class MapController {
         }
         
         return success;
+    }
+
+    // 列表导航方法
+    navigateList(delta) {
+        this.updateCurrentListItems();
+        
+        if (this.currentListItems.length === 0) return;
+        
+        // 计算新的索引
+        this.selectedListIndex = (this.selectedListIndex + delta + this.currentListItems.length) % this.currentListItems.length;
+        
+        // 更新UI高亮
+        this.view.highlightListItem(this.selectedListIndex);
+        
+        // 更新光标位置跟随选中项
+        const selectedItem = this.currentListItems[this.selectedListIndex];
+        if (selectedItem && selectedItem.coordinates) {
+            this.cursorPosition = { 
+                x: selectedItem.coordinates[0], 
+                y: selectedItem.coordinates[1] 
+            };
+            this.view.updateCursorPosition(this.cursorPosition);
+        }
+    }
+
+    // 更新当前列表项目
+    updateCurrentListItems() {
+        this.currentListItems = [];
+        
+        if (this.view.viewState === 'default') {
+            // 默认视图显示区域列表
+            const regions = this.model.getAllVisibleRegions();
+            for (const [name, data] of Object.entries(regions)) {
+                this.currentListItems.push({ name, coordinates: data.coordinates, type: 'region' });
+            }
+        } else if (this.view.viewState === 'region') {
+            // 区域视图显示地点列表
+            const currentRegion = this.model.getCurrentRegion();
+            const locations = currentRegion ? this.model.getLocationsByRegion(currentRegion) : {};
+            for (const [name, data] of Object.entries(locations)) {
+                this.currentListItems.push({ name, coordinates: data.coordinates, type: 'location' });
+            }
+        } else if (this.view.viewState === 'location') {
+            // 位置视图显示当前区域的所有地点
+            const currentRegion = this.model.getCurrentRegion();
+            const locations = currentRegion ? this.model.getLocationsByRegion(currentRegion) : {};
+            for (const [name, data] of Object.entries(locations)) {
+                this.currentListItems.push({ name, coordinates: data.coordinates, type: 'location' });
+            }
+        }
+        
+        // 确保索引在有效范围内
+        if (this.selectedListIndex >= this.currentListItems.length) {
+            this.selectedListIndex = 0;
+        }
+    }
+
+    // 视图向前导航 (相当于Enter)
+    navigateViewForward() {
+        const selectedItem = this.currentListItems[this.selectedListIndex];
+        if (!selectedItem) return;
+        
+        if (selectedItem.type === 'region') {
+            this.handleRegionSelection(selectedItem.name);
+        } else if (selectedItem.type === 'location') {
+            this.handleLocationSelection(selectedItem.name);
+        }
+    }
+
+    // 视图向后导航 (相当于ESC)
+    navigateViewBackward() {
+        if (this.view.viewState === 'location') {
+            this.clearSelection();
+        } else if (this.view.viewState === 'region') {
+            this._handleExitRegionView();
+        }
+    }
+
+    // 选择当前列表项
+    selectCurrentListItem() {
+        this.navigateViewForward(); // Enter键等同于D键/右方向键
     }
 }

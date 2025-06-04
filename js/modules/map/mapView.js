@@ -246,15 +246,18 @@ class MapView {
         
         let listHTML = '<div class="tui-frame"><div class="tui-title">可用位置</div>';
         
+        let index = 0;
         for (const [name, data] of Object.entries(locations)) {
             const currentClass = name === currentLocation ? 'current' : '';
-            listHTML += `<div class="map-location-item ${currentClass}" data-location="${name}">${name}</div>`;
+            const selectedClass = index === 0 ? 'selected' : ''; // 默认选中第一项
+            listHTML += `<div class="map-location-item ${currentClass} ${selectedClass}" data-location="${name}" data-index="${index}">${name}</div>`;
+            index++;
         }
         
         listHTML += '</div>';
         locationList.innerHTML = listHTML;
         
-        // 使用domUtils添加事件监听
+        // 事件监听保持不变
         const items = locationList.querySelectorAll('.map-location-item');
         items.forEach(item => {
             this.domUtils.on(item, 'click', () => {
@@ -335,14 +338,17 @@ class MapView {
         
         let listHTML = '<div class="tui-frame"><div class="tui-title">可用区域</div>';
         
+        let index = 0;
         for (const [name, data] of Object.entries(regions)) {
-            listHTML += `<div class="map-location-item" data-region="${name}">${name}</div>`;
+            const selectedClass = index === 0 ? 'selected' : ''; // 默认选中第一项
+            listHTML += `<div class="map-location-item ${selectedClass}" data-region="${name}" data-index="${index}">${name}</div>`;
+            index++;
         }
         
         listHTML += '</div>';
         locationList.innerHTML = listHTML;
         
-        // 使用domUtils添加事件监听
+        // 事件监听保持不变
         const items = locationList.querySelectorAll('.map-location-item');
         items.forEach(item => {
             this.domUtils.on(item, 'click', () => {
@@ -681,5 +687,26 @@ class MapView {
         allLabels.forEach(label => {
             label.style.fontSize = '12px'; // 所有标签都恢复正常大小
         });
+    }
+
+    // 高亮指定列表项
+    highlightListItem(index) {
+        const locationList = this.domUtils.get('#locationList');
+        if (!locationList) return;
+        
+        // 移除所有现有高亮
+        const allItems = locationList.querySelectorAll('.map-location-item');
+        allItems.forEach(item => this.domUtils.removeClass(item, 'selected'));
+        
+        // 高亮当前选中项
+        if (allItems[index]) {
+            this.domUtils.addClass(allItems[index], 'selected');
+            
+            // 确保选中项可见（滚动到视图中）
+            allItems[index].scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest' 
+            });
+        }
     }
 }
