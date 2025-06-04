@@ -404,3 +404,41 @@
     background-color: #ffb000;
     color: #000000;
 }
+
+/* 背景色高亮 */
+.map-location-info.focused .location-info-frame,
+.map-location-footer.focused .tui-frame {
+    background-color: rgba(0, 255, 0, 0.2); /* 绿色半透明背景 */
+    border-color: #00ff00; /* 绿色边框作为辅助 */
+}
+
+.map-location-info.focused .location-info-frame .tui-title,
+.map-location-info.focused .location-info-frame .location-description {
+    background-color: rgba(0, 255, 0, 0.1); /* 文本区域稍微深一点的背景 */
+}
+
+.map-location-footer.focused .access-info {
+    background-color: rgba(0, 255, 0, 0.1);
+}
+
+/* 琥珀色模式 */
+.amber-mode .map-location-info.focused .location-info-frame,
+.amber-mode .map-location-footer.focused .tui-frame {
+    background-color: rgba(255, 170, 0, 0.2); /* 琥珀色半透明背景 */
+    border-color: #ffaa00;
+}
+
+.amber-mode .map-location-info.focused .location-info-frame .tui-title,
+.amber-mode .map-location-info.focused .location-info-frame .location-description {
+    background-color: rgba(255, 170, 0, 0.1);
+}
+
+.amber-mode .map-location-footer.focused .access-info {
+    background-color: rgba(255, 170, 0, 0.1);
+}
+
+/* 聚焦状态的动画效果 */
+.location-info-frame.focused,
+.map-location-footer .tui-frame.focused {
+    transition: background-color 0.2s ease;
+}

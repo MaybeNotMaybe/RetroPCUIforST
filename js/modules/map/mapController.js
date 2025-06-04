@@ -23,6 +23,10 @@ class MapController {
         this.selectedListIndex = 0;  // 当前在列表中选中的索引
         this.currentListItems = [];  // 当前列表中的项目数组
         
+        // 地点视图的焦点状态管理
+        this.locationViewFocusIndex = 0; // 0: 地点详情, 1: 访问状态框
+        this.locationViewFocusItems = ['locationInfo', 'locationFooter'];
+        
         // 初始化UI
         this.view.initializeUI();
         
@@ -92,6 +96,12 @@ class MapController {
         // 地图键盘导航
         this.domUtils.on(document, 'keydown', (e) => {
             if (!this.model.isVisible) return;
+            
+            // 在地点视图中使用不同的键盘处理逻辑
+            if (this.view.viewState === 'location') {
+                this.handleLocationViewKeyboard(e);
+                return;
+            }
             
             switch (e.key) {
                 // WASD导航
@@ -238,6 +248,10 @@ class MapController {
                 this.view.highlightListItem(this.selectedListIndex);
             }
         }
+
+        // 重置地点视图焦点状态
+        this.locationViewFocusIndex = 0;
+        this.view.updateLocationViewFocus(this.locationViewFocusIndex);
     }
     
     // 处理位置选择
@@ -270,6 +284,10 @@ class MapController {
                 // 已经是位置详情视图，则重新缩放到新位置
                 this.view.zoomAndCenterOn(location.coordinates[0], location.coordinates[1]);
             }
+            
+            // 重置地点视图焦点状态
+            this.locationViewFocusIndex = 0;
+            this.view.updateLocationViewFocus(this.locationViewFocusIndex);
             
             return true;
         }
@@ -1008,5 +1026,66 @@ class MapController {
     // 选择当前列表项
     selectCurrentListItem() {
         this.navigateViewForward(); // Enter键等同于D键/右方向键
+    }
+
+    // 处理地点视图中的键盘事件
+    handleLocationViewKeyboard(e) {
+        switch (e.key) {
+            case 'w':
+            case 'ArrowUp':
+                e.preventDefault();
+                this.navigateLocationViewFocus(-1);
+                break;
+            case 's':
+            case 'ArrowDown':
+                e.preventDefault();
+                this.navigateLocationViewFocus(1);
+                break;
+            case 'a':
+            case 'ArrowLeft':
+                e.preventDefault();
+                this.clearSelection(); // 返回区域视图
+                break;
+            case 'd':
+            case 'ArrowRight':
+                e.preventDefault();
+                // 在地点视图中右键暂时无操作
+                break;
+            case 'q':
+                e.preventDefault();
+                this.navigateLocations(-1);
+                break;
+            case 'e':
+                e.preventDefault();
+                this.navigateLocations(1);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                this.handleLocationViewEnter();
+                break;
+            case 'Escape':
+                e.preventDefault();
+                this.clearSelection();
+                break;
+        }
+    }
+    
+    // 在地点视图的焦点元素之间导航
+    navigateLocationViewFocus(delta) {
+        const maxIndex = this.locationViewFocusItems.length - 1;
+        this.locationViewFocusIndex = (this.locationViewFocusIndex + delta + this.locationViewFocusItems.length) % this.locationViewFocusItems.length;
+        
+        // 更新视觉焦点
+        this.view.updateLocationViewFocus(this.locationViewFocusIndex);
+    }
+    
+    // 处理地点视图中的Enter键
+    handleLocationViewEnter() {
+        if (this.locationViewFocusIndex === 0) {
+            // 在地点详情上按Enter，切换表面/内部详情
+            console.log("切换地点详情内容");
+            this.view.toggleLocationDetailsContent();
+        }
+        // 如果焦点在访问状态框上（index === 1），暂时不做操作
     }
 }

@@ -29,6 +29,9 @@ class MapView {
         
         // 当前视图状态: 'default', 'region', 'location'
         this.viewState = 'default';
+        
+        // 地点视图焦点管理
+        this.locationViewFocusIndex = 0;
 
         // 当前地图的变换状态
         this.currentMapZoomScale = this.defaultMapZoomScale;
@@ -134,28 +137,41 @@ class MapView {
             
             // 获取当前是否显示隐藏内容
             const isShowingHidden = infoFrame.dataset.showingHidden === 'true';
-            infoFrame.dataset.showingHidden = isShowingHidden ? 'false' : 'true';
+            const newShowingHidden = !isShowingHidden;
+            infoFrame.dataset.showingHidden = newShowingHidden.toString();
             
             // 更新标题和位置图片
             const titleElement = infoFrame.querySelector('.tui-title');
             const locationImage = this.domUtils.get('#locationImage');
             
-            if (titleElement && locationData.isDisguised && locationData.disguiseRevealed && !isShowingHidden) {
-                titleElement.textContent = locationData.realName;
-                if (locationImage) {
-                    locationImage.innerHTML = `<div class="map-location-placeholder">${locationData.realName}</div>`;
-                }
-            } else if (titleElement && isShowingHidden) {
-                titleElement.textContent = locationData.displayName;
-                if (locationImage) {
-                    locationImage.innerHTML = `<div class="map-location-placeholder">${locationData.displayName}</div>`;
+            // 更新标题逻辑修复
+            if (titleElement) {
+                if (locationData.isDisguised && locationData.disguiseRevealed) {
+                    // 如果是伪装地点且已揭露伪装
+                    if (newShowingHidden) {
+                        titleElement.textContent = locationData.realName || locationData.displayName;
+                        if (locationImage) {
+                            locationImage.innerHTML = `<div class="map-location-placeholder">${locationData.realName || locationData.displayName}</div>`;
+                        }
+                    } else {
+                        titleElement.textContent = locationData.displayName;
+                        if (locationImage) {
+                            locationImage.innerHTML = `<div class="map-location-placeholder">${locationData.displayName}</div>`;
+                        }
+                    }
+                } else {
+                    // 普通地点，标题不变
+                    titleElement.textContent = locationData.displayName;
+                    if (locationImage) {
+                        locationImage.innerHTML = `<div class="map-location-placeholder">${locationData.displayName}</div>`;
+                    }
                 }
             }
             
             // 更新描述文本
             const descElement = infoFrame.querySelector('.location-description');
             if (descElement && locationData.knowsHidden) {
-                if (!isShowingHidden && locationData.hiddenDescription) {
+                if (newShowingHidden && locationData.hiddenDescription) {
                     descElement.textContent = locationData.hiddenDescription;
                     this.domUtils.addClass(descElement, 'revealed');
                     if (this.audio) this.audio.play('dataReveal');
@@ -166,7 +182,7 @@ class MapView {
             }
             
             // 更新访问状态
-            this.updateAccessStatus(locationData, !isShowingHidden);
+            this.updateAccessStatus(locationData, newShowingHidden);
         }
     }
 
@@ -550,6 +566,9 @@ class MapView {
         locationInfo.innerHTML = infoHTML;
         
         this.updateAccessStatus(location, false);
+        
+        // 初始化焦点状态
+        this.updateLocationViewFocus(0);
     }
 
     updateAccessStatus(location, isShowingHidden) {
@@ -708,5 +727,69 @@ class MapView {
                 block: 'nearest' 
             });
         }
+    }
+
+    // 更新地点视图的焦点高亮
+    updateLocationViewFocus(focusIndex) {
+        this.locationViewFocusIndex = focusIndex;
+        
+        // 移除所有焦点高亮
+        const locationInfo = this.domUtils.get('#locationInfo');
+        const locationFooter = this.domUtils.get('#locationFooter');
+        
+        // 移除焦点类
+        if (locationInfo) {
+            this.domUtils.removeClass(locationInfo, 'focused');
+            // 移除内部元素的focused类
+            const infoFrame = locationInfo.querySelector('.location-info-frame');
+            if (infoFrame) {
+                this.domUtils.removeClass(infoFrame, 'focused');
+            }
+        }
+        if (locationFooter) {
+            this.domUtils.removeClass(locationFooter, 'focused');
+            // 移除内部元素的focused类
+            const footerFrame = locationFooter.querySelector('.tui-frame');
+            if (footerFrame) {
+                this.domUtils.removeClass(footerFrame, 'focused');
+            }
+        }
+        
+        // 添加当前焦点高亮
+        if (focusIndex === 0 && locationInfo) {
+            this.domUtils.addClass(locationInfo, 'focused');
+            const infoFrame = locationInfo.querySelector('.location-info-frame');
+            if (infoFrame) {
+                this.domUtils.addClass(infoFrame, 'focused');
+            }
+        } else if (focusIndex === 1 && locationFooter) {
+            this.domUtils.addClass(locationFooter, 'focused');
+            const footerFrame = locationFooter.querySelector('.tui-frame');
+            if (footerFrame) {
+                this.domUtils.addClass(footerFrame, 'focused');
+            }
+        }
+    }
+    
+    // 切换地点详情内容（表面/内部详情）
+    toggleLocationDetailsContent() {
+        // 使用更可靠的方法查找元素
+        const locationInfo = this.domUtils.get('#locationInfo');
+        if (!locationInfo) {
+            console.log("无法找到locationInfo容器");
+            return;
+        }
+        
+        const infoFrame = locationInfo.querySelector('.location-info-frame') || 
+                         locationInfo.querySelector('#locationInfoFrame');
+        
+        if (!infoFrame) {
+            console.log("无法找到详情框元素");
+            return;
+        }
+        
+        console.log("键盘切换详情内容", infoFrame);
+        // 调用现有的点击处理逻辑
+        this.handleLocationInfoClick(infoFrame);
     }
 }
