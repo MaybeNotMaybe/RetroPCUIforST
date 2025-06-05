@@ -178,14 +178,19 @@ class InterfaceService {
                 dom.toggle(currentInterface.element, false);
             }
             
-            // 2. 特殊状态更新
+            // 2. 特殊状态更新 - 隐藏当前界面
             if (this.activeInterface === 'map' && currentInterface.controller) {
                 // 使用控制器的模型设置可见性
                 if (currentInterface.controller.model) {
                     currentInterface.controller.model.setVisibility(false);
                 }
             } else if (this.activeInterface === 'identity' && window.identityController) {
-                window.identityController.isVisible = false;
+                // 调用身份控制器的隐藏回调
+                if (typeof window.identityController.onInterfaceHidden === 'function') {
+                    window.identityController.onInterfaceHidden();
+                } else {
+                    window.identityController.isVisible = false;
+                }
             }
             
             // 3. 更新当前活动界面记录
@@ -196,7 +201,7 @@ class InterfaceService {
                 dom.toggle(targetInterface.element, true, 'flex');
             }
             
-            // 5. 特殊状态更新和视图刷新
+            // 5. 特殊状态更新和视图刷新 - 显示目标界面
             if (interfaceName === 'map' && targetInterface.controller) {
                 // 更新地图状态 - 使用控制器的模型设置可见性
                 if (targetInterface.controller.model) {
@@ -206,8 +211,12 @@ class InterfaceService {
                 // 触发地图渲染
                 targetInterface.controller.renderMap();
             } else if (interfaceName === 'identity' && window.identityController) {
-                // 更新档案界面状态
-                window.identityController.isVisible = true;
+                // 调用身份控制器的显示回调
+                if (typeof window.identityController.onInterfaceShown === 'function') {
+                    window.identityController.onInterfaceShown();
+                } else {
+                    window.identityController.isVisible = true;
+                }
                 
                 // 刷新身份显示
                 window.identityController.updateIdentityDisplays();

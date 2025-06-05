@@ -218,13 +218,13 @@ class IdentityView {
         rightPanel.appendChild(basicInfoPageElement);
         rightPanel.appendChild(disguisePageElement);
         
-        // 填充 Footer 内容 (如果HTML中只是空壳)
+        // 填充 Footer 内容 (简化键盘提示)
         this.statusFooter.innerHTML = `
             <div class="status-nav">
                 <button id="basicInfoButton" class="terminal-button active">基本档案</button>
                 <button id="disguiseButton" class="terminal-button">伪装系统</button>
             </div>
-            <div class="status-exit">按 F1 返回终端</div>
+            <div class="keyboard-hints">Q/E:切换页面 ↑/↓:导航 回车:确认 F1:终端</div>
         `;
     }
     
@@ -266,6 +266,9 @@ class IdentityView {
             this.domUtils.toggle(this.disguisePage, false);
             this.domUtils.addClass('#statusInterface #basicInfoButton', 'active');
             this.domUtils.removeClass('#statusInterface #disguiseButton', 'active');
+            
+            // 清除所有焦点状态
+            this.clearAllFocus();
         }
     }
     
@@ -275,6 +278,9 @@ class IdentityView {
             this.domUtils.toggle(this.disguisePage, true, 'flex');
             this.domUtils.removeClass('#statusInterface #basicInfoButton', 'active');
             this.domUtils.addClass('#statusInterface #disguiseButton', 'active');
+            
+            // 清除所有焦点状态
+            this.clearAllFocus();
         }
     }
     
@@ -284,6 +290,9 @@ class IdentityView {
         this.domUtils.toggle('#statusInterface #editDisguiseButton', true, 'block');
         this.domUtils.toggle('#statusInterface #quickClearDisguiseButton', true, 'block');
         this.domUtils.toggle('#statusInterface #backToCurrentButton', false);
+        
+        // 清除所有焦点状态
+        this.clearAllFocus();
     }
 
     showEditDisguiseView() {
@@ -292,23 +301,28 @@ class IdentityView {
         this.domUtils.toggle('#statusInterface #editDisguiseButton', false);
         this.domUtils.toggle('#statusInterface #quickClearDisguiseButton', false);
         this.domUtils.toggle('#statusInterface #backToCurrentButton', true, 'block');
+        
+        // 清除所有焦点状态
+        this.clearAllFocus();
     }
     
     updateRealIdentity(identity) {
-        // realIdentityDisplay 将在 basicInfoPage 内部的 #identityFile 中
-        const identityFileElement = this.domUtils.get('#statusInterface #identityFile');
-        if (identityFileElement && this.domUtils.get('#statusInterface .file-tab[data-identity-type="real"].active')) {
-             identityFileElement.innerHTML = this.formatFileDisplay(identity, true); // true for isSecret
-             this.updateIdentityFileNationalityClass(identityFileElement, identity);
+        // 如果当前在基本档案页面且显示真实身份，更新分页显示
+        if (this.domUtils.get('#statusInterface #basicInfoPage').style.display !== 'none') {
+            const identityController = window.identityController;
+            if (identityController && identityController.currentIdentityType === 'real') {
+                this.updateFilePageDisplay(identity, identityController.currentFilePage, identityController.totalFilePages, true, 'real');
+            }
         }
     }
     
     updateCoverIdentity(identity) {
-        // coverIdentityDisplay 将在 basicInfoPage 内部的 #identityFile 中
-        const identityFileElement = this.domUtils.get('#statusInterface #identityFile');
-        if (identityFileElement && this.domUtils.get('#statusInterface .file-tab[data-identity-type="cover"].active')) {
-            identityFileElement.innerHTML = this.formatFileDisplay(identity, false); // false for isSecret
-            this.updateIdentityFileNationalityClass(identityFileElement, identity);
+        // 如果当前在基本档案页面且显示表面身份，更新分页显示
+        if (this.domUtils.get('#statusInterface #basicInfoPage').style.display !== 'none') {
+            const identityController = window.identityController;
+            if (identityController && identityController.currentIdentityType === 'cover') {
+                this.updateFilePageDisplay(identity, identityController.currentFilePage, identityController.totalFilePages, false, 'cover');
+            }
         }
     }
 
@@ -497,5 +511,341 @@ class IdentityView {
         let result = "";
         for (let i = 0; i < length; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
         return result;
+    }
+
+    // 设置焦点
+    setFocus(element, type) {
+        if (!element) return;
+        
+        // 移除所有现有的焦点
+        this.domUtils.getAll('.keyboard-focus').forEach(el => {
+            this.domUtils.removeClass(el, 'keyboard-focus');
+        });
+        
+        // 添加焦点样式
+        this.domUtils.addClass(element, 'keyboard-focus');
+        
+        // 根据元素类型添加特定的焦点样式
+        switch (type) {
+            case 'identity-file':
+                this.domUtils.addClass(element, 'keyboard-focus-file');
+                break;
+            case 'disguise-display':
+                this.domUtils.addClass(element, 'keyboard-focus-display');
+                break;
+            case 'nav-button':
+                this.domUtils.addClass(element, 'keyboard-focus-button');
+                break;
+            case 'action-button':
+                this.domUtils.addClass(element, 'keyboard-focus-action');
+                break;
+        }
+        
+        // 确保元素在视口内可见
+        this.scrollIntoViewIfNeeded(element);
+    }
+
+    // 移除焦点
+    removeFocus(element) {
+        if (!element) return;
+        
+        this.domUtils.removeClass(element, 'keyboard-focus');
+        this.domUtils.removeClass(element, 'keyboard-focus-file');
+        this.domUtils.removeClass(element, 'keyboard-focus-display');
+        this.domUtils.removeClass(element, 'keyboard-focus-button');
+        this.domUtils.removeClass(element, 'keyboard-focus-action');
+    }
+
+    // 确保元素在视口内可见
+    scrollIntoViewIfNeeded(element) {
+        if (!element) return;
+        
+        const rect = element.getBoundingClientRect();
+        const container = this.statusInterface;
+        
+        if (!container) return;
+        
+        const containerRect = container.getBoundingClientRect();
+        
+        // 检查元素是否在容器的可视区域内
+        if (rect.top < containerRect.top || rect.bottom > containerRect.bottom) {
+            element.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+        }
+    }
+
+    // 清除所有焦点状态
+    clearAllFocus() {
+        this.domUtils.getAll('.keyboard-focus').forEach(el => {
+            this.removeFocus(el);
+        });
+    }
+
+    // 更新档案分页显示 - 改为动态分页
+    updateFilePageDisplay(identity, currentPage, totalPages, isSecret = false, identityType = 'cover') {
+        const identityFile = this.domUtils.get('#identityFile');
+        if (!identityFile) return;
+
+        // 生成所有页面内容
+        const allPages = this.generateAllPages(identity, isSecret, identityType);
+        
+        // 更新总页数
+        if (window.identityController) {
+            window.identityController.totalFilePages = allPages.length;
+        }
+
+        // 确保当前页面在有效范围内
+        if (currentPage > allPages.length) {
+            currentPage = 1;
+            if (window.identityController) {
+                window.identityController.currentFilePage = 1;
+            }
+        }
+
+        // 显示当前页内容
+        const pageContent = allPages[currentPage - 1] || allPages[0];
+        const pageIndicator = this.generatePageIndicator(currentPage, allPages.length);
+        
+        identityFile.innerHTML = pageContent + pageIndicator;
+    }
+
+    // 生成所有页面内容
+    generateAllPages(identity, isSecret, identityType) {
+        if (!identity) {
+            return ['<p class="no-identity">身份不明</p>'];
+        }
+
+        const pages = [];
+        
+        // 第1页：基本信息
+        pages.push(this.generateBasicInfoPage(identity, isSecret, identityType));
+        
+        // 第2页：技能档案
+        pages.push(this.generateSkillsPage(identity, isSecret, identityType));
+        
+        // 第3页开始：附加信息（根据内容自动分页）
+        const additionalInfoPages = this.generateAdditionalInfoPages(identity, isSecret, identityType);
+        pages.push(...additionalInfoPages);
+
+        return pages;
+    }
+
+    // 生成附加信息页面（支持自动分页）
+    generateAdditionalInfoPages(identity, isSecret, identityType) {
+        const pages = [];
+        const maxRowsPerPage = 6; // 每页最大行数
+        
+        let headerTitle = "附加档案信息";
+        let headerSubtitle = `档案级别: ${isSecret ? "绝密" : "普通"}`;
+        let stampText = isSecret ? "限制访问" : "标准档案";
+
+        // 准备所有要显示的数据行
+        const allRows = [];
+        
+        // 安全信息部分
+        const securityRows = this.generateSecurityInfoRows(identity, isSecret);
+        allRows.push({
+            sectionTitle: "安全信息",
+            rows: securityRows
+        });
+
+        // 档案信息部分
+        const archiveRows = [
+            { label: "创建时间", value: this.getCurrentTimeString() },
+            { label: "最后更新", value: this.getCurrentTimeString() },
+            { label: "档案状态", value: "有效" },
+            { label: "访问级别", value: isSecret ? "限制访问" : "标准访问" },
+            { label: "备份状态", value: "已备份" }
+        ];
+        allRows.push({
+            sectionTitle: "档案信息",
+            rows: archiveRows
+        });
+
+        // 根据内容长度分页
+        let currentPageRows = [];
+        let currentRowCount = 0;
+
+        for (const section of allRows) {
+            // 检查是否需要新页面（标题 + 至少一行内容）
+            if (currentRowCount > 0 && currentRowCount + section.rows.length + 1 > maxRowsPerPage) {
+                // 创建当前页面
+                pages.push(this.buildAdditionalInfoPage(headerTitle, headerSubtitle, stampText, currentPageRows));
+                currentPageRows = [];
+                currentRowCount = 0;
+            }
+
+            // 添加当前部分
+            currentPageRows.push(section);
+            currentRowCount += section.rows.length + 1; // +1 for section title
+        }
+
+        // 添加最后一页
+        if (currentPageRows.length > 0) {
+            pages.push(this.buildAdditionalInfoPage(headerTitle, headerSubtitle, stampText, currentPageRows));
+        }
+
+        return pages.length > 0 ? pages : [this.buildAdditionalInfoPage(headerTitle, headerSubtitle, stampText, [])];
+    }
+
+    // 生成安全信息行
+    generateSecurityInfoRows(identity, isSecret) {
+        const rows = [];
+        
+        if (identity.type === "情报人员") {
+            rows.push(
+                { label: "安全级别", value: isSecret ? "α级" : "β级" },
+                { label: "行动许可", value: isSecret ? "无限制" : "有限制" },
+                { label: "接触级别", value: isSecret ? "最高机密" : "机密" },
+                { label: "武器许可", value: isSecret ? "完全授权" : "有限授权" }
+            );
+        } else if (identity.type === "外交人员") {
+            rows.push(
+                { label: "外交级别", value: isSecret ? "特级" : "普通" },
+                { label: "外交豁免", value: "是" },
+                { label: "特权范围", value: isSecret ? "完全豁免" : "基本豁免" },
+                { label: "领事权限", value: isSecret ? "全权代表" : "一般权限" }
+            );
+        } else if (identity.type === "军人") {
+            rows.push(
+                { label: "军衔等级", value: isSecret ? "高级军官" : "普通军官" },
+                { label: "作战权限", value: isSecret ? "指挥权限" : "执行权限" },
+                { label: "机密等级", value: isSecret ? "绝密" : "机密" }
+            );
+        } else {
+            rows.push(
+                { label: "背景检查", value: isSecret ? "深度调查" : "标准调查" },
+                { label: "信任等级", value: isSecret ? "完全信任" : "一般信任" },
+                { label: "权限级别", value: isSecret ? "高级权限" : "标准权限" }
+            );
+        }
+        
+        return rows;
+    }
+
+    // 构建附加信息页面
+    buildAdditionalInfoPage(headerTitle, headerSubtitle, stampText, sections) {
+        let html = `
+        <div class="file-header">
+            <div class="file-title">${headerTitle}</div>
+            <div class="file-subtitle">${headerSubtitle}</div>
+        </div>
+        <div class="file-content">`;
+
+        for (const section of sections) {
+            html += `
+            <div class="file-section">
+                <div class="section-title">${section.sectionTitle}</div>`;
+            
+            for (const row of section.rows) {
+                html += `<div class="file-row"><div class="file-label">${row.label}:</div><div class="file-value">${row.value}</div></div>`;
+            }
+            
+            html += `</div>`;
+        }
+
+        html += `
+        </div>
+        <div class="file-stamp">${stampText}</div>`;
+        
+        return html;
+    }
+
+    // 生成分页指示器（更新以支持动态页数）
+    generatePageIndicator(currentPage, totalPages) {
+        return `
+        <div class="page-indicator">
+            <div class="page-info">第 ${currentPage} 页 / 共 ${totalPages} 页</div>
+            <div class="page-controls">←/→ 翻页 | 空格 切换身份</div>
+        </div>`;
+    }
+
+    // 生成第1页：基本信息
+    generateBasicInfoPage(identity, isSecret, identityType) {
+        if (!identity) return '<p class="no-identity">身份不明</p>';
+        
+        let headerTitle = '', headerSubtitle = '', stampText = '';
+        switch(identity.nationality) {
+            case "美国": 
+                headerTitle = "联邦调查局"; 
+                headerSubtitle = "人员档案"; 
+                stampText = isSecret ? "最高机密" : "官方档案"; 
+                break;
+            case "英国": 
+                headerTitle = "秘密情报局"; 
+                headerSubtitle = "档案编号: " + this.generateRandomCode(8); 
+                stampText = isSecret ? "绝密" : "机密"; 
+                break;
+            case "法国": 
+                headerTitle = "对外安全总局"; 
+                headerSubtitle = "特工档案"; 
+                stampText = isSecret ? "国家机密" : "限制传阅"; 
+                break;
+            case "苏联": 
+                headerTitle = "国家安全委员会"; 
+                headerSubtitle = "人员档案 " + this.generateRandomCode(5); 
+                stampText = isSecret ? "绝密档案" : "登记档案"; 
+                break;
+            default: 
+                headerTitle = "档案记录"; 
+                headerSubtitle = "身份信息"; 
+                stampText = isSecret ? "机密" : "已登记";
+        }
+        
+        let html = `
+        <div class="file-header">
+            <div class="file-title">${headerTitle}</div>
+            <div class="file-subtitle">${headerSubtitle}</div>
+        </div>
+        <div class="file-content">
+            <div class="file-section">
+                <div class="section-title">基本信息</div>
+                <div class="file-row"><div class="file-label">国籍:</div><div class="file-value">${identity.nationality}</div></div>
+                <div class="file-row"><div class="file-label">身份类型:</div><div class="file-value">${identity.type}</div></div>`;
+        
+        if (identity.function) {
+            html += `<div class="file-row"><div class="file-label">职能:</div><div class="file-value">${identity.function}</div></div>`;
+        }
+        if (identity.organization) {
+            html += `<div class="file-row"><div class="file-label">隶属机构:</div><div class="file-value">${identity.organization}</div></div>`;
+        }
+        
+        html += `
+            </div>
+        </div>
+        <div class="file-stamp">${stampText}</div>`;
+        
+        return html;
+    }
+
+    // 生成第2页：技能档案（暂时留空）
+    generateSkillsPage(identity, isSecret, identityType) {
+        if (!identity) return '<p class="no-identity">身份不明</p>';
+        
+        let headerTitle = "技能评估档案";
+        let headerSubtitle = `评估日期: ${this.getCurrentTimeString()}`;
+        let stampText = isSecret ? "内部资料" : "标准评估";
+        
+        let html = `
+        <div class="file-header">
+            <div class="file-title">${headerTitle}</div>
+            <div class="file-subtitle">${headerSubtitle}</div>
+        </div>
+        <div class="file-content">
+            <div class="file-section">
+                <div class="section-title">专业技能</div>
+                <div class="file-row"><div class="file-label">状态:</div><div class="file-value">评估中...</div></div>
+                <div class="file-row"><div class="file-label">备注:</div><div class="file-value">技能档案尚未完成</div></div>
+            </div>
+            <div class="file-section">
+                <div class="section-title">系统提示</div>
+                <div class="file-row"><div class="file-label">信息:</div><div class="file-value">此功能正在开发中</div></div>
+            </div>
+        </div>
+        <div class="file-stamp">${stampText}</div>`;
+        
+        return html;
     }
 }

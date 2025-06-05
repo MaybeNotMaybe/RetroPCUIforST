@@ -17,6 +17,17 @@ class IdentityController {
         
         // 初始化标记
         this.initialized = false;
+        
+        // 键盘导航相关属性
+        this.keyboardNavigationEnabled = false;
+        this.currentPage = 'basic'; // 'basic' 或 'disguise'
+        this.focusedElementIndex = 0;
+        this.focusableElements = [];
+        this.keyboardEventListener = null;
+        
+        // 档案分页相关属性
+        this.currentFilePage = 1; // 当前档案页面
+        this.totalFilePages = 3; // 总页数（动态更新）
     }
     
     // 初始化控制器
@@ -218,6 +229,9 @@ class IdentityController {
                 if (this.audio) this.audio.play('functionButton');
             });
         }
+
+        // 设置键盘导航
+        this.setupKeyboardNavigation();
     }
     
     // 填充表单选择框
@@ -351,26 +365,9 @@ class IdentityController {
             if (this.isVisible) {
                 // 如果当前已经显示档案，则切回终端
                 this.interfaceService.switchTo('terminal');
-                this.isVisible = false;
             } else {
                 // 否则切到档案
                 this.interfaceService.switchTo('identity');
-                this.isVisible = true;
-                
-                // 确保显示表面身份
-                this.currentIdentityType = 'cover';
-                await this.switchIdentityView('cover');
-                this.view.showBasicInfoPage();
-                
-                // 激活对应的标签页
-                this.domUtils.getAll('.file-tab').forEach(t => {
-                    this.domUtils.removeClass(t, 'active');
-                });
-                
-                const coverTab = this.domUtils.get('.file-tab[data-identity-type="cover"]');
-                if (coverTab) {
-                    this.domUtils.addClass(coverTab, 'active');
-                }
             }
             return true;
         }
@@ -390,12 +387,18 @@ class IdentityController {
         await this.updateIdentityDisplays();
         this.view.show();
         this.isVisible = true;
+        
+        // 启用键盘导航
+        this.enableKeyboardNavigation();
     }
     
     // 隐藏身份界面
     hide() {
         this.view.hide();
         this.isVisible = false;
+        
+        // 禁用键盘导航
+        this.disableKeyboardNavigation();
     }
 
     // 切换档案文件区域显示的身份 (真实身份 vs 表面身份)
@@ -404,6 +407,7 @@ class IdentityController {
         if (!identityFile) return;
         
         this.currentIdentityType = identityTypeSuffix;
+        this.currentFilePage = 1; // 切换身份时重置到第一页
 
         let identityData = null;
         let isSecret = false;
@@ -412,24 +416,19 @@ class IdentityController {
             if (identityTypeSuffix === 'real') {
                 identityData = await this.model.getRealIdentity();
                 isSecret = true;
-            } else { // 'cover'
+            } else {
                 identityData = await this.model.getCoverIdentity();
-                isSecret = false; // 表面身份不是机密
+                isSecret = false;
             }
             
-            // 更新档案内容
-            identityFile.innerHTML = this.view.formatFileDisplay(identityData, isSecret);
+            // 使用新的分页显示方法
+            this.view.updateFilePageDisplay(identityData, this.currentFilePage, this.totalFilePages, isSecret, identityTypeSuffix);
             
             // 设置国籍特定样式
-            identityFile.className = 'identity-file'; // 重置类名
+            identityFile.className = 'identity-file';
             if (identityData) {
-                // 移除所有国籍类
-                this.domUtils.removeClass(identityFile, 'nationality-usa');
-                this.domUtils.removeClass(identityFile, 'nationality-uk');
-                this.domUtils.removeClass(identityFile, 'nationality-france');
-                this.domUtils.removeClass(identityFile, 'nationality-soviet');
+                this.domUtils.removeClass(identityFile, 'nationality-usa', 'nationality-uk', 'nationality-france', 'nationality-soviet');
                 
-                // 添加对应国籍类
                 switch(identityData.nationality) {
                     case "美国": this.domUtils.addClass(identityFile, 'nationality-usa'); break;
                     case "英国": this.domUtils.addClass(identityFile, 'nationality-uk'); break;
@@ -487,5 +486,350 @@ class IdentityController {
     // F2按钮调用的方法
     async showHideIdentityView() {
         return await this.toggleIdentityView();
+    }
+
+    // 设置键盘导航系统
+    setupKeyboardNavigation() {
+        // 移除之前的事件监听器（如果存在）
+        if (this.keyboardEventListener) {
+            document.removeEventListener('keydown', this.keyboardEventListener, true);
+        }
+
+        // 创建键盘事件处理器
+        this.keyboardEventListener = (e) => {
+            this.handleKeyboardNavigation(e);
+        };
+
+        // 使用捕获阶段绑定键盘事件，确保优先级
+        document.addEventListener('keydown', this.keyboardEventListener, true);
+    }
+
+    // 处理键盘导航
+    handleKeyboardNavigation(e) {
+        // 如果不是身份界面，不处理
+        if (!this.isVisible || !this.keyboardNavigationEnabled) return;
+        
+        // 阻止事件冒泡和默认行为，防止其他系统处理
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        switch (e.key) {
+            // F1 键：返回终端（但不阻止，让InterfaceService处理）
+            case 'F1':
+                return;
+                
+            // Q/E 键：页面间切换
+            case 'q':
+            case 'Q':
+                e.preventDefault();
+                this.navigateToPage('basic');
+                break;
+            case 'e':
+            case 'E':
+                e.preventDefault();
+                this.navigateToPage('disguise');
+                break;
+            
+            // A/D 或 ←/→：档案分页导航（仅在基本档案页面且焦点在档案文件上时）
+            case 'a':
+            case 'A':
+            case 'ArrowLeft':
+                if (this.currentPage === 'basic' && this.isFocusOnFile()) {
+                    e.preventDefault();
+                    this.navigateFilePage(-1);
+                } else {
+                    e.preventDefault();
+                    this.navigateFocus(-1);
+                }
+                break;
+            case 'd':
+            case 'D':
+            case 'ArrowRight':
+                if (this.currentPage === 'basic' && this.isFocusOnFile()) {
+                    e.preventDefault();
+                    this.navigateFilePage(1);
+                } else {
+                    e.preventDefault();
+                    this.navigateFocus(1);
+                }
+                break;
+            
+            // W/S 或 ↑/↓：元素间导航
+            case 'w':
+            case 'W':
+            case 'ArrowUp':
+                e.preventDefault();
+                this.navigateFocus(-1);
+                break;
+            case 's':
+            case 'S':
+            case 'ArrowDown':
+                e.preventDefault();
+                this.navigateFocus(1);
+                break;
+            
+            // Space：激活/切换
+            case ' ':
+                e.preventDefault();
+                this.activateCurrentElement();
+                break;
+            
+            // Enter：确认选择
+            case 'Enter':
+                e.preventDefault();
+                this.confirmCurrentElement();
+                break;
+            
+            // Escape：返回/取消
+            case 'Escape':
+                e.preventDefault();
+                this.handleEscape();
+                break;
+                
+            default:
+                return;
+        }
+    }
+
+    // 检查当前焦点是否在档案文件上
+    isFocusOnFile() {
+        if (this.focusedElementIndex < 0 || this.focusedElementIndex >= this.focusableElements.length) {
+            return false;
+        }
+        const currentElement = this.focusableElements[this.focusedElementIndex];
+        return currentElement.type === 'identity-file';
+    }
+
+    // 导航档案分页
+    async navigateFilePage(direction) {
+        const newPage = this.currentFilePage + direction;
+        
+        if (newPage >= 1 && newPage <= this.totalFilePages) {
+            const currentIndex = this.focusedElementIndex; // 保存当前焦点
+            this.currentFilePage = newPage;
+            await this.updateFilePageDisplay();
+            
+            // 保持焦点在档案文件上
+            setTimeout(() => {
+                this.setFocus(currentIndex);
+            }, 50);
+            
+            // 播放翻页音效
+            if (this.audio) this.audio.play('functionButton');
+        }
+    }
+
+    // 更新档案页面显示
+    async updateFilePageDisplay() {
+        if (this.currentPage !== 'basic') return;
+        
+        // 获取当前身份数据
+        let identityData = null;
+        let isSecret = false;
+        
+        try {
+            if (this.currentIdentityType === 'real') {
+                identityData = await this.model.getRealIdentity();
+                isSecret = true;
+            } else {
+                identityData = await this.model.getCoverIdentity();
+                isSecret = false;
+            }
+            
+            // 更新档案显示（view会自动更新totalFilePages）
+            this.view.updateFilePageDisplay(identityData, this.currentFilePage, this.totalFilePages, isSecret, this.currentIdentityType);
+            
+        } catch (error) {
+            console.error(`更新档案页面显示失败:`, error);
+        }
+    }
+
+    // 导航到指定页面
+    async navigateToPage(page) {
+        if (this.currentPage === page) return;
+        
+        this.currentPage = page;
+        
+        if (page === 'basic') {
+            this.view.showBasicInfoPage();
+            this.currentIdentityType = 'cover';
+            this.currentFilePage = 1; // 重置到第一页
+            await this.switchIdentityView('cover');
+        } else if (page === 'disguise') {
+            this.view.showDisguisePage();
+        }
+        
+        // 重新初始化可聚焦元素并重置焦点
+        this.initializeFocusableElements();
+        this.setFocus(0);
+        
+        // 播放音效
+        if (this.audio) this.audio.play('functionButton');
+    }
+
+    // 初始化可聚焦元素
+    initializeFocusableElements() {
+        this.focusableElements = [];
+        
+        if (this.currentPage === 'basic') {
+            // 基本档案页面的可聚焦元素
+            const identityFile = this.domUtils.get('#identityFile');
+            const basicInfoButton = this.domUtils.get('#basicInfoButton');
+            const disguiseButton = this.domUtils.get('#disguiseButton');
+            
+            if (identityFile) this.focusableElements.push({ element: identityFile, type: 'identity-file' });
+            if (basicInfoButton) this.focusableElements.push({ element: basicInfoButton, type: 'nav-button' });
+            if (disguiseButton) this.focusableElements.push({ element: disguiseButton, type: 'nav-button' });
+            
+        } else if (this.currentPage === 'disguise') {
+            // 伪装页面的可聚焦元素
+            const currentDisguiseDisplay = this.domUtils.get('#currentDisguiseDisplay');
+            const editDisguiseButton = this.domUtils.get('#editDisguiseButton');
+            const quickClearButton = this.domUtils.get('#quickClearDisguiseButton');
+            const backButton = this.domUtils.get('#backToCurrentButton');
+            const basicInfoButton = this.domUtils.get('#basicInfoButton');
+            const disguiseButton = this.domUtils.get('#disguiseButton');
+            
+            if (currentDisguiseDisplay) this.focusableElements.push({ element: currentDisguiseDisplay, type: 'disguise-display' });
+            if (editDisguiseButton && editDisguiseButton.style.display !== 'none') {
+                this.focusableElements.push({ element: editDisguiseButton, type: 'action-button' });
+            }
+            if (quickClearButton && quickClearButton.style.display !== 'none') {
+                this.focusableElements.push({ element: quickClearButton, type: 'action-button' });
+            }
+            if (backButton && backButton.style.display !== 'none') {
+                this.focusableElements.push({ element: backButton, type: 'action-button' });
+            }
+            if (basicInfoButton) this.focusableElements.push({ element: basicInfoButton, type: 'nav-button' });
+            if (disguiseButton) this.focusableElements.push({ element: disguiseButton, type: 'nav-button' });
+        }
+    }
+
+    // 导航焦点
+    navigateFocus(direction) {
+        if (this.focusableElements.length === 0) return;
+        
+        const newIndex = this.focusedElementIndex + direction;
+        
+        if (newIndex >= 0 && newIndex < this.focusableElements.length) {
+            this.setFocus(newIndex);
+        }
+    }
+
+    // 设置焦点
+    setFocus(index) {
+        // 移除之前的焦点
+        if (this.focusedElementIndex >= 0 && this.focusedElementIndex < this.focusableElements.length) {
+            const prevElement = this.focusableElements[this.focusedElementIndex];
+            this.view.removeFocus(prevElement.element);
+        }
+        
+        // 设置新焦点
+        this.focusedElementIndex = index;
+        if (index >= 0 && index < this.focusableElements.length) {
+            const currentElement = this.focusableElements[index];
+            this.view.setFocus(currentElement.element, currentElement.type);
+        }
+    }
+
+    // 激活当前元素（Space键）
+    async activateCurrentElement() {
+        if (this.focusedElementIndex < 0 || this.focusedElementIndex >= this.focusableElements.length) return;
+        
+        const currentElement = this.focusableElements[this.focusedElementIndex];
+        const currentIndex = this.focusedElementIndex; // 保存当前焦点索引
+        
+        switch (currentElement.type) {
+            case 'identity-file':
+                // 在真实身份和表面身份间切换
+                await this.toggleIdentityFileView();
+                if (this.audio) this.audio.play('functionButton');
+                break;
+            case 'disguise-display':
+                // 切换到编辑伪装视图
+                this.view.showEditDisguiseView();
+                this.initializeFocusableElements(); // 重新初始化焦点元素
+                this.setFocus(0); // 重置焦点到第一个元素
+                if (this.audio) this.audio.play('functionButton');
+                return; // 早期返回，不重新设置焦点
+        }
+        
+        // 对于其他操作，保持原有焦点
+        setTimeout(() => {
+            this.setFocus(currentIndex);
+        }, 50);
+    }
+
+    // 确认当前元素（Enter键）
+    async confirmCurrentElement() {
+        if (this.focusedElementIndex < 0 || this.focusedElementIndex >= this.focusableElements.length) return;
+        
+        const currentElement = this.focusableElements[this.focusedElementIndex];
+        const currentIndex = this.focusedElementIndex; // 保存当前焦点索引
+        
+        switch (currentElement.type) {
+            case 'nav-button':
+            case 'action-button':
+                // 触发按钮点击事件
+                currentElement.element.click();
+                // 延迟重新设置焦点，等待界面更新完成
+                setTimeout(() => {
+                    this.initializeFocusableElements();
+                    // 尝试保持在相同位置，如果超出范围则设置为第一个
+                    const newIndex = currentIndex < this.focusableElements.length ? currentIndex : 0;
+                    this.setFocus(newIndex);
+                }, 100);
+                break;
+            default:
+                // 对于其他类型的元素，Enter和Space执行相同操作
+                await this.activateCurrentElement();
+                break;
+        }
+    }
+
+    // 处理Escape键
+    handleEscape() {
+        // 如果当前在编辑伪装视图，返回到当前伪装视图
+        const editView = this.domUtils.get('#disguiseEditView');
+        if (editView && editView.style.display !== 'none') {
+            this.view.showCurrentDisguiseView();
+            this.initializeFocusableElements();
+            this.setFocus(0);
+            if (this.audio) this.audio.play('functionButton');
+        }
+    }
+
+    // 启用键盘导航
+    enableKeyboardNavigation() {
+        this.keyboardNavigationEnabled = true;
+        this.initializeFocusableElements();
+        this.setFocus(0);
+        console.log("身份系统: 键盘导航已启用");
+    }
+
+    // 禁用键盘导航
+    disableKeyboardNavigation() {
+        this.keyboardNavigationEnabled = false;
+        // 移除所有焦点
+        if (this.focusedElementIndex >= 0 && this.focusedElementIndex < this.focusableElements.length) {
+            const currentElement = this.focusableElements[this.focusedElementIndex];
+            this.view.removeFocus(currentElement.element);
+        }
+        console.log("身份系统: 键盘导航已禁用");
+    }
+
+    // 添加interface service的回调方法
+    onInterfaceShown() {
+        // 当通过interface service显示身份界面时调用
+        this.isVisible = true;
+        this.enableKeyboardNavigation();
+        console.log("身份界面已显示，键盘导航已启用");
+    }
+
+    onInterfaceHidden() {
+        // 当通过interface service隐藏身份界面时调用
+        this.isVisible = false;
+        this.disableKeyboardNavigation();
+        console.log("身份界面已隐藏，键盘导航已禁用");
     }
 }
