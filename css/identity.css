@@ -180,8 +180,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 修复：防止整体溢出 */
-    min-height: 0; /* 修复：允许内容收缩 */
+    overflow: hidden !important; /* 防止整体溢出 */
+    min-height: 0;
 }
 
 /* 确保伪装档案容器填充整个可滚动区域 */
@@ -189,7 +189,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 修复：防止内容溢出 */
+    overflow: hidden !important; /* 防止内容溢出 */
+    min-height: 0;
 }
 
 .disguise-edit-view {
@@ -563,25 +564,17 @@
     border-color: #ffb000;
 }
 
-/* 伪装当前视图样式 */
-.disguise-current-view .identity-file-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* 修复：防止内容溢出 */
-    min-height: 0; /* 修复：允许内容收缩 */
-}
-
-/* 确保伪装系统使用相同的档案样式 */
+/* 确保伪装显示区域不出现滚动条，内容通过分页处理 */
 #currentDisguiseDisplay {
     flex: 1;
     border: 1px solid #33ff33;
     padding: 15px;
     position: relative;
-    overflow-y: auto !important; /* 修复：强制启用垂直滚动 */
+    overflow: hidden !important; /* 强制隐藏滚动条，通过分页处理内容 */
     scrollbar-width: none;
     -ms-overflow-style: none;
-    min-height: 0; /* 修复：允许内容收缩 */
+    min-height: 0;
+    padding-bottom: 50px; /* 为分页指示器留出空间 */
 }
 
 #currentDisguiseDisplay::-webkit-scrollbar {
@@ -597,7 +590,7 @@
 .keyboard-focus {
     position: relative;
     outline: none;
-    border: 2px dashed #33ff33 !important;
+    border: 1px dashed #33ff33 !important; /* 改为1px */
     background-color: rgba(51, 255, 51, 0.15) !important;
     transition: none; /* 移除过渡效果 */
 }
@@ -619,7 +612,7 @@
 
 /* 特定元素类型的焦点样式 - 常亮版本 */
 .keyboard-focus-file {
-    border-width: 3px !important;
+    border-width: 1px !important; /* 改为1px */
     border-style: dashed !important;
     background-color: rgba(51, 255, 51, 0.1) !important;
 }
@@ -628,18 +621,19 @@
     background-color: rgba(255, 176, 0, 0.1) !important;
 }
 
+/* 为伪装显示区域添加与档案文件相同的焦点样式 */
 .keyboard-focus-display {
-    border-width: 2px !important;
+    border-width: 1px !important; /* 改为1px */
     border-style: dotted !important;
-    background-color: rgba(51, 255, 51, 0.18) !important;
+    background-color: rgba(51, 255, 51, 0.1) !important;
 }
 
 .amber-mode .keyboard-focus-display {
-    background-color: rgba(255, 176, 0, 0.18) !important;
+    background-color: rgba(255, 176, 0, 0.1) !important;
 }
 
 .keyboard-focus-button {
-    border-width: 2px !important;
+    border-width: 1px !important; /* 改为1px */
     border-style: dashed !important;
     border-radius: 3px !important;
     background-color: rgba(51, 255, 51, 0.25) !important;
@@ -650,7 +644,7 @@
 }
 
 .keyboard-focus-action {
-    border-width: 2px !important;
+    border-width: 1px !important; /* 改为1px */
     border-style: dashed !important;
     background-color: rgba(51, 255, 51, 0.3) !important;
     box-shadow: none; /* 移除发光效果 */
@@ -663,7 +657,7 @@
 /* 确保焦点样式不会被其他样式覆盖 */
 .keyboard-focus.identity-file,
 .keyboard-focus#identityFile {
-    border: 3px dashed #33ff33 !important;
+    border: 1px dashed #33ff33 !important; /* 改为1px */
     background-color: rgba(51, 255, 51, 0.1) !important;
 }
 
@@ -674,20 +668,20 @@
 }
 
 .keyboard-focus#currentDisguiseDisplay {
-    border: 2px dotted #33ff33 !important;
-    background-color: rgba(51, 255, 51, 0.18) !important;
+    border: 1px dotted #33ff33 !important; /* 改为1px */
+    background-color: rgba(51, 255, 51, 0.1) !important;
 }
 
 .amber-mode .keyboard-focus#currentDisguiseDisplay {
     border-color: #ffb000 !important;
-    background-color: rgba(255, 176, 0, 0.18) !important;
+    background-color: rgba(255, 176, 0, 0.1) !important;
 }
 
 /* 按钮焦点状态 */
 .keyboard-focus.terminal-button,
 .keyboard-focus.edit-disguise-button,
 .keyboard-focus.back-button {
-    border: 2px dashed #33ff33 !important;
+    border: 1px dashed #33ff33 !important; /* 改为1px */
     background-color: rgba(51, 255, 51, 0.25) !important;
 }
 
@@ -722,14 +716,6 @@
 .amber-mode .keyboard-focus.identity-file:hover,
 .amber-mode .keyboard-focus#identityFile:hover {
     background-color: rgba(255, 176, 0, 0.1) !important;
-}
-
-.keyboard-focus#currentDisguiseDisplay:hover {
-    background-color: rgba(51, 255, 51, 0.18) !important;
-}
-
-.amber-mode .keyboard-focus#currentDisguiseDisplay:hover {
-    background-color: rgba(255, 176, 0, 0.18) !important;
 }
 
 /* 确保按钮焦点状态不被hover状态覆盖 */
@@ -847,4 +833,19 @@
 .keyboard-focus .page-indicator {
     border-color: inherit;
     opacity: 1;
+}
+
+/* 确保伪装显示区域也支持分页指示器 */
+#currentDisguiseDisplay {
+    position: relative;
+    padding-bottom: 50px; /* 为分页指示器留出空间 */
+}
+
+/* 伪装显示区域hover状态 */
+.keyboard-focus#currentDisguiseDisplay:hover {
+    background-color: rgba(51, 255, 51, 0.1) !important;
+}
+
+.amber-mode .keyboard-focus#currentDisguiseDisplay:hover {
+    background-color: rgba(255, 176, 0, 0.1) !important;
 }

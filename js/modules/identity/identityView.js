@@ -351,12 +351,17 @@ class IdentityView {
     }
     
     updateDisguiseIdentity(identity) {
-        // disguiseIdentityDisplay 现在是 #currentDisguiseDisplay
-        if (this.disguiseIdentityDisplay) {
-            this.disguiseIdentityDisplay.innerHTML = identity ? 
-                this.formatDisguiseFileDisplay(identity) : 
-                '<p class="no-disguise">无伪装</p>';
-            this.updateIdentityFileNationalityClass(this.disguiseIdentityDisplay, identity);
+        // 使用新的分页显示方法
+        if (window.identityController) {
+            this.updateDisguiseFilePageDisplay(identity, window.identityController.currentDisguiseFilePage, window.identityController.totalDisguiseFilePages);
+        } else {
+            this.updateDisguiseFilePageDisplay(identity, 1, 1);
+        }
+        
+        // 设置国籍特定样式
+        const currentDisguiseDisplay = this.domUtils.get('#currentDisguiseDisplay');
+        if (currentDisguiseDisplay && identity) {
+            this.updateIdentityFileNationalityClass(currentDisguiseDisplay, identity);
         }
     }
     
@@ -847,5 +852,256 @@ class IdentityView {
         <div class="file-stamp">${stampText}</div>`;
         
         return html;
+    }
+
+    // 更新伪装档案分页显示（复用基本档案的逻辑）
+    updateDisguiseFilePageDisplay(disguise, currentPage, totalPages) {
+        const currentDisguiseDisplay = this.domUtils.get('#currentDisguiseDisplay');
+        if (!currentDisguiseDisplay) return;
+
+        if (!disguise) {
+            // 无伪装时的显示
+            const noDisguiseContent = this.generateNoDisguisePage();
+            const pageIndicator = this.generateDisguisePageIndicator(1, 1);
+            currentDisguiseDisplay.innerHTML = noDisguiseContent + pageIndicator;
+            
+            // 更新总页数
+            if (window.identityController) {
+                window.identityController.totalDisguiseFilePages = 1;
+            }
+            return;
+        }
+
+        // 生成所有伪装档案页面内容
+        const allPages = this.generateAllDisguisePages(disguise);
+        
+        // 更新总页数
+        if (window.identityController) {
+            window.identityController.totalDisguiseFilePages = allPages.length;
+        }
+
+        // 确保当前页面在有效范围内
+        if (currentPage > allPages.length) {
+            currentPage = 1;
+            if (window.identityController) {
+                window.identityController.currentDisguiseFilePage = 1;
+            }
+        }
+
+        // 显示当前页内容
+        const pageContent = allPages[currentPage - 1] || allPages[0];
+        const pageIndicator = this.generateDisguisePageIndicator(currentPage, allPages.length);
+        
+        currentDisguiseDisplay.innerHTML = pageContent + pageIndicator;
+    }
+
+    // 生成所有伪装档案页面内容 - 重构为动态分页
+    generateAllDisguisePages(disguise) {
+        const pages = [];
+        const maxRowsPerPage = 4; // 伪装系统每页最大行数
+        
+        // 定义所有类别的数据
+        const categories = this.generateDisguiseCategoriesData(disguise);
+        
+        // 为每个类别生成页面
+        for (const category of categories) {
+            const categoryPages = this.generateCategoryPages(category, maxRowsPerPage);
+            pages.push(...categoryPages);
+        }
+
+        return pages.length > 0 ? pages : [this.generateNoDisguisePage()];
+    }
+
+    // 生成伪装系统的所有类别数据
+    generateDisguiseCategoriesData(disguise) {
+        const categories = [];
+        
+        // 第1类别：基本信息
+        const basicInfo = {
+            headerTitle: '临时伪装档案',
+            headerSubtitle: '使用中',
+            stampText: '伪装身份',
+            sectionTitle: '基本信息',
+            rows: [
+                { label: "国籍", value: disguise.nationality },
+                { label: "身份类型", value: disguise.type }
+            ]
+        };
+        
+        if (disguise.function) {
+            basicInfo.rows.push({ label: "职能", value: disguise.function });
+        }
+        if (disguise.organization) {
+            basicInfo.rows.push({ label: "隶属机构", value: disguise.organization });
+        }
+        
+        categories.push(basicInfo);
+
+        // 第2类别：伪装信息
+        categories.push({
+            headerTitle: '伪装状态信息',
+            headerSubtitle: '实时状态',
+            stampText: '临时档案',
+            sectionTitle: '伪装信息',
+            rows: [
+                { label: "启用时间", value: this.getCurrentTimeString() },
+                { label: "状态", value: "有效" },
+                { label: "风险等级", value: "中等" },
+                { label: "持续时间", value: "无限制" }
+            ]
+        });
+
+        // 第3类别：技能评估
+        categories.push({
+            headerTitle: '伪装技能评估',
+            headerSubtitle: `评估时间: ${this.getCurrentTimeString()}`,
+            stampText: '临时评估',
+            sectionTitle: '伪装能力',
+            rows: [
+                { label: "身份可信度", value: "85%" },
+                { label: "文件完整性", value: "完整" },
+                { label: "背景故事", value: "已构建" },
+                { label: "识破风险", value: "中等" },
+                { label: "维持难度", value: "标准" }
+            ]
+        });
+
+        // 第4类别：操作信息
+        categories.push({
+            headerTitle: '操作记录',
+            headerSubtitle: '详细记录',
+            stampText: '操作日志',
+            sectionTitle: '操作信息',
+            rows: [
+                { label: "创建方式", value: "手动配置" },
+                { label: "验证状态", value: "已验证" },
+                { label: "使用次数", value: "1" },
+                { label: "有效期限", value: "无限制" },
+                { label: "最后验证", value: this.getCurrentTimeString() }
+            ]
+        });
+
+        // 第5类别：安全信息
+        categories.push({
+            headerTitle: '安全评估',
+            headerSubtitle: '风险分析',
+            stampText: '安全档案',
+            sectionTitle: '安全信息',
+            rows: [
+                { label: "安全级别", value: "临时" },
+                { label: "访问权限", value: "受限" },
+                { label: "监控状态", value: "未监控" },
+                { label: "备份状态", value: "已备份" },
+                { label: "加密等级", value: "标准" }
+            ]
+        });
+
+        return categories;
+    }
+
+    // 为单个类别生成页面（支持类别内自动分页）
+    generateCategoryPages(category, maxRowsPerPage) {
+        const pages = [];
+        const rows = category.rows;
+        
+        // 计算这个类别需要多少页
+        const totalRows = rows.length;
+        const pagesNeeded = Math.ceil(totalRows / maxRowsPerPage);
+        
+        for (let pageIndex = 0; pageIndex < pagesNeeded; pageIndex++) {
+            const startIndex = pageIndex * maxRowsPerPage;
+            const endIndex = Math.min(startIndex + maxRowsPerPage, totalRows);
+            const pageRows = rows.slice(startIndex, endIndex);
+            
+            // 生成页面内容
+            const pageContent = this.buildSingleCategoryPage(
+                category.headerTitle,
+                category.headerSubtitle,
+                category.stampText,
+                category.sectionTitle,
+                pageRows,
+                pageIndex + 1,
+                pagesNeeded
+            );
+            
+            pages.push(pageContent);
+        }
+        
+        return pages;
+    }
+
+    // 构建单个类别页面
+    buildSingleCategoryPage(headerTitle, headerSubtitle, stampText, sectionTitle, rows, currentSubPage, totalSubPages) {
+        let html = `
+        <div class="file-header">
+            <div class="file-title">${headerTitle}</div>
+            <div class="file-subtitle">${headerSubtitle}</div>
+        </div>
+        <div class="file-content">
+            <div class="file-section">
+                <div class="section-title">${sectionTitle}`;
+        
+        // 如果类别有多页，显示子页信息
+        if (totalSubPages > 1) {
+            html += ` (${currentSubPage}/${totalSubPages})`;
+        }
+        
+        html += `</div>`;
+        
+        // 添加行内容
+        for (const row of rows) {
+            html += `<div class="file-row"><div class="file-label">${row.label}:</div><div class="file-value">${row.value}</div></div>`;
+        }
+        
+        html += `
+            </div>
+        </div>
+        <div class="file-stamp">${stampText}</div>`;
+        
+        return html;
+    }
+
+    // 移除原有的独立页面生成方法，统一使用动态分页
+    generateDisguiseBasicInfoPage(disguise) {
+        // 这个方法不再使用，但保留以避免错误
+        return this.generateAllDisguisePages(disguise)[0];
+    }
+
+    generateDisguiseSkillsPage(disguise) {
+        // 这个方法不再使用，但保留以避免错误  
+        return this.generateAllDisguisePages(disguise)[2] || this.generateNoDisguisePage();
+    }
+
+    generateDisguiseAdditionalInfoPages(disguise) {
+        // 这个方法不再使用，但保留以避免错误
+        const allPages = this.generateAllDisguisePages(disguise);
+        return allPages.slice(3); // 返回第4页及以后的页面
+    }
+
+    // 生成无伪装页面 - 保持不变
+    generateNoDisguisePage() {
+        return `
+        <div class="file-header">
+            <div class="file-title">伪装状态</div>
+            <div class="file-subtitle">当前无活跃伪装</div>
+        </div>
+        <div class="file-content">
+            <div class="file-section">
+                <div class="section-title">系统状态</div>
+                <div class="file-row"><div class="file-label">伪装状态:</div><div class="file-value">未启用</div></div>
+                <div class="file-row"><div class="file-label">当前身份:</div><div class="file-value">表面身份</div></div>
+                <div class="file-row"><div class="file-label">系统提示:</div><div class="file-value">点击"更改伪装"开始配置</div></div>
+            </div>
+        </div>
+        <div class="file-stamp">无伪装</div>`;
+    }
+
+    // 生成伪装分页指示器
+    generateDisguisePageIndicator(currentPage, totalPages) {
+        return `
+        <div class="page-indicator">
+            <div class="page-info">第 ${currentPage} 页 / 共 ${totalPages} 页</div>
+            <div class="page-controls">←/→ 翻页 | 空格 进入编辑</div>
+        </div>`;
     }
 }
