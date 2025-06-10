@@ -610,112 +610,47 @@
     /* 保留动画定义但不使用，避免CSS错误 */
 }
 
-/* 特定元素类型的焦点样式 - 常亮版本 */
+/* 修改档案文件的焦点样式 - 底部渐变高亮 */
 .keyboard-focus-file {
-    border-width: 1px !important; /* 改为1px */
+    border-width: 3px !important;
     border-style: dashed !important;
-    background-color: rgba(51, 255, 51, 0.1) !important;
+    border-color: #33ff33 !important;
+    background: linear-gradient(to top, rgba(51, 255, 51, 0.15) 0%, rgba(51, 255, 51, 0.1) 25%, transparent 50%) !important;
 }
 
 .amber-mode .keyboard-focus-file {
-    background-color: rgba(255, 176, 0, 0.1) !important;
+    border-color: #ffb000 !important;
+    background: linear-gradient(to top, rgba(255, 176, 0, 0.15) 0%, rgba(255, 176, 0, 0.1) 25%, transparent 50%) !important;
 }
 
-/* 为伪装显示区域添加与档案文件相同的焦点样式 */
+/* 修改伪装显示区域的焦点样式 - 底部渐变高亮 */
 .keyboard-focus-display {
-    border-width: 1px !important; /* 改为1px */
+    border-width: 2px !important;
     border-style: dotted !important;
-    background-color: rgba(51, 255, 51, 0.1) !important;
+    border-color: #33ff33 !important;
+    background: linear-gradient(to top, rgba(51, 255, 51, 0.12) 0%, rgba(51, 255, 51, 0.08) 25%, transparent 50%) !important;
 }
 
 .amber-mode .keyboard-focus-display {
-    background-color: rgba(255, 176, 0, 0.1) !important;
-}
-
-.keyboard-focus-button {
-    border-width: 1px !important; /* 改为1px */
-    border-style: dashed !important;
-    border-radius: 3px !important;
-    background-color: rgba(51, 255, 51, 0.25) !important;
-}
-
-.amber-mode .keyboard-focus-button {
-    background-color: rgba(255, 176, 0, 0.25) !important;
-}
-
-.keyboard-focus-action {
-    border-width: 1px !important; /* 改为1px */
-    border-style: dashed !important;
-    background-color: rgba(51, 255, 51, 0.3) !important;
-    box-shadow: none; /* 移除发光效果 */
-}
-
-.amber-mode .keyboard-focus-action {
-    background-color: rgba(255, 176, 0, 0.3) !important;
-}
-
-/* 确保焦点样式不会被其他样式覆盖 */
-.keyboard-focus.identity-file,
-.keyboard-focus#identityFile {
-    border: 1px dashed #33ff33 !important; /* 改为1px */
-    background-color: rgba(51, 255, 51, 0.1) !important;
-}
-
-.amber-mode .keyboard-focus.identity-file,
-.amber-mode .keyboard-focus#identityFile {
     border-color: #ffb000 !important;
-    background-color: rgba(255, 176, 0, 0.1) !important;
+    background: linear-gradient(to top, rgba(255, 176, 0, 0.12) 0%, rgba(255, 176, 0, 0.08) 25%, transparent 50%) !important;
 }
 
-.keyboard-focus#currentDisguiseDisplay {
-    border: 1px dotted #33ff33 !important; /* 改为1px */
-    background-color: rgba(51, 255, 51, 0.1) !important;
+/* 确保颜色模式切换时能完全重置背景 */
+.status-interface:not(.amber-mode) .keyboard-focus.identity-file,
+.status-interface:not(.amber-mode) .keyboard-focus#identityFile,
+.status-interface:not(.amber-mode) .keyboard-focus#currentDisguiseDisplay {
+    /* 强制重置为绿色渐变，确保琥珀色完全清除 */
+    background: linear-gradient(to top, rgba(51, 255, 51, 0.15) 0%, rgba(51, 255, 51, 0.1) 25%, transparent 50%) !important;
+    border-color: #33ff33 !important;
 }
 
-.amber-mode .keyboard-focus#currentDisguiseDisplay {
+.status-interface.amber-mode .keyboard-focus.identity-file,
+.status-interface.amber-mode .keyboard-focus#identityFile,
+.status-interface.amber-mode .keyboard-focus#currentDisguiseDisplay {
+    /* 琥珀色渐变 */
+    background: linear-gradient(to top, rgba(255, 176, 0, 0.15) 0%, rgba(255, 176, 0, 0.1) 25%, transparent 50%) !important;
     border-color: #ffb000 !important;
-    background-color: rgba(255, 176, 0, 0.1) !important;
-}
-
-/* 按钮焦点状态 */
-.keyboard-focus.terminal-button,
-.keyboard-focus.edit-disguise-button,
-.keyboard-focus.back-button {
-    border: 1px dashed #33ff33 !important; /* 改为1px */
-    background-color: rgba(51, 255, 51, 0.25) !important;
-}
-
-.amber-mode .keyboard-focus.terminal-button,
-.amber-mode .keyboard-focus.edit-disguise-button,
-.amber-mode .keyboard-focus.back-button {
-    border-color: #ffb000 !important;
-    background-color: rgba(255, 176, 0, 0.25) !important;
-}
-
-/* 确保移除所有transition和animation效果 */
-.keyboard-focus,
-.keyboard-focus-file,
-.keyboard-focus-display,
-.keyboard-focus-button,
-.keyboard-focus-action {
-    transition: none !important;
-    animation: none !important;
-}
-
-/* 确保焦点状态在正确的层级，但不使用伪元素 */
-.keyboard-focus {
-    z-index: 1;
-}
-
-/* 移除原有的hover效果覆盖，确保焦点状态可见 */
-.keyboard-focus.identity-file:hover,
-.keyboard-focus#identityFile:hover {
-    background-color: rgba(51, 255, 51, 0.1) !important;
-}
-
-.amber-mode .keyboard-focus.identity-file:hover,
-.amber-mode .keyboard-focus#identityFile:hover {
-    background-color: rgba(255, 176, 0, 0.1) !important;
 }
 
 /* 确保按钮焦点状态不被hover状态覆盖 */
@@ -848,4 +783,154 @@
 
 .amber-mode .keyboard-focus#currentDisguiseDisplay:hover {
     background-color: rgba(255, 176, 0, 0.1) !important;
+}
+
+/* 为档案区域添加鼠标翻页的视觉提示 */
+.identity-file:hover::before,
+#currentDisguiseDisplay:hover::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 25%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(51, 255, 51, 0.08), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.identity-file:hover::after,
+#currentDisguiseDisplay:hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 25%;
+    height: 100%;
+    background: linear-gradient(to left, rgba(51, 255, 51, 0.08), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* 琥珀色模式适配 */
+.amber-mode .identity-file:hover::before,
+.amber-mode #currentDisguiseDisplay:hover::before {
+    background: linear-gradient(to right, rgba(255, 176, 0, 0.08), transparent);
+}
+
+.amber-mode .identity-file:hover::after,
+.amber-mode #currentDisguiseDisplay:hover::after {
+    background: linear-gradient(to left, rgba(255, 176, 0, 0.08), transparent);
+}
+
+/* 确保档案文件的边框正确适配琥珀色模式 */
+.identity-file {
+    border: 1px solid #33ff33;
+    background-color: transparent;
+    transition: background-color 0.2s;
+}
+
+.amber-mode .identity-file {
+    border-color: #ffb000 !important;
+}
+
+/* 确保伪装显示区域的边框正确适配 */
+#currentDisguiseDisplay {
+    border: 1px solid #33ff33;
+    background-color: transparent;
+}
+
+.amber-mode #currentDisguiseDisplay {
+    border-color: #ffb000 !important;
+}
+
+/* 修复档案内部的分隔线颜色 */
+.file-header {
+    border-bottom: 1px dashed #33ff33;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.amber-mode .file-header {
+    border-bottom-color: #ffb000 !important;
+}
+
+.section-title {
+    border-bottom: 1px solid #33ff33;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.amber-mode .section-title {
+    border-bottom-color: #ffb000 !important;
+}
+
+/* 修复分页指示器的颜色适配 */
+.page-indicator {
+    border: 1px solid #33ff33;
+}
+
+.amber-mode .page-indicator {
+    border-color: #ffb000 !important;
+}
+
+/* 确保焦点样式的优先级正确 */
+.keyboard-focus.identity-file,
+.keyboard-focus#identityFile {
+    border: 3px dashed #33ff33 !important;
+}
+
+.amber-mode .keyboard-focus.identity-file,
+.amber-mode .keyboard-focus#identityFile {
+    border-color: #ffb000 !important;
+}
+
+.keyboard-focus#currentDisguiseDisplay {
+    border: 2px dotted #33ff33 !important;
+}
+
+.amber-mode .keyboard-focus#currentDisguiseDisplay {
+    border-color: #ffb000 !important;
+}
+
+/* 修复文件标记的颜色 */
+.file-stamp {
+    color: #33ff33;
+    border-color: #33ff33;
+}
+
+.amber-mode .file-stamp {
+    color: #ffb000 !important;
+    border-color: #ffb000 !important;
+}
+
+/* 强制重置所有档案相关元素的颜色 */
+.status-interface:not(.amber-mode) .identity-file,
+.status-interface:not(.amber-mode) #currentDisguiseDisplay,
+.status-interface:not(.amber-mode) .file-header,
+.status-interface:not(.amber-mode) .section-title,
+.status-interface:not(.amber-mode) .page-indicator,
+.status-interface:not(.amber-mode) .file-stamp {
+    border-color: #33ff33 !important;
+    color: #33ff33 !important;
+}
+
+.status-interface.amber-mode .identity-file,
+.status-interface.amber-mode #currentDisguiseDisplay,
+.status-interface.amber-mode .file-header,
+.status-interface.amber-mode .section-title,
+.status-interface.amber-mode .page-indicator,
+.status-interface.amber-mode .file-stamp {
+    border-color: #ffb000 !important;
+    color: #ffb000 !important;
+}
+
+/* 特别处理焦点状态的颜色 */
+.status-interface:not(.amber-mode) .keyboard-focus {
+    border-color: #33ff33 !important;
+}
+
+.status-interface.amber-mode .keyboard-focus {
+    border-color: #ffb000 !important;
 }

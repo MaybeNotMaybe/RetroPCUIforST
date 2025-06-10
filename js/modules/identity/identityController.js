@@ -50,6 +50,9 @@ class IdentityController {
             // 初始化视图
             this.view.initialize();
             
+            // 主动获取当前颜色模式并应用
+            this.applyCurrentColorMode();
+            
             // 设置事件监听器
             this.setupEventListeners();
             
@@ -87,6 +90,17 @@ class IdentityController {
         } catch (error) {
             console.error("身份控制器初始化失败:", error);
             return false;
+        }
+    }
+    
+    // 新增：主动获取并应用当前颜色模式
+    applyCurrentColorMode() {
+        // 检查屏幕元素的颜色模式类
+        const screen = this.domUtils.get('.screen');
+        if (screen) {
+            const isAmber = screen.classList.contains('amber-mode');
+            this.view.updateColorMode(isAmber);
+            console.log(`身份界面应用初始颜色模式: ${isAmber ? '琥珀色' : '绿色'}`);
         }
     }
     
@@ -221,10 +235,16 @@ class IdentityController {
             });
         });
 
-        // 档案文件区域点击事件 - 用于在真实身份和表面身份间切换
+        // 档案文件区域点击事件 - 修改为支持鼠标翻页
         const identityFile = this.domUtils.get('#identityFile');
         if (identityFile) {
-            this.domUtils.on(identityFile, 'click', async () => {
+            this.domUtils.on(identityFile, 'click', async (e) => {
+                // 检查是否为翻页点击
+                if (this.handleFileAreaClick(e, 'identity')) {
+                    return; // 如果是翻页操作，直接返回
+                }
+                
+                // 否则执行原有的身份切换功能
                 await this.toggleIdentityFileView();
                 
                 // 播放切换音效
@@ -232,10 +252,16 @@ class IdentityController {
             });
         }
 
-        // 当前伪装显示区域点击事件 - 用于切换到编辑伪装视图
+        // 当前伪装显示区域点击事件 - 修改为支持鼠标翻页
         const currentDisguiseDisplay = this.domUtils.get('#currentDisguiseDisplay');
         if (currentDisguiseDisplay) {
-            this.domUtils.on(currentDisguiseDisplay, 'click', () => {
+            this.domUtils.on(currentDisguiseDisplay, 'click', (e) => {
+                // 检查是否为翻页点击
+                if (this.handleFileAreaClick(e, 'disguise')) {
+                    return; // 如果是翻页操作，直接返回
+                }
+                
+                // 否则执行原有的编辑切换功能
                 this.view.showEditDisguiseView();
                 if (this.audio) this.audio.play('functionButton');
             });
@@ -441,10 +467,11 @@ class IdentityController {
             this.view.updateFilePageDisplay(identityData, this.currentFilePage, this.totalFilePages, isSecret, identityTypeSuffix);
             
             // 设置国籍特定样式
-            identityFile.className = 'identity-file';
             if (identityData) {
+                // 移除所有国籍类
                 this.domUtils.removeClass(identityFile, 'nationality-usa', 'nationality-uk', 'nationality-france', 'nationality-soviet');
                 
+                // 添加对应国籍类（让CSS处理颜色）
                 switch(identityData.nationality) {
                     case "美国": this.domUtils.addClass(identityFile, 'nationality-usa'); break;
                     case "英国": this.domUtils.addClass(identityFile, 'nationality-uk'); break;
@@ -1314,5 +1341,50 @@ class IdentityController {
             console.error("更新身份显示失败:", error);
             return false;
         }
+    }
+
+    // 新增：处理档案区域点击事件
+    handleFileAreaClick(event, fileType) {
+        const element = event.currentTarget;
+        const rect = element.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const elementWidth = rect.width;
+        
+        // 计算点击位置的比例
+        const clickRatio = clickX / elementWidth;
+        
+        // 左四分之一区域：向左翻页
+        if (clickRatio <= 0.25) {
+            this.handleMousePageNavigation(fileType, -1);
+            return true; // 返回true表示已处理翻页
+        }
+        // 右四分之一区域：向右翻页
+        else if (clickRatio >= 0.75) {
+            this.handleMousePageNavigation(fileType, 1);
+            return true; // 返回true表示已处理翻页
+        }
+        
+        // 中间区域：不处理，让原有功能执行
+        return false;
+    }
+
+    // 新增：处理鼠标翻页导航
+    async handleMousePageNavigation(fileType, direction) {
+        // 确保在正确的页面上
+        if (fileType === 'identity' && this.currentPage !== 'basic') {
+            return;
+        }
+        if (fileType === 'disguise' && this.currentPage !== 'disguise') {
+            return;
+        }
+        
+        // 执行对应的翻页操作
+        if (fileType === 'identity') {
+            await this.navigateFilePage(direction);
+        } else if (fileType === 'disguise') {
+            await this.navigateDisguiseFilePage(direction);
+        }
+        
+        console.log(`鼠标翻页: ${fileType} ${direction > 0 ? '下一页' : '上一页'}`);
     }
 }

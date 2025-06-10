@@ -153,6 +153,9 @@ class GameController {
                     this.domUtils.addClass(screen, 'amber-mode');
                     this.domUtils.removeClass(computerCase, 'green-mode');
                     this.domUtils.addClass(computerCase, 'amber-mode');
+                    
+                    // 发布颜色模式变化事件
+                    this.eventBus.emit('colorModeChanged', true);
                 } else {
                     toggleSlider.style.backgroundColor = '#666';
                     toggleSlider.style.left = 'calc(100% - 16px)';
@@ -170,6 +173,9 @@ class GameController {
                     this.domUtils.addClass(screen, 'green-mode');
                     this.domUtils.removeClass(computerCase, 'amber-mode');
                     this.domUtils.addClass(computerCase, 'green-mode');
+                    
+                    // 发布颜色模式变化事件
+                    this.eventBus.emit('colorModeChanged', false);
                 } else {
                     toggleSlider.style.backgroundColor = '#666';
                     toggleSlider.style.left = '2px';
@@ -217,9 +223,13 @@ class GameController {
         if (settings.colorMode === 'amber') {
             this.domUtils.removeClass(screen, 'green-mode');
             this.domUtils.addClass(screen, 'amber-mode');
+            // 发布琥珀色模式事件
+            this.eventBus.emit('colorModeChanged', true);
         } else {
             this.domUtils.removeClass(screen, 'amber-mode');
             this.domUtils.addClass(screen, 'green-mode');
+            // 发布绿色模式事件
+            this.eventBus.emit('colorModeChanged', false);
         }
         
         // 显示命令行并启用输入

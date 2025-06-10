@@ -469,8 +469,17 @@ class IdentityView {
     
     updateColorMode(isAmber) {
         if (this.statusInterface) {
-            this.domUtils.removeClass(this.statusInterface, 'green-mode', 'amber-mode');
-            this.domUtils.addClass(this.statusInterface, isAmber ? 'amber-mode' : 'green-mode');
+            // 先移除所有颜色模式类
+            this.domUtils.removeClass(this.statusInterface, ['green-mode','amber-mode']);
+            
+            // 然后添加正确的模式类
+            if (isAmber) {
+                this.domUtils.addClass(this.statusInterface, 'amber-mode');
+            } else {
+                this.domUtils.addClass(this.statusInterface, 'green-mode');
+            }
+            
+            console.log(`档案界面颜色模式已更新: ${isAmber ? '琥珀色' : '绿色'}`);
         }
     }
 
