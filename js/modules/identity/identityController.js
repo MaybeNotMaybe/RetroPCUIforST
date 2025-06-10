@@ -47,6 +47,12 @@ class IdentityController {
         try {
             console.log("初始化身份控制器...");
             
+            // 检查是否已经初始化
+            if (this.initialized) {
+                console.log("身份控制器已经初始化，跳过重复初始化");
+                return true;
+            }
+            
             // 初始化视图
             this.view.initialize();
             
@@ -70,6 +76,7 @@ class IdentityController {
                 // 添加事件监听，当lorebook初始化完成后更新身份
                 if (this.eventBus) {
                     this.eventBus.once('lorebookSystemInitialized', async () => {
+                        if (!this.initialized) return; // 如果控制器还没初始化完成，跳过
                         await this.updateIdentityDisplays();
                     });
                 }
@@ -125,15 +132,26 @@ class IdentityController {
                 this.view.updateColorMode(isAmber);
             });
             
-            // 监听身份变更事件
+            // 修复：监听身份变更事件，但避免循环调用
             this.eventBus.on('playerIdentityChanged', async (eventData) => {
                 console.log(`捕获到 playerIdentityChanged 事件:`, eventData);
-                await this.updateIdentityDisplays();
                 
-                // 如果当前显示的档案文件是变更的类型，也需要特别更新它
-                if (eventData.type === this.currentIdentityType || 
-                    (eventData.type === 'disguise' && this.view.disguisePage.style.display !== 'none')) {
-                    await this.switchIdentityView(this.currentIdentityType);
+                // 只有在界面可见时才更新显示，避免不必要的更新
+                if (this.isVisible) {
+                    // 使用防抖机制，避免频繁更新
+                    if (this._identityUpdateTimeout) {
+                        clearTimeout(this._identityUpdateTimeout);
+                    }
+                    
+                    this._identityUpdateTimeout = setTimeout(async () => {
+                        await this.updateIdentityDisplays();
+                        
+                        // 如果当前显示的档案文件是变更的类型，也需要特别更新它
+                        if (eventData.type === this.currentIdentityType || 
+                            (eventData.type === 'disguise' && this.view.disguisePage.style.display !== 'none')) {
+                            await this.switchIdentityView(this.currentIdentityType);
+                        }
+                    }, 100); // 100ms 防抖
                 }
             });
         }
@@ -422,8 +440,11 @@ class IdentityController {
     
     // 显示身份界面
     async show() {
-        // 更新显示内容
-        await this.updateIdentityDisplays();
+        // 只有在未显示时才更新显示内容
+        if (!this.isVisible) {
+            await this.updateIdentityDisplays();
+        }
+        
         this.view.show();
         this.isVisible = true;
         
@@ -1236,29 +1257,6 @@ class IdentityController {
         console.log("身份系统: 键盘导航已启用（内部切换）");
     }
 
-    // 修改显示身份界面方法（用于旧的显示逻辑）
-    async show() {
-        // 更新显示内容
-        await this.updateIdentityDisplays();
-        this.view.show();
-        this.isVisible = true;
-        
-        // 启用键盘导航并恢复状态
-        this.enableKeyboardNavigationWithStateRestore();
-    }
-
-    // 修改隐藏身份界面方法
-    hide() {
-        // 保存当前状态
-        this.saveCurrentState();
-        
-        this.view.hide();
-        this.isVisible = false;
-        
-        // 禁用键盘导航
-        this.disableKeyboardNavigation();
-    }
-
     // 修改快速切换方法，更新页面状态记忆
     async quickNavigateToPage(page) {
         const previousPage = this.currentPage;
@@ -1284,63 +1282,6 @@ class IdentityController {
         }, 50);
         
         if (this.audio) this.audio.play('functionButton');
-    }
-
-    // 修改普通页面切换方法
-    async navigateToPage(page) {
-        if (this.currentPage === page) return;
-        
-        const previousPage = this.currentPage;
-        const focusMemory = this.saveFocusMemory();
-        
-        this.currentPage = page;
-        
-        if (page === 'basic') {
-            this.view.showBasicInfoPage();
-            this.currentIdentityType = 'cover';
-            this.currentFilePage = 1;
-            await this.switchIdentityView('cover');
-        } else if (page === 'disguise') {
-            this.view.showDisguisePage();
-            this.currentDisguiseFilePage = 1;
-            this.view.showCurrentDisguiseView();
-            await this.updateDisguiseFilePageDisplay();
-        }
-        
-        setTimeout(() => {
-            this.initializeFocusableElements();
-            this.restoreFocusFromMemory(focusMemory, page);
-            console.log(`页面切换: ${previousPage} -> ${page}, 焦点已恢复`);
-        }, 50);
-        
-        if (this.audio) this.audio.play('functionButton');
-    }
-
-    // 在更新显示时也保存状态
-    async updateIdentityDisplays() {
-        try {
-            const realId = await this.model.getRealIdentity();
-            const coverId = await this.model.getCoverIdentity();
-            const disguiseId = await this.model.getDisguiseIdentity();
-            
-            this.view.updateRealIdentity(realId);
-            this.view.updateCoverIdentity(coverId);
-            this.view.updateDisguiseIdentity(disguiseId);
-            
-            if (this.view.basicInfoPage.style.display !== 'none') {
-                await this.switchIdentityView(this.currentIdentityType);
-            }
-            
-            // 更新完成后保存状态
-            if (this.isVisible) {
-                this.saveCurrentState();
-            }
-            
-            return true;
-        } catch (error) {
-            console.error("更新身份显示失败:", error);
-            return false;
-        }
     }
 
     // 新增：处理档案区域点击事件

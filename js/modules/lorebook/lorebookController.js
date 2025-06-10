@@ -391,26 +391,34 @@ class LorebookController {
             const entry = await this.getPlayerIdentityEntry(identityTypeSuffix);
             if (entry && entry.content) {
                 const identityData = this.model.parseJsonContent(entry.content);
-                if (identityData === null && defaultIdentityData !== undefined) {
-                     console.warn(`玩家身份条目 (${identityTypeSuffix}) 内容为空或无效JSON，考虑返回默认值。`);
-                     if (identityTypeSuffix === this.model.PLAYER_IDENTITY_SUFFIX_DISGUISE && defaultIdentityData === null) {
-                         return null;
-                     }
+                
+                // 如果解析成功，直接返回（包括null值）
+                if (identityData !== undefined) {
+                    return identityData;
                 }
-                return identityData;
-            } else if (defaultIdentityData !== undefined) {
-                console.log(`玩家身份条目 (${identityTypeSuffix}) 未找到，执行回退。`);
+                
+                console.warn(`玩家身份条目 (${identityTypeSuffix}) 内容为无效JSON`);
+            }
+            
+            // 条目不存在或内容无效时，只有在明确提供默认值时才自动创建
+            if (defaultIdentityData !== undefined && arguments.length > 1) {
+                console.log(`玩家身份条目 (${identityTypeSuffix}) 未找到，使用提供的默认值创建`);
                 await this.setPlayerIdentity(identityTypeSuffix, defaultIdentityData);
                 return defaultIdentityData;
             }
-            return null;
+            
+            // 否则返回 undefined 表示未找到
+            return undefined;
         } catch (error) {
             console.error(`获取玩家身份 (${identityTypeSuffix}) 失败:`, error);
-            if (defaultIdentityData !== undefined) {
+            
+            // 发生错误时，只有在明确提供默认值时才返回
+            if (defaultIdentityData !== undefined && arguments.length > 1) {
                 console.warn(`因获取错误，返回玩家身份 (${identityTypeSuffix}) 的默认数据。`);
                 return defaultIdentityData;
             }
-            return null;
+            
+            return undefined;
         }
     }
 
@@ -432,12 +440,17 @@ class LorebookController {
             } else if (identityData === null) {
                 console.error(`尝试为身份 (${identityTypeSuffix}) 设置null值，这可能不是预期的。`);
                 jsonString = JSON.stringify({});
-            }
-            else {
+            } else {
                 jsonString = JSON.stringify(identityData);
             }
 
             const existingEntry = await this.model.findEntryByComment(chatLorebookId, comment);
+            
+            // 检查是否真的需要更新
+            if (existingEntry && existingEntry.content === jsonString) {
+                // console.log(`玩家身份条目 (${identityTypeSuffix}) 内容未变化，跳过更新`);
+                return true;
+            }
 
             if (existingEntry) {
                 await this.model.setLorebookEntries(chatLorebookId, [{
@@ -449,7 +462,7 @@ class LorebookController {
                     keys: existingEntry.keys,
                     comment: existingEntry.comment
                 }]);
-                console.log(`已更新玩家身份条目 (${identityTypeSuffix})。`);
+                console.log(`已更新玩家身份条目 (${identityTypeSuffix})`);
             } else {
                 const newEntry = {
                     ...this.model.PLAYER_IDENTITY_ENTRY_CONFIG,
@@ -457,10 +470,10 @@ class LorebookController {
                     content: jsonString
                 };
                 await this.model.createLorebookEntries(chatLorebookId, [newEntry]);
-                console.log(`已创建新的玩家身份条目 (${identityTypeSuffix})。`);
+                console.log(`已创建新的玩家身份条目 (${identityTypeSuffix})`);
             }
             
-            // 发布身份变更事件
+            // 只在数据真正变化时才发布事件
             if (this.eventBus) {
                 this.eventBus.emit('playerIdentityChanged', { 
                     type: identityTypeSuffix, 

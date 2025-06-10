@@ -85,6 +85,7 @@ class LorebookModel {
         // 新增：默认伪装扩展数据
         this.DEFAULT_DISGUISE_EXTENSIONS = {
             disguiseStatus: {
+                "启用时间": new Date().toISOString(),
                 "状态": "有效",
                 "风险等级": "中等",
                 "持续时间": "无限制",
@@ -95,7 +96,8 @@ class LorebookModel {
                 "文件完整性": "完整",
                 "背景故事": "已构建",
                 "识破风险": "中等",
-                "维持难度": "标准"
+                "维持难度": "标准",
+                "最后验证": new Date().toISOString()
             },
             operationRecord: {
                 "创建方式": "手动配置",
