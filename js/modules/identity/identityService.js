@@ -291,4 +291,159 @@ class IdentityService {
             return { real: null, cover: null, disguise: null };
         }
     }
+
+    /**
+     * 获取伪装扩展数据
+     * @returns {Promise<Object|null>} 伪装扩展数据
+     */
+    async getDisguiseExtendedData() {
+        if (!this.initialized) {
+            console.warn("身份服务尚未初始化，无法获取伪装扩展数据");
+            return null;
+        }
+        
+        try {
+            return await this.model.getDisguiseExtendedData();
+        } catch (error) {
+            console.error("获取伪装扩展数据失败:", error);
+            return null;
+        }
+    }
+
+    // 新增：用户数据相关服务接口
+
+    /**
+     * 获取用户统计数据
+     * @returns {Promise<Object|null>} 用户统计数据
+     */
+    async getUserStats() {
+        if (!this.initialized) {
+            console.warn("身份服务尚未初始化，无法获取用户统计数据");
+            return null;
+        }
+        
+        try {
+            // 通过世界书控制器获取用户数据
+            const controller = this._getLorebookController();
+            if (controller && controller.getUserData) {
+                const userData = await controller.getUserData();
+                return userData ? userData.stats : null;
+            }
+            return null;
+        } catch (error) {
+            console.error("获取用户统计数据失败:", error);
+            return null;
+        }
+    }
+
+    /**
+     * 更新用户统计数据
+     * @param {Object} stats 新的统计数据
+     * @returns {Promise<boolean>} 是否成功
+     */
+    async updateUserStats(stats) {
+        if (!this.initialized) {
+            console.warn("身份服务尚未初始化，无法更新用户统计数据");
+            return false;
+        }
+        
+        try {
+            const controller = this._getLorebookController();
+            if (controller && controller.updateUserStats) {
+                return await controller.updateUserStats(stats);
+            }
+            return false;
+        } catch (error) {
+            console.error("更新用户统计数据失败:", error);
+            return false;
+        }
+    }
+
+    /**
+     * 获取用户技能数据
+     * @returns {Promise<Object|null>} 用户技能数据
+     */
+    async getUserSkills() {
+        if (!this.initialized) {
+            console.warn("身份服务尚未初始化，无法获取用户技能数据");
+            return null;
+        }
+        
+        try {
+            const controller = this._getLorebookController();
+            if (controller && controller.getUserData) {
+                const userData = await controller.getUserData();
+                return userData ? userData.skills : null;
+            }
+            return null;
+        } catch (error) {
+            console.error("获取用户技能数据失败:", error);
+            return null;
+        }
+    }
+
+    /**
+     * 增加技能经验
+     * @param {string} skillName 技能名称
+     * @param {number} exp 经验值
+     * @returns {Promise<boolean>} 是否成功
+     */
+    async addSkillExp(skillName, exp) {
+        if (!this.initialized) {
+            console.warn("身份服务尚未初始化，无法增加技能经验");
+            return false;
+        }
+        
+        try {
+            const controller = this._getLorebookController();
+            if (controller && controller.addSkillExperience) {
+                return await controller.addSkillExperience(skillName, exp);
+            }
+            return false;
+        } catch (error) {
+            console.error("增加技能经验失败:", error);
+            return false;
+        }
+    }
+
+    /**
+     * 获取完整用户数据
+     * @returns {Promise<Object|null>} 完整用户数据
+     */
+    async getUserData() {
+        if (!this.initialized) {
+            console.warn("身份服务尚未初始化，无法获取用户数据");
+            return null;
+        }
+        
+        try {
+            const controller = this._getLorebookController();
+            if (controller && controller.getUserData) {
+                return await controller.getUserData();
+            }
+            return null;
+        } catch (error) {
+            console.error("获取用户数据失败:", error);
+            return null;
+        }
+    }
+
+    /**
+     * 私有方法：获取世界书控制器
+     */
+    _getLorebookController() {
+        // 首先尝试从全局变量获取
+        if (window.lorebookController) {
+            return window.lorebookController;
+        }
+        
+        // 如果没有，尝试从serviceLocator获取组件
+        if (this.serviceLocator) {
+            return this.serviceLocator.getComponent 
+                ? this.serviceLocator.getComponent('lorebookController') 
+                : null;
+        }
+        
+        return null;
+    }
 }

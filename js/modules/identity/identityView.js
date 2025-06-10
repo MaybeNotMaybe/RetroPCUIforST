@@ -37,7 +37,7 @@ class IdentityView {
     }
     
     // 初始化视图
-    initialize() {
+    async initialize() {
         if (!this.statusInterface) {
             console.error("档案界面 (#statusInterface) 未在HTML中找到! 请确保已在index.html中定义。");
             return; 
@@ -73,6 +73,9 @@ class IdentityView {
         }
         
         this.setupEventSubscriptions();
+        
+        // 更新玩家统计数据显示
+        await this.updatePlayerStats();
     }
 
     initializeInternalUI() {
@@ -110,11 +113,7 @@ class IdentityView {
                     <div class="avatar-placeholder">档案照片</div>
                 </div>
                 <div id="playerStats" class="player-stats">
-                    <div class="stat-item">调查能力: <span class="stat-value">78</span></div>
-                    <div class="stat-item">伪装技巧: <span class="stat-value">65</span></div>
-                    <div class="stat-item">情报分析: <span class="stat-value">72</span></div>
-                    <div class="stat-item">社交能力: <span class="stat-value">81</span></div>
-                    <div class="stat-item">技术能力: <span class="stat-value">59</span></div>
+                    <!-- 统计数据将通过 updatePlayerStats 方法动态填充 -->
                 </div>
             `
         });
@@ -244,6 +243,17 @@ class IdentityView {
                 if (this.audio) {
                     this.audio.play('systemBeep');
                 }
+            });
+            
+            // 监听用户数据变更事件
+            this.eventBus.on('userDataChanged', async () => {
+                await this.updatePlayerStats();
+            });
+            
+            // 监听技能升级事件
+            this.eventBus.on('skillUpgraded', (data) => {
+                console.log(`技能升级: ${data.skillName} 升级到 ${data.newLevel}`);
+                // 可以在这里添加升级提示效果
             });
         }
     }
@@ -835,12 +845,49 @@ class IdentityView {
     }
 
     // 生成第2页：技能档案（暂时留空）
-    generateSkillsPage(identity, isSecret, identityType) {
+    async generateSkillsPage(identity, isSecret, identityType) {
         if (!identity) return '<p class="no-identity">身份不明</p>';
         
         let headerTitle = "技能评估档案";
         let headerSubtitle = `评估日期: ${this.getCurrentTimeString()}`;
         let stampText = isSecret ? "内部资料" : "标准评估";
+        
+        let skillsHtml = '';
+        
+        try {
+            // 获取真实技能数据
+            const identityService = this.serviceLocator.get('identity');
+            if (identityService) {
+                const skills = await identityService.getUserSkills();
+                if (skills) {
+                    // 生成技能显示行
+                    for (const [skillName, skillData] of Object.entries(skills)) {
+                        const progressPercent = skillData.maxExp ? 
+                            Math.round((skillData.experience / skillData.maxExp) * 100) : 100;
+                        
+                        skillsHtml += `
+                            <div class="file-row">
+                                <div class="file-label">${skillName}:</div>
+                                <div class="file-value">${skillData.level} (${skillData.experience}/${skillData.maxExp || '∞'})</div>
+                            </div>`;
+                    }
+                }
+            }
+            
+            // 如果没有技能数据，显示占位信息
+            if (!skillsHtml) {
+                skillsHtml = `
+                    <div class="file-row"><div class="file-label">状态:</div><div class="file-value">评估中...</div></div>
+                    <div class="file-row"><div class="file-label">备注:</div><div class="file-value">技能数据加载中</div></div>
+                `;
+            }
+        } catch (error) {
+            console.error("生成技能页面时获取技能数据失败:", error);
+            skillsHtml = `
+                <div class="file-row"><div class="file-label">状态:</div><div class="file-value">数据错误</div></div>
+                <div class="file-row"><div class="file-label">备注:</div><div class="file-value">无法加载技能数据</div></div>
+            `;
+        }
         
         let html = `
         <div class="file-header">
@@ -850,12 +897,7 @@ class IdentityView {
         <div class="file-content">
             <div class="file-section">
                 <div class="section-title">专业技能</div>
-                <div class="file-row"><div class="file-label">状态:</div><div class="file-value">评估中...</div></div>
-                <div class="file-row"><div class="file-label">备注:</div><div class="file-value">技能档案尚未完成</div></div>
-            </div>
-            <div class="file-section">
-                <div class="section-title">系统提示</div>
-                <div class="file-row"><div class="file-label">信息:</div><div class="file-value">此功能正在开发中</div></div>
+                ${skillsHtml}
             </div>
         </div>
         <div class="file-stamp">${stampText}</div>`;
@@ -864,7 +906,7 @@ class IdentityView {
     }
 
     // 更新伪装档案分页显示（复用基本档案的逻辑）
-    updateDisguiseFilePageDisplay(disguise, currentPage, totalPages) {
+    async updateDisguiseFilePageDisplay(disguise, currentPage, totalPages) {
         const currentDisguiseDisplay = this.domUtils.get('#currentDisguiseDisplay');
         if (!currentDisguiseDisplay) return;
 
@@ -881,8 +923,19 @@ class IdentityView {
             return;
         }
 
+        // 获取扩展伪装数据
+        let extendedDisguiseData = null;
+        try {
+            const identityService = this.serviceLocator.get('identity');
+            if (identityService) {
+                extendedDisguiseData = await identityService.getDisguiseExtendedData();
+            }
+        } catch (error) {
+            console.error("获取伪装扩展数据失败:", error);
+        }
+
         // 生成所有伪装档案页面内容
-        const allPages = this.generateAllDisguisePages(disguise);
+        const allPages = this.generateAllDisguisePages(disguise, extendedDisguiseData);
         
         // 更新总页数
         if (window.identityController) {
@@ -905,12 +958,16 @@ class IdentityView {
     }
 
     // 生成所有伪装档案页面内容 - 重构为动态分页
-    generateAllDisguisePages(disguise) {
+    generateAllDisguisePages(disguise, extendedData = null) {
+        if (!disguise) {
+            return [this.generateNoDisguisePage()];
+        }
+
         const pages = [];
-        const maxRowsPerPage = 4; // 伪装系统每页最大行数
-        
-        // 定义所有类别的数据
-        const categories = this.generateDisguiseCategoriesData(disguise);
+        const maxRowsPerPage = 6;
+
+        // 使用扩展数据或默认数据生成类别
+        const categories = this.generateDisguiseCategoriesData(disguise, extendedData);
         
         // 为每个类别生成页面
         for (const category of categories) {
@@ -922,8 +979,11 @@ class IdentityView {
     }
 
     // 生成伪装系统的所有类别数据
-    generateDisguiseCategoriesData(disguise) {
+    generateDisguiseCategoriesData(disguise, extendedData = null) {
         const categories = [];
+        
+        // 从扩展数据中提取信息，如果没有则使用默认值
+        const extensions = extendedData ? extendedData.extensions : null;
         
         // 第1类别：基本信息
         const basicInfo = {
@@ -946,63 +1006,54 @@ class IdentityView {
         
         categories.push(basicInfo);
 
-        // 第2类别：伪装信息
+        // 第2类别：伪装信息（使用真实数据）
+        const statusData = extensions && extensions.disguiseStatus ? extensions.disguiseStatus : {
+            "启用时间": this.getCurrentTimeString(),
+            "状态": "有效",
+            "风险等级": "中等",
+            "持续时间": "无限制"
+        };
+        
         categories.push({
             headerTitle: '伪装状态信息',
             headerSubtitle: '实时状态',
             stampText: '临时档案',
             sectionTitle: '伪装信息',
-            rows: [
-                { label: "启用时间", value: this.getCurrentTimeString() },
-                { label: "状态", value: "有效" },
-                { label: "风险等级", value: "中等" },
-                { label: "持续时间", value: "无限制" }
-            ]
+            rows: Object.entries(statusData).map(([label, value]) => ({ label, value }))
         });
 
-        // 第3类别：技能评估
+        // 第3类别：技能评估（使用真实数据）
+        const capabilityData = extensions && extensions.disguiseCapability ? extensions.disguiseCapability : {
+            "身份可信度": "85%",
+            "文件完整性": "完整",
+            "背景故事": "已构建",
+            "识破风险": "中等",
+            "维持难度": "标准"
+        };
+        
         categories.push({
             headerTitle: '伪装技能评估',
             headerSubtitle: `评估时间: ${this.getCurrentTimeString()}`,
             stampText: '临时评估',
             sectionTitle: '伪装能力',
-            rows: [
-                { label: "身份可信度", value: "85%" },
-                { label: "文件完整性", value: "完整" },
-                { label: "背景故事", value: "已构建" },
-                { label: "识破风险", value: "中等" },
-                { label: "维持难度", value: "标准" }
-            ]
+            rows: Object.entries(capabilityData).map(([label, value]) => ({ label, value }))
         });
 
-        // 第4类别：操作信息
+        // 第4类别：操作信息（使用真实数据）
+        const operationData = extensions && extensions.operationRecord ? extensions.operationRecord : {
+            "创建方式": "手动配置",
+            "验证状态": "已验证",
+            "使用次数": "1",
+            "有效期限": "无限制",
+            "最后验证": this.getCurrentTimeString()
+        };
+        
         categories.push({
             headerTitle: '操作记录',
             headerSubtitle: '详细记录',
             stampText: '操作日志',
             sectionTitle: '操作信息',
-            rows: [
-                { label: "创建方式", value: "手动配置" },
-                { label: "验证状态", value: "已验证" },
-                { label: "使用次数", value: "1" },
-                { label: "有效期限", value: "无限制" },
-                { label: "最后验证", value: this.getCurrentTimeString() }
-            ]
-        });
-
-        // 第5类别：安全信息
-        categories.push({
-            headerTitle: '安全评估',
-            headerSubtitle: '风险分析',
-            stampText: '安全档案',
-            sectionTitle: '安全信息',
-            rows: [
-                { label: "安全级别", value: "临时" },
-                { label: "访问权限", value: "受限" },
-                { label: "监控状态", value: "未监控" },
-                { label: "备份状态", value: "已备份" },
-                { label: "加密等级", value: "标准" }
-            ]
+            rows: Object.entries(operationData).map(([label, value]) => ({ label, value }))
         });
 
         return categories;
@@ -1112,5 +1163,38 @@ class IdentityView {
             <div class="page-info">第 ${currentPage} 页 / 共 ${totalPages} 页</div>
             <div class="page-controls">←/→ 翻页 | 空格 进入编辑</div>
         </div>`;
+    }
+
+    // 新增方法：更新玩家统计数据显示
+    async updatePlayerStats() {
+        const playerStats = this.domUtils.get('#playerStats');
+        if (!playerStats) return;
+        
+        try {
+            // 获取身份服务
+            const identityService = this.serviceLocator.get('identity');
+            if (identityService) {
+                const stats = await identityService.getUserStats();
+                if (stats) {
+                    let statsHtml = '';
+                    for (const [statName, statValue] of Object.entries(stats)) {
+                        statsHtml += `<div class="stat-item">${statName}: <span class="stat-value">${statValue}</span></div>`;
+                    }
+                    playerStats.innerHTML = statsHtml;
+                    return;
+                }
+            }
+            
+            // 如果无法获取数据，显示默认值
+            playerStats.innerHTML = `
+                <div class="stat-item">调查能力: <span class="stat-value">50</span></div>
+                <div class="stat-item">伪装技巧: <span class="stat-value">50</span></div>
+                <div class="stat-item">情报分析: <span class="stat-value">50</span></div>
+                <div class="stat-item">社交能力: <span class="stat-value">50</span></div>
+                <div class="stat-item">技术能力: <span class="stat-value">50</span></div>
+            `;
+        } catch (error) {
+            console.error("更新玩家统计数据显示失败:", error);
+        }
     }
 }

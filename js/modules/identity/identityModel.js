@@ -354,42 +354,48 @@ class IdentityModel {
     }
 
     async setDisguiseIdentity(nationality, type, func, organization = null) {
-        const identityData = { nationality, type, function: func, organization };
-        this.validateIdentity(identityData);
+        const basicData = { nationality, type, function: func, organization };
+        this.validateIdentity(basicData);
         
         let success = false;
         
-        // 1. 尝试保存到世界书
+        // 1. 尝试保存到世界书（使用扩展方法）
         try {
             const controller = this._getLorebookController();
             
-            if (controller && controller.setPlayerIdentity) {
-                const suffix = controller.model 
-                    ? controller.model.PLAYER_IDENTITY_SUFFIX_DISGUISE 
-                    : 'disguise';
-                
-                success = await controller.setPlayerIdentity(suffix, identityData);
+            if (controller && controller.setPlayerIdentityExtended) {
+                // 使用扩展方法保存伪装身份，包含默认扩展数据
+                success = await controller.setPlayerIdentityExtended(
+                    controller.model.PLAYER_IDENTITY_SUFFIX_DISGUISE, 
+                    basicData
+                );
                 if (success) {
-                    console.log("身份系统: 成功保存伪装身份到世界书");
+                    console.log("身份系统: 成功保存扩展伪装身份到世界书");
                 }
+            } else if (controller && controller.setPlayerIdentity) {
+                // 回退到原有方法
+                success = await controller.setPlayerIdentity(
+                    controller.model.PLAYER_IDENTITY_SUFFIX_DISGUISE, 
+                    basicData
+                );
             }
         } catch (error) {
             console.warn("向世界书保存伪装身份失败，将仅使用本地存储:", error);
         }
         
-        // 2. 无论世界书成功与否，都保存到本地存储
-        const localSuccess = this._saveLocalIdentity(this.IDENTITY_TYPES_KEY.DISGUISE, identityData);
+        // 2. 无论世界书成功与否，都保存到本地存储（仅基础数据）
+        const localSuccess = this._saveLocalIdentity(this.IDENTITY_TYPES_KEY.DISGUISE, basicData);
         success = success || localSuccess;
         
         // 3. 如果任一保存成功，触发事件
         if (success && this.eventBus) {
             this.eventBus.emit('disguiseChanged', {
-                identityData
+                identityData: basicData
             });
             
             this.eventBus.emit('playerIdentityChanged', {
                 type: 'disguise',
-                identityData
+                identityData: basicData
             });
         }
         
@@ -535,5 +541,41 @@ class IdentityModel {
             return this.ORGANIZATIONS["美国"]["情报人员"];
         }
         return [];
+    }
+
+    // 新增：获取伪装扩展数据
+    async getDisguiseExtendedData() {
+        try {
+            const controller = this._getLorebookController();
+            
+            if (controller && controller.getPlayerIdentity) {
+                const suffix = controller.model 
+                    ? controller.model.PLAYER_IDENTITY_SUFFIX_DISGUISE 
+                    : 'disguise';
+                
+                // 从世界书获取完整的伪装数据（包含扩展信息）
+                const fullDisguiseData = await controller.getPlayerIdentity(suffix, null);
+                
+                if (fullDisguiseData) {
+                    return {
+                        basic: {
+                            nationality: fullDisguiseData.nationality,
+                            type: fullDisguiseData.type,
+                            function: fullDisguiseData.function,
+                            organization: fullDisguiseData.organization
+                        },
+                        extensions: {
+                            disguiseStatus: fullDisguiseData.disguiseStatus,
+                            disguiseCapability: fullDisguiseData.disguiseCapability,
+                            operationRecord: fullDisguiseData.operationRecord
+                        }
+                    };
+                }
+            }
+        } catch (error) {
+            console.warn("从世界书获取伪装扩展数据失败:", error);
+        }
+        
+        return null;
     }
 }

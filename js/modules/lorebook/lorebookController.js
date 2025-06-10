@@ -483,6 +483,222 @@ class LorebookController {
         return await this.setPlayerIdentity(this.model.PLAYER_IDENTITY_SUFFIX_DISGUISE, null);
     }
 
+    // 新增：用户数据相关方法
+
+    /**
+     * 获取用户数据条目
+     */
+    async getUserDataEntry() {
+        try {
+            const chatLorebookId = await this.getOrCreateChatLorebook();
+            if (!chatLorebookId) {
+                console.error("无法获取当前聊天世界书ID，无法获取用户数据条目。");
+                return null;
+            }
+            return await this.model.findEntryByComment(chatLorebookId, this.model.USER_DATA_KEY);
+        } catch (error) {
+            console.error("获取用户数据条目失败:", error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取用户数据
+     */
+    async getUserData() {
+        try {
+            const entry = await this.getUserDataEntry();
+            if (entry && entry.content) {
+                const userData = this.model.parseJsonContent(entry.content);
+                if (userData) {
+                    return userData;
+                }
+            }
+            
+            // 如果没有数据，创建默认数据
+            console.log("用户数据条目未找到，创建默认数据");
+            const defaultData = { ...this.model.DEFAULT_USER_DATA };
+            defaultData.metadata.createdAt = new Date().toISOString();
+            defaultData.metadata.lastUpdated = new Date().toISOString();
+            
+            await this.setUserData(defaultData);
+            return defaultData;
+        } catch (error) {
+            console.error("获取用户数据失败:", error);
+            return this.model.DEFAULT_USER_DATA;
+        }
+    }
+
+    /**
+     * 设置用户数据
+     */
+    async setUserData(userData) {
+        try {
+            const chatLorebookId = await this.getOrCreateChatLorebook();
+            if (!chatLorebookId) {
+                console.error("无法获取当前聊天世界书ID，无法设置用户数据。");
+                return false;
+            }
+
+            // 更新最后修改时间
+            if (userData.metadata) {
+                userData.metadata.lastUpdated = new Date().toISOString();
+            }
+
+            const jsonString = JSON.stringify(userData, null, 2);
+            const existingEntry = await this.model.findEntryByComment(chatLorebookId, this.model.USER_DATA_KEY);
+
+            if (existingEntry) {
+                await this.model.setLorebookEntries(chatLorebookId, [{
+                    uid: existingEntry.uid,
+                    content: jsonString,
+                    enabled: existingEntry.enabled,
+                    type: existingEntry.type,
+                    position: existingEntry.position,
+                    keys: existingEntry.keys,
+                    comment: existingEntry.comment
+                }]);
+                console.log("已更新用户数据条目");
+            } else {
+                const newEntry = {
+                    ...this.model.USER_DATA_ENTRY_CONFIG,
+                    comment: this.model.USER_DATA_KEY,
+                    content: jsonString
+                };
+                await this.model.createLorebookEntries(chatLorebookId, [newEntry]);
+                console.log("已创建新的用户数据条目");
+            }
+            
+            // 发布用户数据变更事件
+            if (this.eventBus) {
+                this.eventBus.emit('userDataChanged', userData);
+            }
+            
+            return true;
+        } catch (error) {
+            console.error("设置用户数据失败:", error);
+            return false;
+        }
+    }
+
+    /**
+     * 更新玩家统计数据
+     */
+    async updateUserStats(stats) {
+        try {
+            const userData = await this.getUserData();
+            userData.stats = { ...userData.stats, ...stats };
+            return await this.setUserData(userData);
+        } catch (error) {
+            console.error("更新玩家统计数据失败:", error);
+            return false;
+        }
+    }
+
+    /**
+     * 更新技能数据
+     */
+    async updateUserSkills(skills) {
+        try {
+            const userData = await this.getUserData();
+            userData.skills = { ...userData.skills, ...skills };
+            return await this.setUserData(userData);
+        } catch (error) {
+            console.error("更新技能数据失败:", error);
+            return false;
+        }
+    }
+
+    /**
+     * 增加技能经验
+     */
+    async addSkillExperience(skillName, exp) {
+        try {
+            const userData = await this.getUserData();
+            if (!userData.skills[skillName]) {
+                console.warn(`技能 ${skillName} 不存在`);
+                return false;
+            }
+
+            const skill = userData.skills[skillName];
+            skill.experience += exp;
+
+            // 检查升级
+            const upgradResult = this.checkSkillUpgrade(skill);
+            if (upgradResult.upgraded) {
+                skill.level = upgradResult.newLevel;
+                skill.maxExp = upgradResult.newMaxExp;
+                
+                // 发布技能升级事件
+                if (this.eventBus) {
+                    this.eventBus.emit('skillUpgraded', {
+                        skillName,
+                        newLevel: skill.level,
+                        experience: skill.experience
+                    });
+                }
+            }
+
+            return await this.setUserData(userData);
+        } catch (error) {
+            console.error(`增加技能经验失败 (${skillName}):`, error);
+            return false;
+        }
+    }
+
+    /**
+     * 检查技能升级
+     */
+    checkSkillUpgrade(skill) {
+        const levels = this.model.SKILL_LEVELS;
+        const currentLevelIndex = levels.findIndex(l => l.level === skill.level);
+        
+        if (currentLevelIndex === -1 || currentLevelIndex >= levels.length - 1) {
+            return { upgraded: false };
+        }
+
+        const currentLevel = levels[currentLevelIndex];
+        
+        // 检查是否达到升级要求
+        if (skill.experience >= currentLevel.expRequired) {
+            const nextLevel = levels[currentLevelIndex + 1];
+            return {
+                upgraded: true,
+                newLevel: nextLevel.level,
+                newMaxExp: nextLevel.expRequired
+            };
+        }
+
+        return { upgraded: false };
+    }
+
+    /**
+     * 设置扩展伪装身份数据
+     */
+    async setPlayerIdentityExtended(identityTypeSuffix, basicData, extensions = null) {
+        try {
+            let identityData = { ...basicData };
+            
+            // 如果是伪装身份且提供了扩展数据，合并扩展数据
+            if (identityTypeSuffix === this.model.PLAYER_IDENTITY_SUFFIX_DISGUISE && extensions) {
+                identityData = { ...identityData, ...extensions };
+            } else if (identityTypeSuffix === this.model.PLAYER_IDENTITY_SUFFIX_DISGUISE) {
+                // 使用默认扩展数据
+                const defaultExtensions = { ...this.model.DEFAULT_DISGUISE_EXTENSIONS };
+                // 更新时间戳
+                defaultExtensions.disguiseStatus["启用时间"] = new Date().toISOString();
+                defaultExtensions.disguiseCapability["最后验证"] = new Date().toISOString();
+                
+                identityData = { ...identityData, ...defaultExtensions };
+            }
+            
+            return await this.setPlayerIdentity(identityTypeSuffix, identityData);
+        } catch (error) {
+            console.error(`设置扩展玩家身份失败 (${identityTypeSuffix}):`, error);
+            return false;
+        }
+    }
+
     // 清除缓存
     clearCache(lorebookId = null) {
         this.model.clearCache(lorebookId);

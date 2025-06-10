@@ -36,6 +36,78 @@ class LorebookModel {
             position: 'after_author_note',
             keys: []
         };
+
+        // 新增：用户数据相关常量
+        this.USER_DATA_KEY = "user_data";
+        this.USER_DATA_ENTRY_CONFIG = {
+            enabled: false,
+            type: 'constant',
+            position: 'after_author_note',
+            keys: []
+        };
+
+        // 新增：默认数据配置
+        this.DEFAULT_USER_DATA = {
+            stats: {
+                "调查能力": 50,
+                "伪装技巧": 50,
+                "情报分析": 50,
+                "社交能力": 50,
+                "技术能力": 50
+            },
+            skills: {
+                "轻武器使用": { "level": "入门", "experience": 0, "maxExp": 100 },
+                "载具驾驶": { "level": "入门", "experience": 0, "maxExp": 100 },
+                "飞机驾驶": { "level": "入门", "experience": 0, "maxExp": 100 },
+                "格斗": { "level": "入门", "experience": 0, "maxExp": 100 },
+                "潜行": { "level": "入门", "experience": 0, "maxExp": 100 },
+                "跟踪": { "level": "入门", "experience": 0, "maxExp": 100 },
+                "反跟踪": { "level": "入门", "experience": 0, "maxExp": 100 },
+                "IT能力": { "level": "入门", "experience": 0, "maxExp": 100 },
+                "解锁能力": { "level": "入门", "experience": 0, "maxExp": 100 },
+                "重武器使用": { "level": "入门", "experience": 0, "maxExp": 100 }
+            },
+            metadata: {
+                createdAt: new Date().toISOString(),
+                lastUpdated: new Date().toISOString(),
+                version: "1.0"
+            }
+        };
+
+        // 新增：技能等级配置
+        this.SKILL_LEVELS = [
+            { "level": "入门", "expRequired": 100 },
+            { "level": "上手", "expRequired": 200 },
+            { "level": "精通", "expRequired": 400 },
+            { "level": "大师", "expRequired": null }
+        ];
+
+        // 新增：默认伪装扩展数据
+        this.DEFAULT_DISGUISE_EXTENSIONS = {
+            disguiseStatus: {
+                "状态": "有效",
+                "风险等级": "中等",
+                "持续时间": "无限制",
+                "使用次数": 1
+            },
+            disguiseCapability: {
+                "身份可信度": "85%",
+                "文件完整性": "完整",
+                "背景故事": "已构建",
+                "识破风险": "中等",
+                "维持难度": "标准"
+            },
+            operationRecord: {
+                "创建方式": "手动配置",
+                "验证状态": "已验证",
+                "有效期限": "无限制",
+                "安全级别": "临时",
+                "访问权限": "受限",
+                "监控状态": "未监控",
+                "备份状态": "已备份",
+                "加密等级": "标准"
+            }
+        };
     }
 
     // 加载缓存设置
